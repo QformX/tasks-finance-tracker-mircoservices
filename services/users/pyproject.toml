@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "users-service"
+version = "0.1.0"
+description = "Users Authentication Service"
+authors = ["Admin <admin@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.109.0"
+uvicorn = "^0.27.0"
+sqlalchemy = "^2.0.25"
+asyncpg = "^0.29.0"
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+bcrypt = "4.0.1"
+pyjwt = "^2.8.0"
+pydantic-settings = "^2.1.0"
+aio-pika = "^9.4.0"
+python-multipart = "^0.0.9"
+alembic = "^1.13.1"
+email-validator = "^2.1.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,152 @@
+version: '3.8'
+
+services:
+  # --- Databases ---
+  postgres-users:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: users_db
+    volumes:
+      - users_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d users_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-core-master:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: core_db
+    volumes:
+      - core_master_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d core_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-core-replica:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: core_db
+    volumes:
+      - core_replica_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d core_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    # Note: In a real setup, this would be configured as a streaming replica of postgres-core-master
+
+  analytics-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: analytics_db
+    volumes:
+      - analytics_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d analytics_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # --- Broker & Cache ---
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "15672:15672" # Management UI
+      - "5672:5672"
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # --- Services ---
+  users-service:
+    build:
+      context: ./services/users
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      DATABASE_URL: postgresql+asyncpg://user:password@postgres-users:5432/users_db
+      RABBITMQ_URL: amqp://user:password@rabbitmq:5672/
+      JWT_SECRET: "supersecretkey" # Change in production
+      JWT_ALGORITHM: "HS256"
+    depends_on:
+      postgres-users:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  core-service:
+    build:
+      context: ./services/core
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      DATABASE_MASTER_URL: postgresql+asyncpg://user:password@postgres-core-master:5432/core_db
+      DATABASE_REPLICA_URL: postgresql+asyncpg://user:password@postgres-core-replica:5432/core_db
+      RABBITMQ_URL: amqp://user:password@rabbitmq:5672/
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: "supersecretkey"
+      JWT_ALGORITHM: "HS256"
+    depends_on:
+      postgres-core-master:
+        condition: service_healthy
+      postgres-core-replica:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  analytics-service:
+    build:
+      context: ./services/analytics
+    entrypoint: ["/entrypoint-with-worker.sh"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://user:password@analytics-db:5432/analytics_db
+      RABBITMQ_URL: amqp://user:password@rabbitmq:5672/
+    depends_on:
+      analytics-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  # --- Gateway ---
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - users-service
+      - core-service
+      - analytics-service
+
+volumes:
+  users_pg_data:
+  core_master_pg_data:
+  core_replica_pg_data:
+  analytics_pg_data:
+
