@@ -10,14 +10,14 @@ import os
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from services.core.database import Base, DATABASE_MASTER_URL
+from services.core.database import Base, DATABASE_URL
 from services.core.models import *  # Import all models
 
 # this is the Alembic Config object
 config = context.config
 
 # Override sqlalchemy.url from environment
-config.set_main_option("sqlalchemy.url", DATABASE_MASTER_URL)
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 # Interpret the config file for Python logging.
 if config.config_file_name is not None:
@@ -47,7 +47,7 @@ def do_run_migrations(connection: Connection) -> None:
 async def run_async_migrations() -> None:
     """Run migrations in 'online' mode."""
     configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = DATABASE_MASTER_URL
+    configuration["sqlalchemy.url"] = DATABASE_URL
     
     connectable = async_engine_from_config(
         configuration,

@@ -16,34 +16,19 @@ services:
       timeout: 5s
       retries: 5
 
-  postgres-core-master:
+  postgres-core:
     image: postgres:15-alpine
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: core_db
     volumes:
-      - core_master_pg_data:/var/lib/postgresql/data
+      - core_pg_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user -d core_db"]
       interval: 5s
       timeout: 5s
       retries: 5
-
-  postgres-core-replica:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: core_db
-    volumes:
-      - core_replica_pg_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d core_db"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    # Note: In a real setup, this would be configured as a streaming replica of postgres-core-master
 
   analytics-db:
     image: postgres:15-alpine
@@ -103,16 +88,13 @@ services:
       context: ./services/core
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     environment:
-      DATABASE_MASTER_URL: postgresql+asyncpg://user:password@postgres-core-master:5432/core_db
-      DATABASE_REPLICA_URL: postgresql+asyncpg://user:password@postgres-core-replica:5432/core_db
+      DATABASE_URL: postgresql+asyncpg://user:password@postgres-core:5432/core_db
       RABBITMQ_URL: amqp://user:password@rabbitmq:5672/
       REDIS_URL: redis://redis:6379/0
       JWT_SECRET: "supersecretkey"
       JWT_ALGORITHM: "HS256"
     depends_on:
-      postgres-core-master:
-        condition: service_healthy
-      postgres-core-replica:
+      postgres-core:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
@@ -146,7 +128,6 @@ services:
 
 volumes:
   users_pg_data:
-  core_master_pg_data:
-  core_replica_pg_data:
+  core_pg_data:
   analytics_pg_data:
 

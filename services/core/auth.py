@@ -1,21 +1,24 @@
-from fastapi import Header, HTTPException
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
+from jwt.exceptions import DecodeError, ExpiredSignatureError, InvalidTokenError
 import os
 import uuid
+
+security = HTTPBearer()
 
 JWT_SECRET = os.getenv("JWT_SECRET", "supersecretkey")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
-async def get_current_user_id(authorization: str = Header(...)) -> uuid.UUID:
+async def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> uuid.UUID:
     """
     Dependency для извлечения user_id из JWT токена
     Используется во всех защищённых эндпоинтах Core Service
+    Валидация происходит только по подписи JWT (без запроса к БД пользователей)
     """
+    token = credentials.credentials
+    
     try:
-        scheme, token = authorization.split()
-        if scheme.lower() != "bearer":
-            raise HTTPException(status_code=401, detail="Invalid authentication scheme")
-        
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         user_id = payload.get("sub")
         
@@ -24,12 +27,13 @@ async def get_current_user_id(authorization: str = Header(...)) -> uuid.UUID:
         
         return uuid.UUID(user_id)
     
-    except jwt.ExpiredSignatureError:
+    except ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.JWTError:
+    except (DecodeError, InvalidTokenError):
         raise HTTPException(status_code=401, detail="Could not validate credentials")
     except ValueError:
-        raise HTTPException(status_code=401, detail="Invalid token format")
-    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid user ID format")
+    except Exception as e:
+        print(f"Auth error: {e}")
         raise HTTPException(status_code=401, detail="Authentication failed")
 
