@@ -71,7 +71,13 @@ services:
   users-service:
     build:
       context: ./services/users
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: >
+      sh -c "cd /app/services/users && 
+             echo 'Running Alembic migrations...' && 
+             alembic upgrade head && 
+             echo 'Starting application...' && 
+             cd /app && 
+             uvicorn services.users.main:app --host 0.0.0.0 --port 8000 --reload"
     environment:
       DATABASE_URL: postgresql+asyncpg://user:password@postgres-users:5432/users_db
       RABBITMQ_URL: amqp://user:password@rabbitmq:5672/
@@ -86,7 +92,13 @@ services:
   core-service:
     build:
       context: ./services/core
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: >
+      sh -c "cd /app/services/core && 
+             echo 'Running Alembic migrations...' && 
+             alembic upgrade head && 
+             echo 'Starting application...' && 
+             cd /app && 
+             uvicorn services.core.main:app --host 0.0.0.0 --port 8000 --reload"
     environment:
       DATABASE_URL: postgresql+asyncpg://user:password@postgres-core:5432/core_db
       RABBITMQ_URL: amqp://user:password@rabbitmq:5672/
@@ -104,7 +116,14 @@ services:
   analytics-service:
     build:
       context: ./services/analytics
-    entrypoint: ["/entrypoint-with-worker.sh"]
+    command: >
+      sh -c "cd /app/services/analytics && 
+             echo 'Running Alembic migrations...' && 
+             alembic upgrade head && 
+             echo 'Starting worker and application...' && 
+             cd /app && 
+             python -m services.analytics.worker & 
+             exec uvicorn services.analytics.main:app --host 0.0.0.0 --port 8000 --reload"
     environment:
       DATABASE_URL: postgresql+asyncpg://user:password@analytics-db:5432/analytics_db
       RABBITMQ_URL: amqp://user:password@rabbitmq:5672/

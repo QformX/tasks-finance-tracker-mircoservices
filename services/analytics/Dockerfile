@@ -24,12 +24,6 @@ RUN poetry install --no-interaction --no-ansi --no-root
 COPY . /app/services/analytics/
 ENV PYTHONPATH=/app
 
-# Copy entrypoint scripts
-COPY entrypoint.sh /entrypoint.sh
-COPY entrypoint-with-worker.sh /entrypoint-with-worker.sh
-RUN chmod +x /entrypoint.sh /entrypoint-with-worker.sh
-
-# Command is overriden in docker-compose, but providing a default
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["uvicorn", "services.analytics.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run migrations and start the application
+CMD ["sh", "-c", "cd /app/services/analytics && echo 'Running Alembic migrations...' && alembic upgrade head && echo 'Starting application...' && cd /app && uvicorn services.analytics.main:app --host 0.0.0.0 --port 8000"]
 

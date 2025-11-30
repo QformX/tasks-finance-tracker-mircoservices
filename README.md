@@ -268,21 +268,17 @@ tasks-finance-tracker-mircoservices/
 │   │   ├── alembic/        # Миграции БД
 │   │   ├── src/            # Исходный код
 │   │   ├── pyproject.toml  # Зависимости Poetry
-│   │   ├── Dockerfile      # Docker образ
-│   │   └── entrypoint.sh   # Точка входа
+│   │   └── Dockerfile      # Docker образ
 │   ├── core/               # Core Service
 │   │   ├── alembic/
 │   │   ├── src/
 │   │   ├── pyproject.toml
-│   │   ├── Dockerfile
-│   │   └── entrypoint.sh
+│   │   └── Dockerfile
 │   └── analytics/          # Analytics Service
 │       ├── alembic/
 │       ├── src/
 │       ├── pyproject.toml
-│       ├── Dockerfile
-│       ├── entrypoint.sh
-│       └── entrypoint-with-worker.sh
+│       └── Dockerfile
 ├── deploy/
 │   └── nginx/
 │       └── nginx.conf      # Конфигурация Nginx

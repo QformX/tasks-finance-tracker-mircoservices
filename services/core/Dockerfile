@@ -26,11 +26,6 @@ COPY . /app/services/core/
 # Main entrypoint needs to be importable
 ENV PYTHONPATH=/app
 
-# Copy entrypoint script
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-# Command
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["uvicorn", "services.core.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run migrations and start the application
+CMD ["sh", "-c", "cd /app/services/core && echo 'Running Alembic migrations...' && alembic upgrade head && echo 'Starting application...' && cd /app && uvicorn services.core.main:app --host 0.0.0.0 --port 8000"]
 

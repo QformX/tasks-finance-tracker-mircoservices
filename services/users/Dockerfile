@@ -24,11 +24,6 @@ RUN poetry install --no-interaction --no-ansi --no-root
 COPY . /app/services/users/
 ENV PYTHONPATH=/app
 
-# Copy entrypoint script
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-# Command
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["uvicorn", "services.users.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run migrations and start the application
+CMD ["sh", "-c", "cd /app/services/users && echo 'Running Alembic migrations...' && alembic upgrade head && echo 'Starting application...' && cd /app && uvicorn services.users.main:app --host 0.0.0.0 --port 8000"]
 
