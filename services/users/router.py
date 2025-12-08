@@ -6,6 +6,11 @@ from datetime import datetime, timedelta, timezone
 import uuid
 import jwt
 from typing import List
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 from services.users.database import get_session
 from services.users.models import User, UserSession
@@ -62,7 +67,8 @@ async def get_current_user(
 
 # ===== Endpoints =====
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register(user_in: UserCreate, session: AsyncSession = Depends(get_session)):
+@limiter.limit("5/hour")
+async def register(request: Request, user_in: UserCreate, session: AsyncSession = Depends(get_session)):
     """
     Регистрация нового пользователя
     - Принимает: username, email, password
@@ -102,9 +108,10 @@ async def register(user_in: UserCreate, session: AsyncSession = Depends(get_sess
     return new_user
 
 @router.post("/login", response_model=Token)
+@limiter.limit("10/minute")
 async def login(
-    credentials: UserLogin, 
     request: Request,
+    credentials: UserLogin, 
     session: AsyncSession = Depends(get_session)
 ):
     """
@@ -199,9 +206,10 @@ async def delete_current_user(
     return None
 
 @router.post("/refresh", response_model=Token)
+@limiter.limit("20/minute")
 async def refresh_token(
-    refresh_token: str,
     request: Request,
+    refresh_token: str,
     session: AsyncSession = Depends(get_session)
 ):
     """

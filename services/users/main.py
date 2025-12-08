@@ -1,8 +1,14 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from services.users.router import router
 from services.users.events import mq_client
 from services.users.database import init_db
+
+# Rate limiter configuration
+limiter = Limiter(key_func=get_remote_address)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -22,6 +28,10 @@ app = FastAPI(
     openapi_url="/openapi.json",
     description="Сервис аутентификации и управления пользователями"
 )
+
+# Add rate limiter to app state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.include_router(router)
 
