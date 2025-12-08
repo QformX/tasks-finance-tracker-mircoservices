@@ -3,10 +3,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 from datetime import datetime, timedelta
 from typing import Dict, List
+import uuid
 
 from services.analytics.database import get_session
 from services.analytics.models import AnalyticsEvent
 from services.analytics.schemas import DashboardStats, PeriodType
+from services.analytics.auth import get_current_user_id
 
 app = FastAPI(
     title="Analytics Service",
@@ -19,11 +21,13 @@ app = FastAPI(
 @app.get("/dashboard", response_model=DashboardStats)
 async def get_dashboard_stats(
     period: PeriodType = Query(PeriodType.week, description="Период для статистики"),
+    user_id: uuid.UUID = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_session)
 ):
     """
-    Получение статистики для дашборда
-    - Агрегация событий из Analytics DB (OLAP)
+    Получение статистики для дашборда текущего пользователя
+    - Требуется Bearer токен аутентификации
+    - Агрегация событий из Analytics DB (OLAP) только для текущего пользователя
     - Поддержка периодов: week, month, year
     - Группировка по дням для графиков
     """
@@ -38,15 +42,21 @@ async def get_dashboard_stats(
     else:
         start_date = now - timedelta(days=7)
     
-    # Query total events
+    # Query total events for current user
     stmt_total = select(func.count(AnalyticsEvent.id)).where(
-        AnalyticsEvent.created_at >= start_date
+        and_(
+            AnalyticsEvent.user_id == user_id,
+            AnalyticsEvent.created_at >= start_date
+        )
     )
     total_events = await session.scalar(stmt_total) or 0
     
-    # Query events by type
+    # Query events by type for current user
     stmt_events = select(AnalyticsEvent).where(
-        AnalyticsEvent.created_at >= start_date
+        and_(
+            AnalyticsEvent.user_id == user_id,
+            AnalyticsEvent.created_at >= start_date
+        )
     )
     result = await session.execute(stmt_events)
     events = result.scalars().all()
@@ -110,9 +120,14 @@ async def get_dashboard_stats(
     )
 
 @app.get("/events/count")
-async def get_events_count(session: AsyncSession = Depends(get_session)):
-    """Получение общего количества событий (для мониторинга)"""
-    stmt = select(func.count(AnalyticsEvent.id))
+async def get_events_count(
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_session)
+):
+    """Получение общего количества событий текущего пользователя"""
+    stmt = select(func.count(AnalyticsEvent.id)).where(
+        AnalyticsEvent.user_id == user_id
+    )
     result = await session.execute(stmt)
     count = result.scalar()
     return {"total_events": count}
@@ -120,10 +135,13 @@ async def get_events_count(session: AsyncSession = Depends(get_session)):
 @app.get("/events/recent")
 async def get_recent_events(
     limit: int = Query(10, ge=1, le=100),
+    user_id: uuid.UUID = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_session)
 ):
-    """Получение последних событий"""
-    stmt = select(AnalyticsEvent).order_by(
+    """Получение последних событий текущего пользователя"""
+    stmt = select(AnalyticsEvent).where(
+        AnalyticsEvent.user_id == user_id
+    ).order_by(
         AnalyticsEvent.created_at.desc()
     ).limit(limit)
     

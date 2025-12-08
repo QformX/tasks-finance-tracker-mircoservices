@@ -169,6 +169,58 @@ async def create_task(
     
     return new_task
 
+@router.post("/{task_id}/toggle", response_model=TaskResponse)
+async def toggle_task(
+    task_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db_master)  # WRITE to MASTER
+):
+    """
+    Переключение статуса задачи (completed/uncompleted)
+    - CQRS: WRITE to Master DB
+    - Инвалидация кэша
+    - Отправка события TaskCompleted (если задача была завершена)
+    """
+    # 1. Get task
+    task = await session.get(Task, task_id)
+    if not task or task.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    
+    # 2. Toggle is_completed
+    was_completed_before = task.is_completed
+    task.is_completed = not task.is_completed
+    
+    await session.commit()
+    await session.refresh(task)
+    
+    # 3. Invalidate cache
+    try:
+        pattern = f"user:{user_id}:tasks:*"
+        async for key in redis_client.scan_iter(match=pattern):
+            await redis_client.delete(key)
+    except Exception as e:
+        print(f"Failed to invalidate cache: {e}")
+    
+    # 4. Send to RabbitMQ (if task was completed)
+    if not was_completed_before and task.is_completed:
+        async def send_event():
+            try:
+                event = {
+                    "event_type": "TaskCompleted",
+                    "task_id": str(task.id),
+                    "user_id": str(user_id),
+                    "title": task.title,
+                    "completed_at": datetime.utcnow().isoformat()
+                }
+                await mq_client.publish(routing_key="core.task.completed", message=event)
+            except Exception as e:
+                print(f"Failed to publish event: {e}")
+        
+        background_tasks.add_task(send_event)
+    
+    return task
+
 @router.patch("/{task_id}", response_model=TaskResponse)
 async def update_task(
     task_id: uuid.UUID,
@@ -178,10 +230,10 @@ async def update_task(
     session: AsyncSession = Depends(get_db_master)  # WRITE to MASTER
 ):
     """
-    Обновление задачи
+    Обновление задачи (частичное или полное)
     - CQRS: WRITE to Master DB
     - Инвалидация кэша
-    - Отправка события TaskCompleted (если is_completed=True)
+    - Отправка события TaskCompleted (если is_completed изменилось на True)
     """
     # 1. Get task
     task = await session.get(Task, task_id)
@@ -194,9 +246,9 @@ async def update_task(
     
     if update_data:
         for field, value in update_data.items():
-            setattr(task, field, value)
             if field == "is_completed" and value is True and not task.is_completed:
                 was_completed_now = True
+            setattr(task, field, value)
         
         await session.commit()
         await session.refresh(task)
@@ -209,7 +261,7 @@ async def update_task(
     except Exception as e:
         print(f"Failed to invalidate cache: {e}")
     
-    # 4. TODO: Send to RabbitMQ (if task was completed)
+    # 4. Send to RabbitMQ (if task was completed)
     if was_completed_now:
         async def send_event():
             try:

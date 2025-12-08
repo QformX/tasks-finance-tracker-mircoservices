@@ -84,7 +84,7 @@ async def create_purchase(
     
     return new_purchase
 
-@router.patch("/{purchase_id}/toggle", response_model=PurchaseResponse)
+@router.post("/{purchase_id}/toggle", response_model=PurchaseResponse)
 async def toggle_purchase(
     purchase_id: uuid.UUID,
     background_tasks: BackgroundTasks,
@@ -133,21 +133,66 @@ async def toggle_purchase(
 async def update_purchase(
     purchase_id: uuid.UUID,
     purchase_update: PurchaseUpdate,
+    background_tasks: BackgroundTasks,
     user_id: uuid.UUID = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_db_master)  # WRITE to MASTER
 ):
-    """Обновление покупки"""
+    """
+    Обновление покупки (частичное или полное)
+    - CQRS: WRITE to Master DB
+    - Отправка события PurchaseCompleted (если is_bought изменилось на True)
+    """
     purchase = await session.get(Purchase, purchase_id)
     if not purchase or purchase.user_id != user_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Purchase not found")
     
     update_data = purchase_update.model_dump(exclude_unset=True)
+    was_bought_now = False
+    
     if update_data:
         for field, value in update_data.items():
+            if field == "is_bought" and value is True and not purchase.is_bought:
+                was_bought_now = True
             setattr(purchase, field, value)
         
         await session.commit()
         await session.refresh(purchase)
     
+    # Send to RabbitMQ (if purchase was just bought)
+    if was_bought_now:
+        async def send_event():
+            try:
+                event = {
+                    "event_type": "PurchaseCompleted",
+                    "purchase_id": str(purchase.id),
+                    "user_id": str(user_id),
+                    "title": purchase.title,
+                    "cost": purchase.cost,
+                    "quantity": purchase.quantity,
+                    "total_cost": (purchase.cost or 0) * purchase.quantity,
+                    "completed_at": datetime.utcnow().isoformat()
+                }
+                await mq_client.publish(routing_key="core.purchase.completed", message=event)
+            except Exception as e:
+                print(f"Failed to publish event: {e}")
+        
+        background_tasks.add_task(send_event)
+    
     return purchase
+
+@router.delete("/{purchase_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_purchase(
+    purchase_id: uuid.UUID,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db_master)  # WRITE to MASTER
+):
+    """Удаление покупки"""
+    purchase = await session.get(Purchase, purchase_id)
+    if not purchase or purchase.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Purchase not found")
+    
+    await session.delete(purchase)
+    await session.commit()
+    
+    return None
 

@@ -91,14 +91,22 @@ curl -X GET "http://localhost/api/tasks/?filter=today" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-**Обновление задачи (пометить как выполненную):**
+**Обновить задачу (частично или полностью):**
 ```bash
 curl -X PATCH http://localhost/api/tasks/TASK_UUID \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "is_completed": true
+    "title": "Обновленное название",
+    "is_completed": true,
+    "due_date": "2025-12-15"
   }'
+```
+
+**Переключить статус задачи (completed ↔ uncompleted):**
+```bash
+curl -X POST http://localhost/api/tasks/TASK_UUID/toggle \
+  -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 **Создание покупки:**
@@ -114,9 +122,21 @@ curl -X POST http://localhost/api/purchases/ \
   }'
 ```
 
-**Переключить статус покупки:**
+**Обновить покупку (частично или полностью):**
 ```bash
-curl -X PATCH http://localhost/api/purchases/PURCHASE_UUID/toggle \
+curl -X PATCH http://localhost/api/purchases/PURCHASE_UUID \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Молоко обезжиренное",
+    "cost": 160.00,
+    "is_bought": true
+  }'
+```
+
+**Переключить статус покупки (bought ↔ unbought):**
+```bash
+curl -X POST http://localhost/api/purchases/PURCHASE_UUID/toggle \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 

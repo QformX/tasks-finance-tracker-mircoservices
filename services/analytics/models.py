@@ -9,6 +9,7 @@ class AnalyticsEvent(Base):
     __tablename__ = "analytics_events"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
     event_type: Mapped[str] = mapped_column(String, index=True)
     payload: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
