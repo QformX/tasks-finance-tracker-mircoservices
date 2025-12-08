@@ -24,5 +24,15 @@ class UserResponse(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
-    refresh_token: Optional[str] = None
+    refresh_token: str
+
+class UserSessionResponse(BaseModel):
+    id: uuid.UUID
+    user_agent: Optional[str]
+    ip_address: Optional[str]
+    created_at: datetime
+    expires_at: datetime
+    is_current: bool = False
+
+    model_config = ConfigDict(from_attributes=True)
 

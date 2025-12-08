@@ -1,14 +1,25 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
-from datetime import datetime, timedelta
+from sqlalchemy import select, update, delete
+from datetime import datetime, timedelta, timezone
 import uuid
+import jwt
+from typing import List
 
 from services.users.database import get_session
-from services.users.models import User
-from services.users.auth import get_password_hash, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
-from services.users.schemas import UserCreate, UserLogin, UserResponse, Token
+from services.users.models import User, UserSession
+from services.users.auth import (
+    get_password_hash, 
+    verify_password, 
+    create_access_token, 
+    create_refresh_token,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    REFRESH_TOKEN_EXPIRE_DAYS,
+    JWT_SECRET,
+    JWT_ALGORITHM
+)
+from services.users.schemas import UserCreate, UserLogin, UserResponse, Token, UserSessionResponse
 from services.users.events import mq_client
 
 router = APIRouter()
@@ -93,13 +104,15 @@ async def register(user_in: UserCreate, session: AsyncSession = Depends(get_sess
 @router.post("/login", response_model=Token)
 async def login(
     credentials: UserLogin, 
+    request: Request,
     session: AsyncSession = Depends(get_session)
 ):
     """
     Аутентификация пользователя
     - Принимает в теле запроса: email и password
     - Проверка email/password
-    - Генерация JWT Access Token
+    - Генерация JWT Access Token и Refresh Token
+    - Создание сессии
     """
     # Find user by email
     stmt = select(User).where(User.email == credentials.email)
@@ -120,14 +133,34 @@ async def login(
             detail="User account is inactive"
         )
     
+    # Create refresh token and session
+    refresh_token = create_refresh_token()
+    user_agent = request.headers.get("user-agent")
+    ip_address = request.client.host if request.client else None
+    
+    new_session = UserSession(
+        user_id=user.id,
+        refresh_token=refresh_token,
+        user_agent=user_agent,
+        ip_address=ip_address,
+        expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    )
+    session.add(new_session)
+    await session.commit()
+    await session.refresh(new_session)
+
     # Create access token
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": str(user.id)}, 
+        data={"sub": str(user.id), "sid": str(new_session.id)}, 
         expires_delta=access_token_expires
     )
     
-    return Token(access_token=access_token, token_type="bearer")
+    return Token(
+        access_token=access_token, 
+        token_type="bearer",
+        refresh_token=refresh_token
+    )
 
 @router.get("/users/me", response_model=UserResponse)
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
@@ -162,5 +195,147 @@ async def delete_current_user(
         await mq_client.publish(routing_key="users.deleted", message=event)
     except Exception as e:
         print(f"Failed to publish UserDeleted event: {e}")
+    
+    return None
+
+@router.post("/refresh", response_model=Token)
+async def refresh_token(
+    refresh_token: str,
+    request: Request,
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Обновление Access Token с помощью Refresh Token
+    - Проверка валидности Refresh Token
+    - Проверка срока действия
+    - Выдача новой пары токенов (Refresh Token Rotation)
+    """
+    stmt = select(UserSession).where(
+        UserSession.refresh_token == refresh_token,
+        UserSession.is_revoked == False,
+        UserSession.expires_at > datetime.now(timezone.utc)
+    )
+    result = await session.execute(stmt)
+    user_session = result.scalar()
+
+    if not user_session:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token"
+        )
+
+    # Get user
+    user = await session.get(User, user_session.user_id)
+    if not user or not user.is_active:
+        raise HTTPException(status_code=401, detail="User not found or inactive")
+
+    # Revoke old session (Refresh Token Rotation)
+    user_session.is_revoked = True
+    
+    # Create new session
+    new_refresh_token = create_refresh_token()
+    user_agent = request.headers.get("user-agent")
+    ip_address = request.client.host if request.client else None
+
+    new_session = UserSession(
+        user_id=user.id,
+        refresh_token=new_refresh_token,
+        user_agent=user_agent,
+        ip_address=ip_address,
+        expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    )
+    session.add(new_session)
+    await session.commit()
+    await session.refresh(new_session)
+
+    # Create new access token
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": str(user.id), "sid": str(new_session.id)}, 
+        expires_delta=access_token_expires
+    )
+
+    return Token(
+        access_token=access_token,
+        token_type="bearer",
+        refresh_token=new_refresh_token
+    )
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(
+    refresh_token: str,
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Выход из системы (отзыв Refresh Token)
+    """
+    stmt = select(UserSession).where(UserSession.refresh_token == refresh_token)
+    result = await session.execute(stmt)
+    user_session = result.scalar()
+
+    if user_session:
+        user_session.is_revoked = True
+        await session.commit()
+    
+    return None
+
+@router.get("/sessions", response_model=List[UserSessionResponse])
+async def get_active_sessions(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Получение списка активных сессий пользователя
+    """
+    # Get current session ID from token
+    token = credentials.credentials
+    current_session_id = None
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        current_session_id = payload.get("sid")
+    except:
+        pass
+
+    stmt = select(UserSession).where(
+        UserSession.user_id == current_user.id,
+        UserSession.is_revoked == False,
+        UserSession.expires_at > datetime.now(timezone.utc)
+    ).order_by(UserSession.created_at.desc())
+    
+    result = await session.execute(stmt)
+    sessions = result.scalars().all()
+    
+    # Mark current session
+    response = []
+    for s in sessions:
+        s_resp = UserSessionResponse.model_validate(s)
+        if current_session_id and str(s.id) == current_session_id:
+            s_resp.is_current = True
+        response.append(s_resp)
+    
+    return response
+
+@router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def revoke_session(
+    session_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Принудительное завершение сессии (отзыв токена)
+    """
+    stmt = select(UserSession).where(
+        UserSession.id == session_id,
+        UserSession.user_id == current_user.id
+    )
+    result = await session.execute(stmt)
+    user_session = result.scalar()
+
+    if not user_session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    user_session.is_revoked = True
+    await session.commit()
     
     return None
