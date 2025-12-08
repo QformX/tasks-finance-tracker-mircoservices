@@ -15,21 +15,33 @@ router = APIRouter(prefix="/purchases", tags=["purchases"])
 
 @router.get("/", response_model=List[PurchaseResponse])
 async def get_purchases(
-    category_id: Optional[uuid.UUID] = Query(None),
-    is_bought: bool = Query(False),
+    category_id: Optional[uuid.UUID] = Query(None, description="Фильтр по категории (если не указан - все покупки)"),
+    is_bought: bool = Query(False, description="Показать купленные покупки"),
+    without_category: bool = Query(False, description="Показать только покупки БЕЗ категории"),
     user_id: uuid.UUID = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_db_replica)  # READ from REPLICA
 ):
     """
-    Получение списка покупок
+    Получение списка покупок с фильтрацией
     - CQRS: READ from Replica DB
+    
+    Примеры использования:
+    - GET /api/purchases/ → все невыкупленные покупки всех категорий
+    - GET /api/purchases/?category_id=uuid → покупки конкретной категории
+    - GET /api/purchases/?without_category=true → покупки БЕЗ категории
+    - GET /api/purchases/?is_bought=true → купленные покупки
     """
     stmt = select(Purchase).where(
         Purchase.user_id == user_id,
         Purchase.is_bought == is_bought
     )
     
-    if category_id:
+    # Фильтр по категории
+    if without_category:
+        # Покупки БЕЗ категории
+        stmt = stmt.where(Purchase.category_id.is_(None))
+    elif category_id:
+        # Покупки конкретной категории
         stmt = stmt.where(Purchase.category_id == category_id)
     
     stmt = stmt.order_by(Purchase.id.desc())

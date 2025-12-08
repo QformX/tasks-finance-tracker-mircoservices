@@ -29,7 +29,7 @@ def _generate_cache_key(user_id: uuid.UUID, **params) -> str:
 
 @router.get("/", response_model=List[TaskResponse])
 async def get_tasks(
-    category_id: Optional[uuid.UUID] = Query(None, description="Фильтр по категории"),
+    category_id: Optional[uuid.UUID] = Query(None, description="Фильтр по категории (если не указан - все задачи)"),
     filter: Optional[FilterType] = Query(None, description="Быстрый фильтр: today/overdue/inbox"),
     is_completed: bool = Query(False, description="Показать завершённые задачи"),
     user_id: uuid.UUID = Depends(get_current_user_id),
@@ -40,6 +40,14 @@ async def get_tasks(
     - CQRS: READ from Replica DB
     - Кэширование в Redis (TTL 60s)
     - Поддержка быстрых фильтров (today, overdue, inbox)
+    
+    Примеры использования:
+    - GET /api/tasks/ → все незавершённые задачи всех категорий
+    - GET /api/tasks/?category_id=uuid → задачи конкретной категории
+    - GET /api/tasks/?filter=inbox → задачи БЕЗ категории
+    - GET /api/tasks/?filter=today → задачи на сегодня
+    - GET /api/tasks/?filter=overdue → просроченные задачи
+    - GET /api/tasks/?is_completed=true → завершённые задачи
     """
     # Generate cache key
     cache_params = {
