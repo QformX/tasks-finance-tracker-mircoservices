@@ -49,7 +49,7 @@ async def create_purchase(
     """
     Создание новой покупки
     - CQRS: WRITE to Master DB
-    - Отправка события PurchaseCreated
+    - Отправка события PurchaseCreated (в фоне, не блокирует ответ)
     """
     new_purchase = Purchase(
         user_id=user_id,
@@ -64,7 +64,7 @@ async def create_purchase(
     await session.commit()
     await session.refresh(new_purchase)
     
-    # TODO: Send to RabbitMQ
+    # Send to RabbitMQ in background (не блокирует ответ клиенту)
     async def send_event():
         try:
             event = {

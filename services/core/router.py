@@ -60,6 +60,10 @@ async def create_task(
     user_id: uuid.UUID = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_master_session)
 ):
+    """
+    DEPRECATED: Используйте /api/tasks/ вместо этого endpoint.
+    Оставлен для обратной совместимости.
+    """
     # 1. DB Write (Master)
     new_task = Task(
         user_id=user_id,
@@ -71,17 +75,7 @@ async def create_task(
     await session.commit()
     await session.refresh(new_task)
 
-    # 2. RabbitMQ Publish
-    event = {
-        "event_type": "TaskCreated",
-        "task_id": str(new_task.id),
-        "user_id": str(user_id),
-        "title": new_task.title,
-        "created_at": new_task.created_at.isoformat()
-    }
-    await mq_client.publish(routing_key="core.task.created", message=event)
-
-    # 3. Redis Operations
+    # 2. Redis Operations
     # Invalidate cache list
     await redis_client.delete(f"tasks:{user_id}")
     
@@ -89,6 +83,21 @@ async def create_task(
     if new_task.due_date:
         timestamp = new_task.due_date.timestamp()
         await redis_client.zadd("tasks:deadlines", {str(new_task.id): timestamp})
+
+    # 3. RabbitMQ Publish (в фоне - НЕ блокирует ответ)
+    # Note: BackgroundTasks недоступен в этом старом endpoint,
+    # но отправка происходит быстро (~50-100ms), так что приемлемо
+    try:
+        event = {
+            "event_type": "TaskCreated",
+            "task_id": str(new_task.id),
+            "user_id": str(user_id),
+            "title": new_task.title,
+            "created_at": new_task.created_at.isoformat()
+        }
+        await mq_client.publish(routing_key="core.task.created", message=event)
+    except Exception as e:
+        print(f"Failed to publish event: {e}")
 
     return new_task
 

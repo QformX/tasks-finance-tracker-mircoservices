@@ -115,7 +115,7 @@ async def create_task(
     - CQRS: WRITE to Master DB
     - Добавление напоминания в Redis Sorted Set (если есть due_date)
     - Инвалидация кэша списков
-    - Отправка события TaskCreated в RabbitMQ
+    - Отправка события TaskCreated в RabbitMQ (в фоне, не блокирует ответ)
     """
     # 1. Insert to Master DB
     new_task = Task(
@@ -135,21 +135,18 @@ async def create_task(
         try:
             timestamp = new_task.due_date.timestamp()
             await redis_client.zadd("tasks:deadlines", {str(new_task.id): timestamp})
-            print(f"Added task {new_task.id} to reminders with timestamp {timestamp}")
         except Exception as e:
             print(f"Failed to add reminder: {e}")
     
     # 3. Invalidate cache (delete all task lists for this user)
     try:
-        # Используем pattern matching для удаления всех кэшей задач пользователя
         pattern = f"user:{user_id}:tasks:*"
         async for key in redis_client.scan_iter(match=pattern):
             await redis_client.delete(key)
-        print(f"Invalidated cache for pattern: {pattern}")
     except Exception as e:
         print(f"Failed to invalidate cache: {e}")
     
-    # 4. TODO: Send to RabbitMQ
+    # 4. Send to RabbitMQ in background (не блокирует ответ клиенту)
     async def send_event():
         try:
             event = {
@@ -166,6 +163,7 @@ async def create_task(
             print(f"Failed to publish event: {e}")
     
     background_tasks.add_task(send_event)
+    
     
     return new_task
 
