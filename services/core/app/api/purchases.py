@@ -5,31 +5,24 @@ from typing import List, Optional
 import uuid
 from datetime import datetime
 
-from services.core.database import get_db_master, get_db_replica
-from services.core.models import Purchase
-from services.core.schemas import PurchaseCreate, PurchaseUpdate, PurchaseResponse
-from services.core.events import mq_client
-from services.core.auth import get_current_user_id
+from app.core.database import get_session
+from app.models import Purchase
+from app.schemas import PurchaseCreate, PurchaseUpdate, PurchaseResponse
+from app.core.events import mq_client
+from app.core.auth import get_current_user_id
 
 router = APIRouter(prefix="/purchases", tags=["purchases"])
 
 @router.get("/", response_model=List[PurchaseResponse])
 async def get_purchases(
-    category_id: Optional[uuid.UUID] = Query(None, description="Фильтр по категории (если не указан - все покупки)"),
+    category_id: Optional[uuid.UUID] = Query(None, description="Фильтр по категории"),
     is_bought: bool = Query(False, description="Показать купленные покупки"),
     without_category: bool = Query(False, description="Показать только покупки БЕЗ категории"),
     user_id: uuid.UUID = Depends(get_current_user_id),
-    session: AsyncSession = Depends(get_db_replica)  # READ from REPLICA
+    session: AsyncSession = Depends(get_session)
 ):
     """
     Получение списка покупок с фильтрацией
-    - CQRS: READ from Replica DB
-    
-    Примеры использования:
-    - GET /api/purchases/ → все невыкупленные покупки всех категорий
-    - GET /api/purchases/?category_id=uuid → покупки конкретной категории
-    - GET /api/purchases/?without_category=true → покупки БЕЗ категории
-    - GET /api/purchases/?is_bought=true → купленные покупки
     """
     stmt = select(Purchase).where(
         Purchase.user_id == user_id,
@@ -38,10 +31,8 @@ async def get_purchases(
     
     # Фильтр по категории
     if without_category:
-        # Покупки БЕЗ категории
         stmt = stmt.where(Purchase.category_id.is_(None))
     elif category_id:
-        # Покупки конкретной категории
         stmt = stmt.where(Purchase.category_id == category_id)
     
     stmt = stmt.order_by(Purchase.id.desc())
@@ -56,12 +47,11 @@ async def create_purchase(
     purchase_in: PurchaseCreate,
     background_tasks: BackgroundTasks,
     user_id: uuid.UUID = Depends(get_current_user_id),
-    session: AsyncSession = Depends(get_db_master)  # WRITE to MASTER
+    session: AsyncSession = Depends(get_session)
 ):
     """
     Создание новой покупки
-    - CQRS: WRITE to Master DB
-    - Отправка события PurchaseCreated (в фоне, не блокирует ответ)
+    - Отправка события PurchaseCreated
     """
     new_purchase = Purchase(
         user_id=user_id,
@@ -76,7 +66,7 @@ async def create_purchase(
     await session.commit()
     await session.refresh(new_purchase)
     
-    # Send to RabbitMQ in background (не блокирует ответ клиенту)
+    # Send to RabbitMQ in background
     async def send_event():
         try:
             event = {
@@ -101,11 +91,10 @@ async def toggle_purchase(
     purchase_id: uuid.UUID,
     background_tasks: BackgroundTasks,
     user_id: uuid.UUID = Depends(get_current_user_id),
-    session: AsyncSession = Depends(get_db_master)  # WRITE to MASTER
+    session: AsyncSession = Depends(get_session)
 ):
     """
     Переключение статуса покупки (куплено/не куплено)
-    - CQRS: WRITE to Master DB
     - Отправка события PurchaseCompleted (если стало is_bought=True)
     """
     purchase = await session.get(Purchase, purchase_id)
@@ -119,7 +108,7 @@ async def toggle_purchase(
     await session.commit()
     await session.refresh(purchase)
     
-    # TODO: Send to RabbitMQ (if purchase was just bought)
+    # Send to RabbitMQ (if purchase was just bought)
     if not old_status and purchase.is_bought:
         async def send_event():
             try:
@@ -147,11 +136,10 @@ async def update_purchase(
     purchase_update: PurchaseUpdate,
     background_tasks: BackgroundTasks,
     user_id: uuid.UUID = Depends(get_current_user_id),
-    session: AsyncSession = Depends(get_db_master)  # WRITE to MASTER
+    session: AsyncSession = Depends(get_session)
 ):
     """
     Обновление покупки (частичное или полное)
-    - CQRS: WRITE to Master DB
     - Отправка события PurchaseCompleted (если is_bought изменилось на True)
     """
     purchase = await session.get(Purchase, purchase_id)
@@ -196,7 +184,7 @@ async def update_purchase(
 async def delete_purchase(
     purchase_id: uuid.UUID,
     user_id: uuid.UUID = Depends(get_current_user_id),
-    session: AsyncSession = Depends(get_db_master)  # WRITE to MASTER
+    session: AsyncSession = Depends(get_session)
 ):
     """Удаление покупки"""
     purchase = await session.get(Purchase, purchase_id)
@@ -207,4 +195,3 @@ async def delete_purchase(
     await session.commit()
     
     return None
-

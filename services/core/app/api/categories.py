@@ -3,32 +3,29 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List, Optional
 import uuid
-import json
 import redis.asyncio as redis
-import os
 from datetime import datetime
 
-from services.core.database import get_db_master, get_db_replica
-from services.core.models import Category
-from services.core.schemas import CategoryCreate, CategoryResponse, CategoryType
-from services.core.events import mq_client
-from services.core.auth import get_current_user_id
+from app.core.database import get_session
+from app.core.config import settings
+from app.models import Category
+from app.schemas import CategoryCreate, CategoryResponse, CategoryType
+from app.core.events import mq_client
+from app.core.auth import get_current_user_id
 
 router = APIRouter(prefix="/categories", tags=["categories"])
 
 # Redis client
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+redis_client = redis.from_url(settings.redis_url, decode_responses=True)
 
 @router.get("/", response_model=List[CategoryResponse])
 async def get_categories(
     type: Optional[CategoryType] = None,
     user_id: uuid.UUID = Depends(get_current_user_id),
-    session: AsyncSession = Depends(get_db_replica)  # READ from REPLICA
+    session: AsyncSession = Depends(get_session)
 ):
     """
     Получение списка категорий пользователя
-    - CQRS: READ from Replica DB
     - Фильтрация по типу (опционально)
     """
     stmt = select(Category).where(Category.user_id == user_id)
@@ -46,15 +43,14 @@ async def create_category(
     category_in: CategoryCreate,
     background_tasks: BackgroundTasks,
     user_id: uuid.UUID = Depends(get_current_user_id),
-    session: AsyncSession = Depends(get_db_master)  # WRITE to MASTER
+    session: AsyncSession = Depends(get_session)
 ):
     """
     Создание новой категории
-    - CQRS: WRITE to Master DB
     - Инвалидация кэша
     - Отправка события в RabbitMQ
     """
-    # Create category in Master DB
+    # Create category
     new_category = Category(
         user_id=user_id,
         title=category_in.title,
@@ -71,7 +67,7 @@ async def create_category(
     except Exception as e:
         print(f"Failed to invalidate cache: {e}")
     
-    # TODO: Send to RabbitMQ (background task)
+    # Send event to RabbitMQ
     async def send_event():
         try:
             event = {
@@ -89,4 +85,3 @@ async def create_category(
     background_tasks.add_task(send_event)
     
     return new_category
-

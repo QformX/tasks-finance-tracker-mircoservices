@@ -1,13 +1,13 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from services.core.events import mq_client
-from services.core.database import init_db
+from app.core.events import mq_client
+from app.core.database import init_db
 
 # Import all routers
-from services.core.api_categories import router as categories_router
-from services.core.api_tasks import router as tasks_router
-from services.core.api_purchases import router as purchases_router
-from services.core.api_smart_views import router as smart_views_router
+from app.api.categories import router as categories_router
+from app.api.tasks import router as tasks_router
+from app.api.purchases import router as purchases_router
+from app.api.smart_views import router as smart_views_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_, and_
-from typing import List, Dict, Any, Union
+from sqlalchemy import select
+from typing import List, Union
 import uuid
+from datetime import datetime
 
-from services.core.database import get_db_master, get_db_replica
-from services.core.models import SmartView, Task, Purchase
-from services.core.schemas import SmartViewCreate, SmartViewResponse, TaskResponse, PurchaseResponse
-from services.core.auth import get_current_user_id
+from app.core.database import get_session
+from app.models import SmartView, Task, Purchase
+from app.schemas import SmartViewCreate, SmartViewResponse, TaskResponse, PurchaseResponse
+from app.core.auth import get_current_user_id
 
 router = APIRouter(prefix="/smart-views", tags=["smart-views"])
 
@@ -15,7 +16,7 @@ router = APIRouter(prefix="/smart-views", tags=["smart-views"])
 async def create_smart_view(
     view_in: SmartViewCreate,
     user_id: uuid.UUID = Depends(get_current_user_id),
-    session: AsyncSession = Depends(get_db_master)  # WRITE to MASTER
+    session: AsyncSession = Depends(get_session)
 ):
     """
     Создание умного фильтра
@@ -45,7 +46,7 @@ async def create_smart_view(
 @router.get("/", response_model=List[SmartViewResponse])
 async def get_smart_views(
     user_id: uuid.UUID = Depends(get_current_user_id),
-    session: AsyncSession = Depends(get_db_replica)  # READ from REPLICA
+    session: AsyncSession = Depends(get_session)
 ):
     """Получение списка умных фильтров пользователя"""
     stmt = select(SmartView).where(SmartView.user_id == user_id)
@@ -58,14 +59,13 @@ async def get_smart_views(
 async def get_smart_view_items(
     view_id: uuid.UUID,
     user_id: uuid.UUID = Depends(get_current_user_id),
-    session: AsyncSession = Depends(get_db_replica)  # READ from REPLICA
+    session: AsyncSession = Depends(get_session)
 ):
     """
     Получение элементов по умному фильтру
     - Динамический Query Builder на основе JSON правил
-    - Выполнение запроса к Replica DB
     """
-    # 1. Get SmartView
+    # Get SmartView
     view = await session.get(SmartView, view_id)
     if not view or view.user_id != user_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Smart view not found")
@@ -74,7 +74,7 @@ async def get_smart_view_items(
     view_type = rules.get("type", "tasks")  # "tasks" or "purchases"
     filters = rules.get("filters", {})
     
-    # 2. Build dynamic query based on type
+    # Build dynamic query based on type
     if view_type == "tasks":
         stmt = select(Task).where(Task.user_id == user_id)
         
@@ -90,7 +90,6 @@ async def get_smart_view_items(
                 pass
         
         if "due_date_from" in filters:
-            from datetime import datetime
             try:
                 date_from = datetime.fromisoformat(filters["due_date_from"])
                 stmt = stmt.where(Task.due_date >= date_from)
@@ -98,7 +97,6 @@ async def get_smart_view_items(
                 pass
         
         if "due_date_to" in filters:
-            from datetime import datetime
             try:
                 date_to = datetime.fromisoformat(filters["due_date_to"])
                 stmt = stmt.where(Task.due_date <= date_to)
@@ -132,7 +130,7 @@ async def get_smart_view_items(
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid view type")
     
-    # 3. Execute query
+    # Execute query
     result = await session.execute(stmt)
     items = result.scalars().all()
     
@@ -142,7 +140,7 @@ async def get_smart_view_items(
 async def delete_smart_view(
     view_id: uuid.UUID,
     user_id: uuid.UUID = Depends(get_current_user_id),
-    session: AsyncSession = Depends(get_db_master)  # WRITE to MASTER
+    session: AsyncSession = Depends(get_session)
 ):
     """Удаление умного фильтра"""
     view = await session.get(SmartView, view_id)
@@ -153,4 +151,3 @@ async def delete_smart_view(
     await session.commit()
     
     return None
-

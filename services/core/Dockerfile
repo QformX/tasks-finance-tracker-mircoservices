@@ -13,19 +13,17 @@ RUN pip install poetry
 
 # Copy project files
 COPY pyproject.toml .
-# No poetry.lock yet, so skipping
 
-# Configure poetry to not use virtualenvs
+# Configure poetry
 RUN poetry config virtualenvs.create false
 
 # Install dependencies
 RUN poetry install --no-interaction --no-ansi --no-root
 
 # Copy app code
-COPY . /app/services/core/
-# Main entrypoint needs to be importable
+COPY . /app/
 ENV PYTHONPATH=/app
 
 # Run migrations and start the application
-CMD ["sh", "-c", "cd /app/services/core && echo 'Running Alembic migrations...' && alembic upgrade head && echo 'Starting application...' && cd /app && uvicorn services.core.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "echo 'Running Alembic migrations...' && alembic upgrade head && echo 'Starting application...' && uvicorn main:app --host 0.0.0.0 --port 8000"]
 

@@ -8,10 +8,13 @@ import sys
 import os
 
 # Add parent directory to path for imports
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from services.core.database import Base, DATABASE_URL
-from services.core.models import *  # Import all models
+from app.core.database import Base
+from app.core.config import settings
+from app.models import *  # Import all models
+
+DATABASE_URL = settings.database_url
 
 # this is the Alembic Config object
 config = context.config
