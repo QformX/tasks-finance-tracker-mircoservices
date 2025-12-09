@@ -26,10 +26,10 @@
            │         │   (Events)  │         │
            │         └─────────────┘         │
            │                │                │
-           │         ┌──────▼──────┐  ┌──────▼──────┐
-           │         │    Redis    │  │   Worker    │
-           │         │   (Cache)   │  │  (Consumer) │
-           │         └─────────────┘  └─────────────┘
+           │         ┌──────▼──────┐  ┌──────▼──────┐  ┌──────▼──────┐
+           │         │    Redis    │  │ Core Worker │  │Analytics Wrk│
+           │         │   (Cache)   │  │  (Consumer) │  │  (Consumer) │
+           │         └─────────────┘  └─────────────┘  └─────────────┘
            │                                  │
     ┌──────▼──────┐  ┌─────────────┐  ┌──────▼──────┐
     │ PostgreSQL  │  │ PostgreSQL  │  │ PostgreSQL  │
@@ -103,8 +103,14 @@ CREATE TABLE users (
 - Redis (кэширование)
 - RabbitMQ (события)
 - CQRS паттерн
+- Core Worker (обработка фоновых задач)
 
 **Архитектурные паттерны:**
+
+#### Core Worker
+- Слушает очередь `core_events`
+- Обрабатывает событие `UserDeleted`
+- Удаляет все данные пользователя (GDPR compliance)
 
 #### CQRS (Command Query Responsibility Segregation)
 - **Чтение (Query):** Replica DB
@@ -197,13 +203,13 @@ CREATE TABLE smart_views (
 
 ---
 
-### 4. Analytics Service + Worker
+### 4. Analytics Service & Analytics Worker
 
 **Назначение:** Сбор и анализ событий, статистика
 
 **Компоненты:**
 1. **API:** Предоставляет статистику
-2. **Worker:** Обрабатывает события из RabbitMQ
+2. **Analytics Worker:** Обрабатывает события из RabbitMQ
 
 **Стек:**
 - FastAPI (API)

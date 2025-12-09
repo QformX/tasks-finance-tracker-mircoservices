@@ -30,6 +30,7 @@
 - **CQRS** - разделение чтения и записи для оптимизации производительности
 - **Event-Driven** - асинхронная коммуникация через RabbitMQ
 - **API Gateway** - единая точка входа через Nginx
+- **Healthchecks** - мониторинг состояния и оркестрация запуска сервисов
 
 ### 🔐 Безопасность
 
@@ -79,10 +80,10 @@
         │            │  (Events)     │            │
         │            └───────────────┘            │
         │                    │                    │
-        │            ┌───────▼───────┐    ┌───────▼───────┐
-        │            │     Redis     │    │    Worker     │
-        │            │   (Cache)     │    │  (Consumer)   │
-        │            └───────────────┘    └───────────────┘
+        │            ┌───────▼───────┐    ┌───────▼───────┐    ┌───────▼───────┐
+        │            │     Redis     │    │  Core Worker  │    │Analytics Wrkr │
+        │            │   (Cache)     │    │  (Consumer)   │    │  (Consumer)   │
+        │            └───────────────┘    └───────────────┘    └───────────────┘
         │                                         │
 ┌───────▼───────┐    ┌───────────────┐    ┌─────▼─────────┐
 │  PostgreSQL   │    │  PostgreSQL   │    │  PostgreSQL   │
@@ -253,7 +254,6 @@
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Подробное описание архитектуры системы |
 | [API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md) | Полная документация API с примерами |
 | [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Инструкции по развёртыванию и эксплуатации |
-| [USERS_SERVICE_CHANGES.md](docs/USERS_SERVICE_CHANGES.md) | История изменений Users Service |
 
 ---
 
@@ -266,17 +266,17 @@ tasks-finance-tracker-mircoservices/
 ├── services/
 │   ├── users/              # Users Service
 │   │   ├── alembic/        # Миграции БД
-│   │   ├── src/            # Исходный код
+│   │   ├── app/            # Исходный код (api, core, models, schemas)
 │   │   ├── pyproject.toml  # Зависимости Poetry
 │   │   └── Dockerfile      # Docker образ
 │   ├── core/               # Core Service
 │   │   ├── alembic/
-│   │   ├── src/
+│   │   ├── app/            # Исходный код
 │   │   ├── pyproject.toml
 │   │   └── Dockerfile
 │   └── analytics/          # Analytics Service
 │       ├── alembic/
-│       ├── src/
+│       ├── app/            # Исходный код
 │       ├── pyproject.toml
 │       └── Dockerfile
 ├── deploy/

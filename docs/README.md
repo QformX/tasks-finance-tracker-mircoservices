@@ -11,7 +11,6 @@
 | [ARCHITECTURE.md](ARCHITECTURE.md) | **Архитектура системы** - подробное описание компонентов, потоков данных, паттернов проектирования |
 | [API_DOCUMENTATION.md](API_DOCUMENTATION.md) | **API документация** - полное описание всех endpoint'ов с примерами запросов |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | **Развёртывание** - инструкции по установке, конфигурации и эксплуатации |
-| [USERS_SERVICE_CHANGES.md](USERS_SERVICE_CHANGES.md) | **История изменений** - изменения в Users Service API |
 
 ---
 
@@ -55,7 +54,7 @@
    - Схемы запросов/ответов
    - Примеры cURL
 
-2. **Аутентификация:** [USERS_SERVICE_CHANGES.md](USERS_SERVICE_CHANGES.md)
+2. **Аутентификация:**
    - Регистрация пользователей
    - JWT токены
    - Bearer авторизация
@@ -132,20 +131,6 @@
 - **Troubleshooting**
 - **Production рекомендации**
 - **CI/CD**
-
-### [USERS_SERVICE_CHANGES.md](USERS_SERVICE_CHANGES.md)
-
-История изменений Users Service:
-
-- **Обновления API:**
-  - Регистрация (добавлено поле username)
-  - Логин (JSON вместо form-data)
-  - Авторизация (только Bearer token)
-- **Изменения БД:**
-  - Миграция для username
-  - SQL команды
-- **Примеры использования**
-- **Схемы Pydantic**
 
 ---
 

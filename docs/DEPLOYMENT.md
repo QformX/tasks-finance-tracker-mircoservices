@@ -143,6 +143,8 @@ docker-compose up -d
 
 # Конкретный сервис
 docker-compose up -d users-service
+docker-compose up -d core-worker
+docker-compose up -d analytics-worker
 ```
 
 ### Остановка

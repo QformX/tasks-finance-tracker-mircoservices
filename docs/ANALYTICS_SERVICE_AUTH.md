@@ -29,7 +29,7 @@ docker-compose exec analytics alembic upgrade head
 - Использует те же настройки JWT, что и users service (`JWT_SECRET`, `JWT_ALGORITHM`)
 - Не требует обращения к базе данных users
 
-### 4. Worker (`worker.py`)
+### 4. Worker (`events_consumer.py`)
 Обновлен для сохранения `user_id` из событий:
 - Извлекает `user_id` из payload события
 - Пропускает события без `user_id` (с предупреждением в логах)
