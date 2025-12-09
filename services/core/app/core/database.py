@@ -19,7 +19,6 @@ async def get_session() -> AsyncSession:
     async with SessionLocal() as session:
         yield session
 
-# Alias для совместимости (можно удалить после полного рефакторинга)
 get_db_session = get_session
 get_db_master = get_session
 get_db_replica = get_session

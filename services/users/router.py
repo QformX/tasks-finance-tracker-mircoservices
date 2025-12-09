@@ -347,3 +347,42 @@ async def revoke_session(
     await session.commit()
     
     return None
+
+@router.post("/sessions/revoke-all-except-current", status_code=status.HTTP_204_NO_CONTENT)
+async def revoke_all_sessions_except_current(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Отзыв всех сессий пользователя, кроме текущей
+    - Получает текущую сессию из JWT токена
+    - Отзывает все остальные активные сессии
+    - Полезно при подозрении на компрометацию аккаунта
+    """
+    # Get current session ID from token
+    token = credentials.credentials
+    current_session_id = None
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        current_session_id = payload.get("sid")
+    except:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    if not current_session_id:
+        raise HTTPException(status_code=401, detail="Session ID not found in token")
+
+    # Revoke all sessions except current
+    stmt = update(UserSession).where(
+        UserSession.user_id == current_user.id,
+        UserSession.id != uuid.UUID(current_session_id),
+        UserSession.is_revoked == False
+    ).values(is_revoked=True)
+    
+    result = await session.execute(stmt)
+    await session.commit()
+    
+    revoked_count = result.rowcount
+    print(f"Revoked {revoked_count} sessions for user {current_user.id}")
+    
+    return None

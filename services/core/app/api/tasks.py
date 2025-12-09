@@ -4,6 +4,7 @@ from sqlalchemy import select
 from typing import List, Optional
 import uuid
 import json
+import asyncio
 import redis.asyncio as redis
 import hashlib
 from datetime import datetime, date
@@ -17,7 +18,6 @@ from app.core.auth import get_current_user_id
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
-# Redis client
 redis_client = redis.from_url(settings.redis_url, decode_responses=True)
 
 def _generate_cache_key(user_id: uuid.UUID, **params) -> str:
@@ -25,6 +25,15 @@ def _generate_cache_key(user_id: uuid.UUID, **params) -> str:
     params_str = json.dumps(params, sort_keys=True, default=str)
     params_hash = hashlib.md5(params_str.encode()).hexdigest()
     return f"user:{user_id}:tasks:{params_hash}"
+
+async def _invalidate_tasks_cache(user_id: uuid.UUID):
+    """Инвалидация всех кэшей задач пользователя"""
+    try:
+        pattern = f"user:{user_id}:tasks:*"
+        async for key in redis_client.scan_iter(match=pattern):
+            await redis_client.delete(key)
+    except Exception as e:
+        print(f"Failed to invalidate cache: {e}")
 
 @router.get("/", response_model=List[TaskResponse])
 async def get_tasks(
@@ -50,7 +59,6 @@ async def get_tasks(
     }
     cache_key = _generate_cache_key(user_id, **cache_params)
     
-    # Check Redis cache
     try:
         cached_data = await redis_client.get(cache_key)
         if cached_data:
@@ -60,18 +68,14 @@ async def get_tasks(
     except Exception as e:
         print(f"Redis error: {e}")
     
-    # Query from DB
     stmt = select(Task).where(Task.user_id == user_id)
     
-    # Apply is_completed filter only if specified
     if is_completed is not None:
         stmt = stmt.where(Task.is_completed == is_completed)
     
-    # Apply category filter
     if category_id:
         stmt = stmt.where(Task.category_id == category_id)
     
-    # Apply quick filters
     if filter == FilterType.today:
         today = date.today()
         stmt = stmt.where(Task.due_date >= datetime.combine(today, datetime.min.time()))
@@ -87,24 +91,26 @@ async def get_tasks(
     result = await session.execute(stmt)
     tasks = result.scalars().all()
     
-    # Save to Redis cache (TTL 60s)
-    try:
-        tasks_data = [
-            {
-                "id": str(t.id),
-                "user_id": str(t.user_id),
-                "category_id": str(t.category_id) if t.category_id else None,
-                "title": t.title,
-                "is_completed": t.is_completed,
-                "due_date": t.due_date.isoformat() if t.due_date else None,
-                "created_at": t.created_at.isoformat()
-            }
-            for t in tasks
-        ]
-        await redis_client.setex(cache_key, 60, json.dumps(tasks_data))
-        print(f"Cache SET for {cache_key}")
-    except Exception as e:
-        print(f"Failed to cache: {e}")
+    async def cache_result():
+        try:
+            tasks_data = [
+                {
+                    "id": str(t.id),
+                    "user_id": str(t.user_id),
+                    "category_id": str(t.category_id) if t.category_id else None,
+                    "title": t.title,
+                    "is_completed": t.is_completed,
+                    "due_date": t.due_date.isoformat() if t.due_date else None,
+                    "created_at": t.created_at.isoformat()
+                }
+                for t in tasks
+            ]
+            await redis_client.setex(cache_key, 60, json.dumps(tasks_data))
+            print(f"Cache SET for {cache_key}")
+        except Exception as e:
+            print(f"Failed to cache: {e}")
+    
+    asyncio.create_task(cache_result())
     
     return tasks
 
@@ -121,7 +127,6 @@ async def create_task(
     - Инвалидация кэша списков
     - Отправка события TaskCreated в RabbitMQ
     """
-    # Insert to DB
     new_task = Task(
         user_id=user_id,
         title=task_in.title,
@@ -134,23 +139,20 @@ async def create_task(
     await session.commit()
     await session.refresh(new_task)
     
-    # Add to Redis Sorted Set for reminders (if due_date exists)
-    if new_task.due_date:
+    async def add_reminder():
         try:
-            timestamp = new_task.due_date.timestamp()
-            await redis_client.zadd("tasks:deadlines", {str(new_task.id): timestamp})
+            if new_task.due_date:
+                timestamp = int(new_task.due_date.timestamp())
+                await redis_client.zadd(
+                    f"reminders:{user_id}",
+                    {str(new_task.id): timestamp}
+                )
         except Exception as e:
             print(f"Failed to add reminder: {e}")
     
-    # Invalidate cache
-    try:
-        pattern = f"user:{user_id}:tasks:*"
-        async for key in redis_client.scan_iter(match=pattern):
-            await redis_client.delete(key)
-    except Exception as e:
-        print(f"Failed to invalidate cache: {e}")
+    background_tasks.add_task(add_reminder)
+    background_tasks.add_task(_invalidate_tasks_cache, user_id)
     
-    # Send to RabbitMQ in background
     async def send_event():
         try:
             event = {
@@ -182,27 +184,18 @@ async def toggle_task(
     - Инвалидация кэша
     - Отправка события TaskCompleted (если задача была завершена)
     """
-    # Get task
     task = await session.get(Task, task_id)
     if not task or task.user_id != user_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
     
-    # Toggle is_completed
     was_completed_before = task.is_completed
     task.is_completed = not task.is_completed
     
     await session.commit()
     await session.refresh(task)
     
-    # Invalidate cache
-    try:
-        pattern = f"user:{user_id}:tasks:*"
-        async for key in redis_client.scan_iter(match=pattern):
-            await redis_client.delete(key)
-    except Exception as e:
-        print(f"Failed to invalidate cache: {e}")
+    background_tasks.add_task(_invalidate_tasks_cache, user_id)
     
-    # Send to RabbitMQ (if task was completed)
     if not was_completed_before and task.is_completed:
         async def send_event():
             try:
@@ -234,12 +227,10 @@ async def update_task(
     - Инвалидация кэша
     - Отправка события TaskCompleted (если is_completed изменилось на True)
     """
-    # Get task
     task = await session.get(Task, task_id)
     if not task or task.user_id != user_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
     
-    # Update fields
     update_data = task_update.model_dump(exclude_unset=True)
     was_completed_now = False
     
@@ -252,15 +243,8 @@ async def update_task(
         await session.commit()
         await session.refresh(task)
     
-    # Invalidate cache
-    try:
-        pattern = f"user:{user_id}:tasks:*"
-        async for key in redis_client.scan_iter(match=pattern):
-            await redis_client.delete(key)
-    except Exception as e:
-        print(f"Failed to invalidate cache: {e}")
+    background_tasks.add_task(_invalidate_tasks_cache, user_id)
     
-    # Send to RabbitMQ (if task was completed)
     if was_completed_now:
         async def send_event():
             try:
@@ -282,6 +266,7 @@ async def update_task(
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_task(
     task_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
     user_id: uuid.UUID = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_session)
 ):
@@ -293,12 +278,6 @@ async def delete_task(
     await session.delete(task)
     await session.commit()
     
-    # Invalidate cache
-    try:
-        pattern = f"user:{user_id}:tasks:*"
-        async for key in redis_client.scan_iter(match=pattern):
-            await redis_client.delete(key)
-    except Exception as e:
-        print(f"Failed to invalidate cache: {e}")
+    background_tasks.add_task(_invalidate_tasks_cache, user_id)
     
     return None

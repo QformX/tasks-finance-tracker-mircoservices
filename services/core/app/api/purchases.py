@@ -3,15 +3,37 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List, Optional
 import uuid
+import json
+import redis.asyncio as redis
+import hashlib
+import asyncio
 from datetime import datetime
 
 from app.core.database import get_session
+from app.core.config import settings
 from app.models import Purchase
 from app.schemas import PurchaseCreate, PurchaseUpdate, PurchaseResponse
 from app.core.events import mq_client
 from app.core.auth import get_current_user_id
 
 router = APIRouter(prefix="/purchases", tags=["purchases"])
+
+redis_client = redis.from_url(settings.redis_url, decode_responses=True)
+
+def _generate_cache_key(user_id: uuid.UUID, **params) -> str:
+    """Генерация ключа кэша на основе параметров"""
+    params_str = json.dumps(params, sort_keys=True, default=str)
+    params_hash = hashlib.md5(params_str.encode()).hexdigest()
+    return f"user:{user_id}:purchases:{params_hash}"
+
+async def _invalidate_purchases_cache(user_id: uuid.UUID):
+    """Инвалидация всех кэшей покупок пользователя"""
+    try:
+        pattern = f"user:{user_id}:purchases:*"
+        async for key in redis_client.scan_iter(match=pattern):
+            await redis_client.delete(key)
+    except Exception as e:
+        print(f"Failed to invalidate cache: {e}")
 
 @router.get("/", response_model=List[PurchaseResponse])
 async def get_purchases(
@@ -23,13 +45,29 @@ async def get_purchases(
 ):
     """
     Получение списка покупок с фильтрацией
+    - Кэширование в Redis (TTL 60s)
     """
+    cache_params = {
+        "category_id": str(category_id) if category_id else None,
+        "is_bought": is_bought,
+        "without_category": without_category
+    }
+    cache_key = _generate_cache_key(user_id, **cache_params)
+    
+    try:
+        cached_data = await redis_client.get(cache_key)
+        if cached_data:
+            print(f"Cache HIT for {cache_key}")
+            purchases_data = json.loads(cached_data)
+            return [PurchaseResponse(**p) for p in purchases_data]
+    except Exception as e:
+        print(f"Redis error: {e}")
+    
     stmt = select(Purchase).where(
         Purchase.user_id == user_id,
         Purchase.is_bought == is_bought
     )
     
-    # Фильтр по категории
     if without_category:
         stmt = stmt.where(Purchase.category_id.is_(None))
     elif category_id:
@@ -39,6 +77,29 @@ async def get_purchases(
     
     result = await session.execute(stmt)
     purchases = result.scalars().all()
+    
+    # Cache in background (non-blocking)
+    async def cache_result():
+        try:
+            purchases_data = [
+                {
+                    "id": str(p.id),
+                    "user_id": str(p.user_id),
+                    "category_id": str(p.category_id) if p.category_id else None,
+                    "title": p.title,
+                    "is_bought": p.is_bought,
+                    "cost": p.cost,
+                    "quantity": p.quantity
+                }
+                for p in purchases
+            ]
+            await redis_client.setex(cache_key, 60, json.dumps(purchases_data))
+            print(f"Cache SET for {cache_key}")
+        except Exception as e:
+            print(f"Failed to cache: {e}")
+    
+    # Schedule caching but don't wait for it
+    asyncio.create_task(cache_result())
     
     return purchases
 
@@ -65,6 +126,9 @@ async def create_purchase(
     session.add(new_purchase)
     await session.commit()
     await session.refresh(new_purchase)
+    
+    # Invalidate cache in background
+    background_tasks.add_task(_invalidate_purchases_cache, user_id)
     
     # Send to RabbitMQ in background
     async def send_event():
@@ -107,6 +171,9 @@ async def toggle_purchase(
     
     await session.commit()
     await session.refresh(purchase)
+    
+    # Invalidate cache in background
+    background_tasks.add_task(_invalidate_purchases_cache, user_id)
     
     # Send to RabbitMQ (if purchase was just bought)
     if not old_status and purchase.is_bought:
@@ -158,6 +225,9 @@ async def update_purchase(
         await session.commit()
         await session.refresh(purchase)
     
+    # Invalidate cache in background
+    background_tasks.add_task(_invalidate_purchases_cache, user_id)
+    
     # Send to RabbitMQ (if purchase was just bought)
     if was_bought_now:
         async def send_event():
@@ -183,6 +253,7 @@ async def update_purchase(
 @router.delete("/{purchase_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_purchase(
     purchase_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
     user_id: uuid.UUID = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_session)
 ):
@@ -193,5 +264,8 @@ async def delete_purchase(
     
     await session.delete(purchase)
     await session.commit()
+    
+    # Invalidate cache in background
+    background_tasks.add_task(_invalidate_purchases_cache, user_id)
     
     return None
