@@ -12,19 +12,26 @@ async def process_message(message: aio_pika.IncomingMessage):
         try:
             body = message.body.decode()
             data = json.loads(body)
-            print(f"Received event: {data}")
+            event_type = data.get("event_type", "unknown")
+            print(f"Analytics received event: {event_type}")
 
             # Extract user_id from event payload
             user_id = data.get("user_id")
             if not user_id:
-                print(f"Warning: Event {data.get('event_type')} has no user_id, skipping")
+                print(f"Warning: Event {event_type} has no user_id, skipping")
                 return
 
-            # Save to DB
+            # Special handling for UserDeleted
+            if event_type == "UserDeleted":
+                print(f"User {user_id} deleted, archiving analytics data")
+                # Можно пометить события как архивные или просто логировать
+                # В append-only системе обычно не удаляют данные
+            
+            # Save to DB (append-only)
             async with SessionLocal() as session:
                 event = AnalyticsEvent(
                     user_id=user_id,
-                    event_type=data.get("event_type", "unknown"),
+                    event_type=event_type,
                     payload=data
                 )
                 session.add(event)

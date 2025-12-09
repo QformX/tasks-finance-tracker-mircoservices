@@ -77,8 +77,6 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-
-
   core-service:
     build:
       context: ./services/core
@@ -106,6 +104,37 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+
+  # --- Workers ---
+  core-worker:
+    build:
+      context: ./services/core
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${CORE_DATABASE_URL}
+    command: ["python", "-m", "app.workers.events_consumer"]
+    depends_on:
+      postgres-core:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  analytics-worker:
+    build:
+      context: ./services/analytics
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${ANALYTICS_DATABASE_URL}
+    command: ["python", "-m", "app.workers.events_consumer"]
+    depends_on:
+      analytics-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
 
   # --- Gateway ---
   nginx:

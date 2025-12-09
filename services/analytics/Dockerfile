@@ -6,6 +6,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
@@ -24,6 +25,6 @@ RUN poetry install --no-interaction --no-ansi --no-root
 COPY . /app/
 ENV PYTHONPATH=/app
 
-# Run migrations, start worker in background, and start the application
-CMD ["sh", "-c", "echo 'Running Alembic migrations...' && alembic upgrade head && echo 'Starting worker and application...' && python -m app.workers.events_consumer & uvicorn main:app --host 0.0.0.0 --port 8000"]
+# Run migrations and start the application
+CMD ["sh", "-c", "echo 'Running Alembic migrations...' && alembic upgrade head && echo 'Starting application...' && uvicorn main:app --host 0.0.0.0 --port 8000"]
 
