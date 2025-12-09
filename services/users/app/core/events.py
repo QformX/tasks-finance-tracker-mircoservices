@@ -1,10 +1,8 @@
-import os
 import aio_pika
 import json
-import uuid
-from datetime import datetime
 
-RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
+from app.core.config import settings
+
 
 class RabbitMQClient:
     connection: aio_pika.Connection | None = None
@@ -12,18 +10,23 @@ class RabbitMQClient:
     exchange: aio_pika.Exchange | None = None
 
     async def connect(self):
-        self.connection = await aio_pika.connect_robust(RABBITMQ_URL)
+        """Подключение к RabbitMQ"""
+        self.connection = await aio_pika.connect_robust(settings.rabbitmq_url)
         self.channel = await self.connection.channel()
-        self.exchange = await self.channel.declare_exchange("core_events", aio_pika.ExchangeType.TOPIC, durable=True)
+        self.exchange = await self.channel.declare_exchange(
+            "core_events", 
+            aio_pika.ExchangeType.TOPIC, 
+            durable=True
+        )
 
     async def close(self):
+        """Закрытие соединения"""
         if self.connection:
             await self.connection.close()
 
     async def publish(self, routing_key: str, message: dict):
+        """Публикация события"""
         if not self.exchange:
-            # Try to connect if not connected? 
-            # ideally, application startup handles this.
             raise RuntimeError("RabbitMQ not connected")
         
         body = json.dumps(message).encode()
@@ -33,5 +36,5 @@ class RabbitMQClient:
             routing_key=routing_key
         )
 
-mq_client = RabbitMQClient()
 
+mq_client = RabbitMQClient()

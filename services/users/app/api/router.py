@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, update
 from datetime import datetime, timedelta, timezone
 import uuid
 import jwt
@@ -9,26 +9,23 @@ from typing import List
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-# Rate limiter
-limiter = Limiter(key_func=get_remote_address)
-
-from services.users.database import get_session
-from services.users.models import User, UserSession
-from services.users.auth import (
+from app.core.database import get_session
+from app.core.config import settings
+from app.models import User, UserSession
+from app.core.auth import (
     get_password_hash, 
     verify_password, 
     create_access_token, 
-    create_refresh_token,
-    ACCESS_TOKEN_EXPIRE_MINUTES,
-    REFRESH_TOKEN_EXPIRE_DAYS,
-    JWT_SECRET,
-    JWT_ALGORITHM
+    create_refresh_token
 )
-from services.users.schemas import UserCreate, UserLogin, UserResponse, Token, UserSessionResponse
-from services.users.events import mq_client
+from app.schemas import UserCreate, UserLogin, UserResponse, Token, UserSessionResponse
+from app.core.events import mq_client
+
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter()
 security = HTTPBearer()
+
 
 # ===== Dependencies =====
 async def get_current_user(
@@ -36,16 +33,10 @@ async def get_current_user(
     session: AsyncSession = Depends(get_session)
 ) -> User:
     """Dependency для получения текущего пользователя из Bearer Token"""
-    import jwt
-    import os
-    
     token = credentials.credentials
     
     try:
-        JWT_SECRET = os.getenv("JWT_SECRET", "supersecretkey")
-        JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-        
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
         user_id = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid token payload")
@@ -65,6 +56,7 @@ async def get_current_user(
     
     return user
 
+
 # ===== Endpoints =====
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/hour")
@@ -76,7 +68,6 @@ async def register(request: Request, user_in: UserCreate, session: AsyncSession 
     - Хэширование пароля
     - Создание записи в БД
     """
-    # Check if email exists
     stmt = select(User).where(User.email == user_in.email)
     result = await session.execute(stmt)
     if result.scalar():
@@ -85,7 +76,6 @@ async def register(request: Request, user_in: UserCreate, session: AsyncSession 
             detail="Email already registered"
         )
     
-    # Check if username exists
     stmt = select(User).where(User.username == user_in.username)
     result = await session.execute(stmt)
     if result.scalar():
@@ -94,7 +84,6 @@ async def register(request: Request, user_in: UserCreate, session: AsyncSession 
             detail="Username already taken"
         )
     
-    # Create new user
     new_user = User(
         username=user_in.username,
         email=user_in.email,
@@ -106,6 +95,7 @@ async def register(request: Request, user_in: UserCreate, session: AsyncSession 
     await session.refresh(new_user)
     
     return new_user
+
 
 @router.post("/login", response_model=Token)
 @limiter.limit("10/minute")
@@ -121,12 +111,10 @@ async def login(
     - Генерация JWT Access Token и Refresh Token
     - Создание сессии
     """
-    # Find user by email
     stmt = select(User).where(User.email == credentials.email)
     result = await session.execute(stmt)
     user = result.scalar()
     
-    # Verify credentials
     if not user or not verify_password(credentials.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -139,8 +127,7 @@ async def login(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive"
         )
-    
-    # Create refresh token and session
+
     refresh_token = create_refresh_token()
     user_agent = request.headers.get("user-agent")
     ip_address = request.client.host if request.client else None
@@ -150,14 +137,13 @@ async def login(
         refresh_token=refresh_token,
         user_agent=user_agent,
         ip_address=ip_address,
-        expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+        expires_at=datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
     )
     session.add(new_session)
     await session.commit()
     await session.refresh(new_session)
 
-    # Create access token
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
         data={"sub": str(user.id), "sid": str(new_session.id)}, 
         expires_delta=access_token_expires
@@ -169,12 +155,14 @@ async def login(
         refresh_token=refresh_token
     )
 
+
 @router.get("/users/me", response_model=UserResponse)
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """
     Получение информации о текущем пользователе
     """
     return current_user
+
 
 @router.delete("/users/me", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_current_user(
@@ -186,12 +174,10 @@ async def delete_current_user(
     - Установка статуса is_active=False
     - Отправка события UserDeleted в RabbitMQ
     """
-    # Soft delete
     stmt = update(User).where(User.id == current_user.id).values(is_active=False)
     await session.execute(stmt)
     await session.commit()
     
-    # TODO: Send to RabbitMQ
     try:
         event = {
             "event_type": "UserDeleted",
@@ -204,6 +190,7 @@ async def delete_current_user(
         print(f"Failed to publish UserDeleted event: {e}")
     
     return None
+
 
 @router.post("/refresh", response_model=Token)
 @limiter.limit("20/minute")
@@ -232,15 +219,12 @@ async def refresh_token(
             detail="Invalid or expired refresh token"
         )
 
-    # Get user
     user = await session.get(User, user_session.user_id)
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="User not found or inactive")
 
-    # Revoke old session (Refresh Token Rotation)
     user_session.is_revoked = True
     
-    # Create new session
     new_refresh_token = create_refresh_token()
     user_agent = request.headers.get("user-agent")
     ip_address = request.client.host if request.client else None
@@ -250,14 +234,13 @@ async def refresh_token(
         refresh_token=new_refresh_token,
         user_agent=user_agent,
         ip_address=ip_address,
-        expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+        expires_at=datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
     )
     session.add(new_session)
     await session.commit()
     await session.refresh(new_session)
 
-    # Create new access token
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
         data={"sub": str(user.id), "sid": str(new_session.id)}, 
         expires_delta=access_token_expires
@@ -268,6 +251,7 @@ async def refresh_token(
         token_type="bearer",
         refresh_token=new_refresh_token
     )
+
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
@@ -287,6 +271,7 @@ async def logout(
     
     return None
 
+
 @router.get("/sessions", response_model=List[UserSessionResponse])
 async def get_active_sessions(
     current_user: User = Depends(get_current_user),
@@ -296,11 +281,11 @@ async def get_active_sessions(
     """
     Получение списка активных сессий пользователя
     """
-    # Get current session ID from token
+
     token = credentials.credentials
     current_session_id = None
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
         current_session_id = payload.get("sid")
     except:
         pass
@@ -314,7 +299,6 @@ async def get_active_sessions(
     result = await session.execute(stmt)
     sessions = result.scalars().all()
     
-    # Mark current session
     response = []
     for s in sessions:
         s_resp = UserSessionResponse.model_validate(s)
@@ -323,6 +307,7 @@ async def get_active_sessions(
         response.append(s_resp)
     
     return response
+
 
 @router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def revoke_session(
@@ -348,6 +333,7 @@ async def revoke_session(
     
     return None
 
+
 @router.post("/sessions/revoke-all-except-current", status_code=status.HTTP_204_NO_CONTENT)
 async def revoke_all_sessions_except_current(
     current_user: User = Depends(get_current_user),
@@ -360,11 +346,10 @@ async def revoke_all_sessions_except_current(
     - Отзывает все остальные активные сессии
     - Полезно при подозрении на компрометацию аккаунта
     """
-    # Get current session ID from token
     token = credentials.credentials
     current_session_id = None
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
         current_session_id = payload.get("sid")
     except:
         raise HTTPException(status_code=401, detail="Invalid token")

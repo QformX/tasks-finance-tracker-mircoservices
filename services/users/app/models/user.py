@@ -3,7 +3,9 @@ from datetime import datetime
 from sqlalchemy import String, Boolean, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
-from services.users.database import Base
+
+from app.core.database import Base
+
 
 class User(Base):
     __tablename__ = "users"
@@ -14,6 +16,7 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
 
 class UserSession(Base):
     __tablename__ = "user_sessions"
@@ -26,4 +29,3 @@ class UserSession(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     is_revoked: Mapped[bool] = mapped_column(Boolean, default=False)
-

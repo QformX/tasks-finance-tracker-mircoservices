@@ -1,11 +1,12 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from services.users.router import router
-from services.users.events import mq_client
-from services.users.database import init_db
+
+from app.api.router import router
+from app.core.events import mq_client
+from app.core.database import init_db
 
 # Rate limiter configuration
 limiter = Limiter(key_func=get_remote_address)
