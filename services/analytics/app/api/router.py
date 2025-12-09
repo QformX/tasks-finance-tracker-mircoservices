@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
-from datetime import datetime, timedelta
-from typing import Dict, List
+from datetime import datetime, timedelta, timezone
+from typing import Dict
 import uuid
 
-from services.analytics.database import get_session
-from services.analytics.models import AnalyticsEvent
-from services.analytics.schemas import DashboardStats, PeriodType
-from services.analytics.auth import get_current_user_id
+from app.core.database import get_session
+from app.models import AnalyticsEvent
+from app.schemas import DashboardStats, PeriodType
+from app.core.auth import get_current_user_id
 
 router = APIRouter()
 
@@ -21,12 +21,9 @@ async def get_dashboard_stats(
     """
     Получение статистики для дашборда текущего пользователя
     - Требуется Bearer токен аутентификации
-    - Агрегация на уровне БД (GROUP BY) для производительности
     - Поддержка периодов: week, month, year
-    - Оптимизировано для работы с большими объёмами данных (10k+ событий)
     """
-    # Calculate date range
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     if period == PeriodType.week:
         start_date = now - timedelta(days=7)
     elif period == PeriodType.month:
@@ -36,7 +33,6 @@ async def get_dashboard_stats(
     else:
         start_date = now - timedelta(days=7)
     
-    # ✅ Агрегация на уровне БД (НАМНОГО быстрее чем Python)
     # 1. Подсчёт событий по типам (одним запросом)
     stmt_by_type = select(
         AnalyticsEvent.event_type,
@@ -94,33 +90,37 @@ async def get_dashboard_stats(
     
     result_daily = await session.execute(stmt_daily)
     
-    # Группируем результаты по датам
-    daily_stats_dict: Dict[str, Dict] = {}
+    # Собираем данные по событиям
+    events_by_date: Dict[str, Dict] = {}
     for row in result_daily:
         date_str = row.event_date.isoformat()
         
-        if date_str not in daily_stats_dict:
-            daily_stats_dict[date_str] = {
-                "date": date_str,
-                "tasks": 0,
-                "purchases": 0,
-                "spending": 0.0
-            }
+        if date_str not in events_by_date:
+            events_by_date[date_str] = {"tasks": 0, "purchases": 0}
         
         # Разделяем по типам событий
         if row.event_type in ["TaskCreated", "TaskCompleted"]:
-            daily_stats_dict[date_str]["tasks"] += row.count
+            events_by_date[date_str]["tasks"] += row.count
         elif row.event_type in ["PurchaseCreated", "PurchaseCompleted"]:
-            daily_stats_dict[date_str]["purchases"] += row.count
+            events_by_date[date_str]["purchases"] += row.count
     
-    # Добавляем spending к соответствующим дням
+    # Собираем spending по датам
+    spending_by_date: Dict[str, float] = {}
     for purchase in purchases:
         purchase_date = purchase.created_at.date().isoformat()
-        if purchase_date in daily_stats_dict and 'total_cost' in purchase.payload:
-            daily_stats_dict[purchase_date]["spending"] += purchase.payload['total_cost']
+        if 'total_cost' in purchase.payload:
+            spending_by_date[purchase_date] = spending_by_date.get(purchase_date, 0.0) + purchase.payload['total_cost']
     
-    # Формируем список и сортируем
-    daily_stats = sorted(daily_stats_dict.values(), key=lambda x: x["date"])
+    # Генерируем daily_stats ТОЛЬКО для сегодняшнего дня
+    today = now.date()
+    today_str = today.isoformat()
+    
+    daily_stats = [{
+        "date": today_str,
+        "tasks": events_by_date.get(today_str, {}).get("tasks", 0),
+        "purchases": events_by_date.get(today_str, {}).get("purchases", 0),
+        "spending": spending_by_date.get(today_str, 0.0)
+    }]
     
     return DashboardStats(
         total_events=total_events,
@@ -184,23 +184,11 @@ async def get_activity_heatmap(
     Получение данных для contribution heatmap (как в GitHub)
     
     Возвращает активность пользователя за каждый день указанного периода.
-    В отличие от /dashboard, возвращает ВСЕ дни (включая дни с нулевой активностью).
-    
-    Оптимизировано: Использует GROUP BY на уровне БД вместо обработки в Python.
-    
-    Пример использования:
-    - GET /stats/activity-heatmap?days=365  -> последний год
-    - GET /stats/activity-heatmap?days=30   -> последний месяц
-    
-    Performance:
-    - До оптимизации: загрузка 3,650 записей + обработка в Python (~500-1000ms)
-    - После оптимизации: агрегация в БД (~50-100ms)
     """
     # Calculate date range
-    end_date = datetime.utcnow().date()
+    end_date = datetime.now(timezone.utc).date()
     start_date = end_date - timedelta(days=days - 1)
     
-    # ✅ Агрегация на уровне БД (GROUP BY DATE)
     # Вместо загрузки всех событий, подсчитываем их в PostgreSQL
     stmt = select(
         func.date(AnalyticsEvent.created_at).label('event_date'),

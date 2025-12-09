@@ -1,11 +1,11 @@
 import asyncio
-import os
 import json
 import aio_pika
-from services.analytics.database import SessionLocal, init_db
-from services.analytics.models import AnalyticsEvent
+from app.core.database import SessionLocal, init_db
+from app.models import AnalyticsEvent
+from app.core.config import settings
 
-RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
+RABBITMQ_URL = settings.rabbitmq_url
 
 async def process_message(message: aio_pika.IncomingMessage):
     async with message.process():
@@ -60,4 +60,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-

@@ -1,6 +1,5 @@
 from fastapi import FastAPI
-
-from services.analytics.router import router
+from app.api.router import router
 
 app = FastAPI(
     title="Analytics Service",

@@ -1,13 +1,10 @@
-import os
 import uuid
 import jwt
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from app.core.config import settings
 
 security = HTTPBearer()
-
-JWT_SECRET = os.getenv("JWT_SECRET", "supersecretkey")
-JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
 async def get_current_user_id(
     credentials: HTTPAuthorizationCredentials = Depends(security)
@@ -21,7 +18,7 @@ async def get_current_user_id(
     token = credentials.credentials
     
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
         user_id = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid token payload")

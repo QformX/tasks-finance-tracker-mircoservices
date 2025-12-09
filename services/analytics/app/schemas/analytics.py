@@ -16,4 +16,3 @@ class DashboardStats(BaseModel):
     total_spending: float
     period: str
     daily_stats: List[Dict[str, Any]] = []
-

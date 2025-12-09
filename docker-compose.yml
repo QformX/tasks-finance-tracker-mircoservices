@@ -4,9 +4,9 @@ services:
   # --- Databases ---
   postgres-users:
     image: postgres:15-alpine
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
       POSTGRES_DB: users_db
     volumes:
       - users_pg_data:/var/lib/postgresql/data
@@ -18,9 +18,9 @@ services:
 
   postgres-core:
     image: postgres:15-alpine
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
       POSTGRES_DB: core_db
     volumes:
       - core_pg_data:/var/lib/postgresql/data
@@ -32,9 +32,9 @@ services:
 
   analytics-db:
     image: postgres:15-alpine
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
       POSTGRES_DB: analytics_db
     volumes:
       - analytics_pg_data:/var/lib/postgresql/data
@@ -47,12 +47,11 @@ services:
   # --- Broker & Cache ---
   rabbitmq:
     image: rabbitmq:3-management-alpine
+    env_file:
+      - .env
     ports:
       - "15672:15672" # Management UI
       - "5672:5672"
-    environment:
-      RABBITMQ_DEFAULT_USER: user
-      RABBITMQ_DEFAULT_PASS: password
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
@@ -71,6 +70,8 @@ services:
   users-service:
     build:
       context: ./services/users
+    env_file:
+      - .env
     command: >
       sh -c "cd /app/services/users && 
              echo 'Running Alembic migrations...' && 
@@ -79,19 +80,19 @@ services:
              cd /app && 
              uvicorn services.users.main:app --host 0.0.0.0 --port 8000 --reload"
     environment:
-      DATABASE_URL: postgresql+asyncpg://user:password@postgres-users:5432/users_db
-      RABBITMQ_URL: amqp://user:password@rabbitmq:5672/
-      JWT_SECRET: "supersecretkey" # Change in production
-      JWT_ALGORITHM: "HS256"
+      DATABASE_URL: ${USERS_DATABASE_URL}
     depends_on:
       postgres-users:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
+
   core-service:
     build:
       context: ./services/core
+    env_file:
+      - .env
     command: >
       sh -c "cd /app/services/core && 
              echo 'Running Alembic migrations...' && 
@@ -100,11 +101,7 @@ services:
              cd /app && 
              uvicorn services.core.main:app --host 0.0.0.0 --port 8000 --reload"
     environment:
-      DATABASE_URL: postgresql+asyncpg://user:password@postgres-core:5432/core_db
-      RABBITMQ_URL: amqp://user:password@rabbitmq:5672/
-      REDIS_URL: redis://redis:6379/0
-      JWT_SECRET: "supersecretkey"
-      JWT_ALGORITHM: "HS256"
+      DATABASE_URL: ${CORE_DATABASE_URL}
     depends_on:
       postgres-core:
         condition: service_healthy
@@ -116,17 +113,10 @@ services:
   analytics-service:
     build:
       context: ./services/analytics
-    command: >
-      sh -c "cd /app/services/analytics && 
-             echo 'Running Alembic migrations...' && 
-             alembic upgrade head && 
-             echo 'Starting worker and application...' && 
-             cd /app && 
-             python -m services.analytics.worker & 
-             exec uvicorn services.analytics.main:app --host 0.0.0.0 --port 8000 --reload"
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://user:password@analytics-db:5432/analytics_db
-      RABBITMQ_URL: amqp://user:password@rabbitmq:5672/
+      DATABASE_URL: ${ANALYTICS_DATABASE_URL}
     depends_on:
       analytics-db:
         condition: service_healthy

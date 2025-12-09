@@ -21,9 +21,9 @@ RUN poetry config virtualenvs.create false
 RUN poetry install --no-interaction --no-ansi --no-root
 
 # Copy app code
-COPY . /app/services/analytics/
+COPY . /app/
 ENV PYTHONPATH=/app
 
-# Run migrations and start the application
-CMD ["sh", "-c", "cd /app/services/analytics && echo 'Running Alembic migrations...' && alembic upgrade head && echo 'Starting application...' && cd /app && uvicorn services.analytics.main:app --host 0.0.0.0 --port 8000"]
+# Run migrations, start worker in background, and start the application
+CMD ["sh", "-c", "echo 'Running Alembic migrations...' && alembic upgrade head && echo 'Starting worker and application...' && python -m app.workers.events_consumer & uvicorn main:app --host 0.0.0.0 --port 8000"]
 
