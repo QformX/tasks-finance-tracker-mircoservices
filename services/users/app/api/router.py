@@ -42,7 +42,7 @@ async def get_current_user(
             raise HTTPException(status_code=401, detail="Invalid token payload")
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.JWTError:
+    except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Could not validate credentials")
     
     try:
