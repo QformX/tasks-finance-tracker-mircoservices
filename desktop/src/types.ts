@@ -58,6 +58,8 @@ export interface DashboardStats {
   purchases_completed: number;
   total_spending: number;
   total_created_cost: number;
+  total_incomplete_purchases_cost: number;
+  overdue_tasks_count: number;
   period: string;
   daily_stats: Array<{
     date: string;

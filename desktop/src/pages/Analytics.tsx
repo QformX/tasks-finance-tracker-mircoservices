@@ -26,12 +26,10 @@ export function Analytics() {
   async function loadData() {
     setLoading(true);
     try {
-      const [statsData, eventsData, heatmapData, allTasks, activePurchasesList, categoriesData, boughtPurchasesList, boughtIds] = await Promise.all([
+      const [statsData, eventsData, heatmapData, categoriesData, boughtPurchasesList, boughtIds] = await Promise.all([
         getDashboardStats(period),
         getRecentEvents(20),
         getActivityHeatmap(period === "week" || period === "today" ? 7 : period === "month" ? 30 : 365),
-        getTasks("all"),
-        getPurchases(false),
         getCategories(),
         getPurchases(true),
         getBoughtPurchaseIds(period)
@@ -43,22 +41,9 @@ export function Analytics() {
       const periodBoughtPurchases = boughtPurchasesList.filter(p => boughtIds.includes(p.id));
       setAllBoughtPurchases(periodBoughtPurchases);
 
-      // Calculate overdue tasks
-      const now = new Date();
-      const todayStr = now.toISOString().split('T')[0];
-      const overdue = allTasks.filter(t => !t.is_completed && t.due_date && new Date(t.due_date) < now && !t.due_date.startsWith(todayStr));
-      setOverdueCount(overdue.length);
-
-      // Calculate total needed for active purchases
-      const needed = activePurchasesList.reduce((acc, p) => acc + ((p.cost || 0) * p.quantity), 0);
-      setTotalNeeded(needed);
-
       if (period === "today") {
           const tasks = await getTasks("today");
           setTodayTasks(tasks);
-          // We don't need to set todayPurchases manually anymore as we use stats for sums
-          // But we need it for the "No items" check if we want to keep it consistent
-          // Or we can use stats counts
       }
 
       setStats(statsData);
@@ -148,7 +133,7 @@ export function Analytics() {
            <StatCard 
             icon="warning" 
             label={t("tasks_overdue")} 
-            value={overdueCount.toString()} 
+            value={stats?.overdue_tasks_count.toString() ?? "0"} 
             trend="" 
             color="red" 
           />
@@ -178,7 +163,7 @@ export function Analytics() {
            <StatCard 
             icon="savings" 
             label={t("total_needed")} 
-            value={`$${totalNeeded.toLocaleString()}`} 
+            value={`$${stats?.total_incomplete_purchases_cost.toLocaleString() ?? 0}`} 
             trend="" 
             color="blue" 
           />
@@ -267,24 +252,30 @@ export function Analytics() {
                         </div>
                     </div>
                 ) : (
-                    <div className="bg-surface-dark rounded-2xl border border-border-dark p-6 h-full">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-base font-bold text-white">{t("activity_heatmap")}</h3>
-                            <div className="flex items-center gap-2 text-xs text-text-secondary">
-                                <span>{t("less")}</span>
-                                <div className="flex gap-1">
-                                    <div className="w-3 h-3 rounded-sm bg-[#27272a]"></div>
-                                    <div className="w-3 h-3 rounded-sm bg-primary/30"></div>
-                                    <div className="w-3 h-3 rounded-sm bg-primary/60"></div>
-                                    <div className="w-3 h-3 rounded-sm bg-primary"></div>
+                    <>
+                        <div className="bg-surface-dark rounded-2xl border border-border-dark p-6 flex flex-col">
+                            <div className="flex items-center justify-between mb-6 shrink-0">
+                                <h3 className="text-base font-bold text-white">{t("activity_heatmap")}</h3>
+                                <div className="flex items-center gap-2 text-xs text-text-secondary">
+                                    <span>{t("less")}</span>
+                                    <div className="flex gap-1">
+                                        <div className="w-3 h-3 rounded-sm bg-[#27272a]"></div>
+                                        <div className="w-3 h-3 rounded-sm bg-primary/30"></div>
+                                        <div className="w-3 h-3 rounded-sm bg-primary/60"></div>
+                                        <div className="w-3 h-3 rounded-sm bg-primary"></div>
+                                    </div>
+                                    <span>{t("more")}</span>
                                 </div>
-                                <span>{t("more")}</span>
+                            </div>
+                            <div className="w-full overflow-x-auto pb-2 min-h-0">
+                                {heatmap && <HeatmapGrid heatmap={heatmap} period={period} />}
                             </div>
                         </div>
-                        <div className="w-full overflow-x-auto pb-2">
-                            {heatmap && <HeatmapGrid heatmap={heatmap} period={period} />}
+
+                        <div className="bg-surface-dark rounded-2xl border border-border-dark p-6 flex flex-col">
+                             <ActivityDirectionChart stats={stats} />
                         </div>
-                    </div>
+                    </>
                 )}
             </div>
             
@@ -567,8 +558,8 @@ function HeatmapGrid({ heatmap, period }: { heatmap: ActivityHeatmap, period: st
       if (currentWeek.length > 0) weeks.push(currentWeek);
 
       return (
-        <div className="flex flex-col md:flex-row gap-8 items-start">
-          <div className="flex gap-1 min-w-max overflow-x-auto pb-2">
+        <div className="flex flex-col gap-8 items-start w-full">
+          <div className="flex gap-1 min-w-max overflow-x-auto pb-2 w-full">
               {weeks.map((week, wIndex) => (
                   <div key={wIndex} className="flex flex-col gap-0.5">
                       {week.map((day, dIndex) => {
@@ -594,40 +585,80 @@ function HeatmapGrid({ heatmap, period }: { heatmap: ActivityHeatmap, period: st
                   </div>
               ))}
           </div>
-          
-          {/* Activity Direction Chart (Cross/Radar style) */}
-          <div className="flex-1 w-full min-w-[200px] flex flex-col items-center justify-center bg-surface-dark/50 rounded-xl p-4 border border-white/5">
-             <h4 className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-4">Activity Direction</h4>
-             <div className="relative w-48 h-48">
-                {/* Axis Lines */}
-                <div className="absolute top-0 bottom-0 left-1/2 w-px bg-white/10 -translate-x-1/2"></div>
-                <div className="absolute left-0 right-0 top-1/2 h-px bg-white/10 -translate-y-1/2"></div>
-                
-                {/* Labels */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 text-[10px] text-text-secondary font-medium">Tasks Created</div>
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-4 text-[10px] text-text-secondary font-medium">Tasks Completed</div>
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-2 text-[10px] text-text-secondary font-medium text-right w-20">Purchases Created</div>
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full pl-2 text-[10px] text-text-secondary font-medium w-20">Purchases Bought</div>
+        </div>
+      );
+  }
 
-                {/* Data Points (Mocked for now as we don't have granular breakdown in heatmap data, using stats if available or random for visual) */}
-                {/* Note: In a real scenario, we'd need 'stats' passed to this component or derived from a more detailed heatmap API */}
-                <div className="absolute inset-0">
-                    <svg className="w-full h-full overflow-visible">
-                        <polygon 
-                            points="96,24 168,96 96,168 24,96" 
-                            fill="rgba(124, 58, 237, 0.2)" 
-                            stroke="#7c3aed" 
-                            strokeWidth="2"
-                            className="animate-in fade-in duration-1000"
-                        />
-                        <circle cx="96" cy="24" r="3" fill="#7c3aed" />
-                        <circle cx="168" cy="96" r="3" fill="#7c3aed" />
-                        <circle cx="96" cy="168" r="3" fill="#7c3aed" />
-                        <circle cx="24" cy="96" r="3" fill="#7c3aed" />
-                    </svg>
+  if (period === "month") {
+      const displayData = heatmap.heatmap.slice(-30);
+      const width = 800;
+      const height = 300;
+      const padding = 10;
+      
+      const points = displayData.map((day, i) => {
+          const x = (i / (displayData.length - 1)) * width;
+          // Invert Y, leave some padding at top
+          const y = height - (day.activity / maxActivity) * (height - padding * 2) - padding; 
+          return [x, y];
+      });
+
+      // Generate path
+      let d = `M ${points[0][0]},${points[0][1]}`;
+      for (let i = 0; i < points.length - 1; i++) {
+          const [x0, y0] = points[i];
+          const [x1, y1] = points[i + 1];
+          const dx = (x1 - x0) / 2;
+          d += ` C ${x0 + dx},${y0} ${x1 - dx},${y1} ${x1},${y1}`;
+      }
+
+      const fillPath = `${d} L ${width},${height} L 0,${height} Z`;
+
+      return (
+        <div className="w-full h-full min-h-[200px] flex flex-col">
+            <div className="relative flex-1 w-full group">
+                {/* Grid Lines */}
+                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none" style={{ padding: `${(padding/height)*100}% 0` }}>
+                    {[1, 0.75, 0.5, 0.25, 0].map((ratio) => (
+                        <div key={ratio} className="w-full border-t border-white/5 relative">
+                            <span className="absolute -top-2.5 left-0 text-[10px] text-text-secondary font-medium">
+                                {Math.round(maxActivity * ratio)}
+                            </span>
+                        </div>
+                    ))}
                 </div>
-             </div>
-          </div>
+
+                <svg className="w-full h-full overflow-visible drop-shadow-[0_0_15px_rgba(139,92,246,0.3)]" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+                    <defs>
+                        <linearGradient id="gradient" x1="0%" x2="0%" y1="0%" y2="100%">
+                            <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.2"></stop>
+                            <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0"></stop>
+                        </linearGradient>
+                    </defs>
+                    <path d={d} fill="none" stroke="#8B5CF6" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" />
+                    <path d={fillPath} fill="url(#gradient)" stroke="none" />
+                    
+                    {/* Interactive points */}
+                    {points.map((p, i) => (
+                        <circle 
+                            key={i}
+                            cx={p[0]} 
+                            cy={p[1]} 
+                            r="6" 
+                            fill="#18181b" 
+                            stroke="#8B5CF6" 
+                            strokeWidth="3"
+                            className="opacity-0 hover:opacity-100 transition-opacity duration-200 cursor-pointer"
+                        >
+                            <title>{`${displayData[i].date}: ${displayData[i].activity} events`}</title>
+                        </circle>
+                    ))}
+                </svg>
+            </div>
+            <div className="flex justify-between mt-4 text-xs text-text-secondary font-medium px-2">
+                {displayData.filter((_, i) => i % 6 === 0).map((day, i) => (
+                    <span key={i}>{new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                ))}
+            </div>
         </div>
       );
   }
@@ -636,7 +667,7 @@ function HeatmapGrid({ heatmap, period }: { heatmap: ActivityHeatmap, period: st
   const displayData = heatmap.heatmap.slice(-(period === "week" ? 7 : 30));
   
   return (
-    <div className="h-40 flex items-end justify-between gap-2 px-2">
+    <div className="h-full min-h-[160px] flex items-end justify-between gap-2 px-2">
       {displayData.map((day, i) => {
         const height = (day.activity / maxActivity) * 100;
         const isMax = day.activity === maxActivity && maxActivity > 0;
@@ -665,4 +696,77 @@ function HeatmapGrid({ heatmap, period }: { heatmap: ActivityHeatmap, period: st
       })}
     </div>
   );
+}
+
+function ActivityDirectionChart({ stats }: { stats: DashboardStats | null }) {
+    if (!stats) return null;
+
+    // Center and radius for the chart
+    const centerX = 96;
+    const centerY = 96;
+    const maxRadius = 72; // Max distance from center
+
+    // Calculate max value for normalization
+    const maxValue = Math.max(
+        stats.tasks_created,
+        stats.tasks_completed,
+        stats.purchases_created,
+        stats.purchases_completed,
+        1 // Avoid division by zero
+    );
+
+    // Calculate radius for each direction (normalized to maxRadius)
+    const topRadius = (stats.tasks_created / maxValue) * maxRadius; // Tasks Created (top)
+    const bottomRadius = (stats.tasks_completed / maxValue) * maxRadius; // Tasks Completed (bottom)
+    const leftRadius = (stats.purchases_created / maxValue) * maxRadius; // Purchases Created (left)
+    const rightRadius = (stats.purchases_completed / maxValue) * maxRadius; // Purchases Bought (right)
+
+    // Calculate actual points
+    const topPoint = { x: centerX, y: centerY - topRadius };
+    const rightPoint = { x: centerX + rightRadius, y: centerY };
+    const bottomPoint = { x: centerX, y: centerY + bottomRadius };
+    const leftPoint = { x: centerX - leftRadius, y: centerY };
+
+    const polygonPoints = `${topPoint.x},${topPoint.y} ${rightPoint.x},${rightPoint.y} ${bottomPoint.x},${bottomPoint.y} ${leftPoint.x},${leftPoint.y}`;
+
+    return (
+          <div className="flex-1 w-full min-w-[200px] flex flex-col items-center justify-center">
+             <h4 className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-4">Activity Direction</h4>
+             <div className="relative w-48 h-48">
+                {/* Axis Lines */}
+                <div className="absolute top-0 bottom-0 left-1/2 w-px bg-white/10 -translate-x-1/2"></div>
+                <div className="absolute left-0 right-0 top-1/2 h-px bg-white/10 -translate-y-1/2"></div>
+                
+                {/* Labels */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 text-[10px] text-text-secondary font-medium">
+                    Tasks Created ({stats.tasks_created})
+                </div>
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-4 text-[10px] text-text-secondary font-medium">
+                    Tasks Completed ({stats.tasks_completed})
+                </div>
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-2 text-[10px] text-text-secondary font-medium text-right w-20">
+                    Purchases Created ({stats.purchases_created})
+                </div>
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full pl-2 text-[10px] text-text-secondary font-medium w-20">
+                    Purchases Bought ({stats.purchases_completed})
+                </div>
+
+                <div className="absolute inset-0">
+                    <svg className="w-full h-full overflow-visible">
+                        <polygon 
+                            points={polygonPoints}
+                            fill="rgba(124, 58, 237, 0.2)" 
+                            stroke="#7c3aed" 
+                            strokeWidth="2"
+                            className="animate-in fade-in duration-1000"
+                        />
+                        <circle cx={topPoint.x} cy={topPoint.y} r="3" fill="#7c3aed" />
+                        <circle cx={rightPoint.x} cy={rightPoint.y} r="3" fill="#7c3aed" />
+                        <circle cx={bottomPoint.x} cy={bottomPoint.y} r="3" fill="#7c3aed" />
+                        <circle cx={leftPoint.x} cy={leftPoint.y} r="3" fill="#7c3aed" />
+                    </svg>
+                </div>
+             </div>
+          </div>
+    );
 }

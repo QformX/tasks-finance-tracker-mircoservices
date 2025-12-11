@@ -7,7 +7,7 @@ import json
 import asyncio
 import redis.asyncio as redis
 import hashlib
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 from app.core.database import get_session
 from app.core.config import settings
@@ -40,6 +40,7 @@ async def get_tasks(
     category_id: Optional[uuid.UUID] = Query(None, description="Фильтр по категории"),
     filter: Optional[FilterType] = Query(None, description="Быстрый фильтр: today/overdue/inbox"),
     is_completed: Optional[bool] = Query(None, description="Фильтр по статусу (true - завершённые, false - незавершённые, без параметра - все)"),
+    timezone_offset: Optional[int] = Query(None, description="Timezone offset in minutes (client - UTC)"),
     user_id: uuid.UUID = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_session)
 ):
@@ -55,7 +56,8 @@ async def get_tasks(
     cache_params = {
         "category_id": str(category_id) if category_id else None,
         "filter": filter.value if filter else None,
-        "is_completed": is_completed
+        "is_completed": is_completed,
+        "timezone_offset": timezone_offset
     }
     cache_key = _generate_cache_key(user_id, **cache_params)
     
@@ -77,9 +79,28 @@ async def get_tasks(
         stmt = stmt.where(Task.category_id == category_id)
     
     if filter == FilterType.today:
-        today = date.today()
-        stmt = stmt.where(Task.due_date >= datetime.combine(today, datetime.min.time()))
-        stmt = stmt.where(Task.due_date < datetime.combine(today, datetime.max.time()))
+        if timezone_offset is not None:
+            # Calculate client today based on offset
+            # JS offset is (UTC - Local) in minutes.
+            # Local = UTC - Offset
+            utc_now = datetime.utcnow()
+            client_now = utc_now - timedelta(minutes=timezone_offset)
+            client_today = client_now.date()
+            
+            # Range in Local time: 00:00 to 23:59:59
+            local_start = datetime.combine(client_today, datetime.min.time())
+            
+            # Convert back to UTC for DB query
+            # UTC = Local + Offset
+            utc_start = local_start + timedelta(minutes=timezone_offset)
+            utc_end = utc_start + timedelta(days=1)
+            
+            stmt = stmt.where(Task.due_date >= utc_start)
+            stmt = stmt.where(Task.due_date < utc_end)
+        else:
+            today = date.today()
+            stmt = stmt.where(Task.due_date >= datetime.combine(today, datetime.min.time()))
+            stmt = stmt.where(Task.due_date < datetime.combine(today, datetime.max.time()))
     elif filter == FilterType.overdue:
         stmt = stmt.where(Task.due_date < datetime.now())
         stmt = stmt.where(Task.is_completed == False)

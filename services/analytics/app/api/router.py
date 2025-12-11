@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, text
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List
 import uuid
@@ -15,6 +15,7 @@ router = APIRouter()
 @router.get("/dashboard", response_model=DashboardStats)
 async def get_dashboard_stats(
     period: PeriodType = Query(PeriodType.week, description="Период для статистики"),
+    timezone_offset: int = Query(0, description="Смещение часового пояса в минутах (UTC - Local)"),
     user_id: uuid.UUID = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_session)
 ):
@@ -22,18 +23,25 @@ async def get_dashboard_stats(
     Получение статистики для дашборда текущего пользователя
     - Требуется Bearer токен аутентификации
     - Поддержка периодов: week, month, year
+    - timezone_offset: разница в минутах между UTC и локальным временем (например, для UTC+3 это -180)
     """
-    now = datetime.now(timezone.utc)
+    utc_now = datetime.now(timezone.utc)
+    # Вычисляем локальное время клиента
+    client_now = utc_now - timedelta(minutes=timezone_offset)
+    
     if period == PeriodType.today:
-        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        # Начало дня по локальному времени
+        client_start_date = client_now.replace(hour=0, minute=0, second=0, microsecond=0)
+        # Переводим обратно в UTC для запроса к БД
+        start_date = client_start_date + timedelta(minutes=timezone_offset)
     elif period == PeriodType.week:
-        start_date = now - timedelta(days=7)
+        start_date = utc_now - timedelta(days=7)
     elif period == PeriodType.month:
-        start_date = now - timedelta(days=30)
+        start_date = utc_now - timedelta(days=30)
     elif period == PeriodType.year:
-        start_date = now - timedelta(days=365)
+        start_date = utc_now - timedelta(days=365)
     else:
-        start_date = now - timedelta(days=7)
+        start_date = utc_now - timedelta(days=7)
     
     # 1. Подсчёт событий по типам (одним запросом)
     stmt_by_type = select(
@@ -90,6 +98,73 @@ async def get_dashboard_stats(
         for p in created_purchases_events
         if 'total_cost' in p.payload or 'cost' in p.payload
     )
+
+    # 2.2 Подсчёт незавершённых покупок (созданных в этот период)
+    # Нам нужно знать, какие покупки были завершены (вообще, а не только в этот период)
+    stmt_all_completed_purchases = select(AnalyticsEvent).where(
+        and_(
+            AnalyticsEvent.user_id == user_id,
+            AnalyticsEvent.event_type == "PurchaseCompleted"
+        )
+    )
+    result_all_completed = await session.execute(stmt_all_completed_purchases)
+    all_completed_purchases = result_all_completed.scalars().all()
+    
+    completed_purchase_ids = set()
+    for p in all_completed_purchases:
+        pid = p.payload.get("purchase_id")
+        if pid:
+            completed_purchase_ids.add(pid)
+            
+    total_incomplete_purchases_cost = sum(
+        p.payload.get('total_cost') or p.payload.get('cost', 0)
+        for p in created_purchases_events
+        if ('total_cost' in p.payload or 'cost' in p.payload) and 
+           p.payload.get("purchase_id") not in completed_purchase_ids
+    )
+
+    # 2.3 Подсчёт просроченных задач (за пределами периода - до start_date)
+    # Нам нужны все созданные задачи и все завершенные задачи
+    stmt_all_tasks = select(AnalyticsEvent).where(
+        and_(
+            AnalyticsEvent.user_id == user_id,
+            AnalyticsEvent.event_type.in_(["TaskCreated", "TaskCompleted"])
+        )
+    )
+    result_all_tasks = await session.execute(stmt_all_tasks)
+    all_task_events = result_all_tasks.scalars().all()
+    
+    completed_task_ids = set()
+    created_tasks = []
+    
+    for event in all_task_events:
+        if event.event_type == "TaskCompleted":
+            tid = event.payload.get("task_id")
+            if tid:
+                completed_task_ids.add(tid)
+        elif event.event_type == "TaskCreated":
+            created_tasks.append(event)
+            
+    overdue_tasks_count = 0
+    for task in created_tasks:
+        tid = task.payload.get("task_id")
+        due_date_str = task.payload.get("due_date")
+        
+        # Если задача не завершена и у неё есть срок
+        if tid and tid not in completed_task_ids and due_date_str:
+            try:
+                # Парсим дату (она в ISO формате)
+                due_date = datetime.fromisoformat(due_date_str.replace('Z', '+00:00'))
+                # Если due_date без таймзоны, считаем её UTC (или локальной, но сравниваем аккуратно)
+                if due_date.tzinfo is None:
+                    due_date = due_date.replace(tzinfo=timezone.utc)
+                
+                # Сравниваем с start_date (началом периода)
+                # "висит невыполненными за пределами этого времени" -> due_date < start_date
+                if due_date < start_date:
+                    overdue_tasks_count += 1
+            except (ValueError, TypeError):
+                pass
     
     # 3. Группировка по дням с разбивкой по типам
     # Группируем по дате и типу события
@@ -131,7 +206,7 @@ async def get_dashboard_stats(
             spending_by_date[purchase_date] = spending_by_date.get(purchase_date, 0.0) + purchase.payload['total_cost']
     
     # Генерируем daily_stats ТОЛЬКО для сегодняшнего дня
-    today = now.date()
+    today = client_now.date()
     today_str = today.isoformat()
     
     daily_stats = [{
@@ -147,7 +222,11 @@ async def get_dashboard_stats(
         tasks_completed=tasks_completed,
         purchases_created=purchases_created,
         purchases_completed=purchases_completed,
-        total_spending=total_spending,        total_created_cost=total_created_cost,        period=period.value,
+        total_spending=total_spending,
+        total_created_cost=total_created_cost,
+        total_incomplete_purchases_cost=total_incomplete_purchases_cost,
+        overdue_tasks_count=overdue_tasks_count,
+        period=period.value,
         daily_stats=daily_stats
     )
 
@@ -195,6 +274,7 @@ async def get_recent_events(
 @router.get("/activity-heatmap")
 async def get_activity_heatmap(
     days: int = Query(365, ge=7, le=365, description="Количество дней для отображения (7-365)"),
+    timezone_offset: int = Query(0, description="Смещение часового пояса в минутах (UTC - Local)"),
     user_id: uuid.UUID = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_session)
 ):
@@ -203,21 +283,49 @@ async def get_activity_heatmap(
     
     Возвращает активность пользователя за каждый день указанного периода.
     """
-    # Calculate date range
-    end_date = datetime.now(timezone.utc).date()
+    # Calculate date range based on client timezone
+    utc_now = datetime.now(timezone.utc)
+    client_now = utc_now - timedelta(minutes=timezone_offset)
+    
+    end_date = client_now.date()
     start_date = end_date - timedelta(days=days - 1)
     
     # Вместо загрузки всех событий, подсчитываем их в PostgreSQL
+    # Note: We query by UTC range that covers the client's days
+    # Ideally we should shift DB timestamps to client time before grouping, 
+    # but for simplicity we'll just grab a slightly wider UTC range and group by date.
+    # Actually, grouping by UTC date might be slightly off for the client.
+    # A better approach for exactness:
+    # 1. Get events in UTC range [start_date - 1 day, end_date + 1 day]
+    # 2. Shift each event to client time in Python
+    # 3. Group by client date
+    
+    # Shift timestamps to client local time for accurate daily grouping
+    # Local = UTC - offset => UTC = Local + offset
+    
+    client_start_dt = datetime.combine(start_date, datetime.min.time())
+    client_end_next_day = datetime.combine(end_date + timedelta(days=1), datetime.min.time())
+    
+    utc_start_dt = client_start_dt + timedelta(minutes=timezone_offset)
+    utc_end_next_day = client_end_next_day + timedelta(minutes=timezone_offset)
+    
+    # We subtract the offset from the stored UTC timestamp to get the Local timestamp
+    # before extracting the date.
+    # Use a literal interval to ensure PostgreSQL sees identical expressions in SELECT and GROUP BY
+    interval_sql = text(f"INTERVAL '{int(timezone_offset)} minutes'")
+    
+    date_expression = func.date(AnalyticsEvent.created_at - interval_sql)
+
     stmt = select(
-        func.date(AnalyticsEvent.created_at).label('event_date'),
+        date_expression.label('event_date'),
         func.count(AnalyticsEvent.id).label('activity')
     ).where(
         and_(
             AnalyticsEvent.user_id == user_id,
-            AnalyticsEvent.created_at >= datetime.combine(start_date, datetime.min.time()),
-            AnalyticsEvent.created_at <= datetime.combine(end_date, datetime.max.time())
+            AnalyticsEvent.created_at >= utc_start_dt,
+            AnalyticsEvent.created_at < utc_end_next_day
         )
-    ).group_by(func.date(AnalyticsEvent.created_at))
+    ).group_by(date_expression)
     
     result = await session.execute(stmt)
     activity_by_date: Dict[str, int] = {
@@ -253,23 +361,27 @@ async def get_activity_heatmap(
 @router.get("/purchases/bought", response_model=List[uuid.UUID])
 async def get_bought_purchase_ids(
     period: PeriodType = Query(PeriodType.week, description="Период"),
+    timezone_offset: int = Query(0, description="Смещение часового пояса в минутах (UTC - Local)"),
     user_id: uuid.UUID = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_session)
 ):
     """
     Получение списка ID купленных товаров за период
     """
-    now = datetime.now(timezone.utc)
+    utc_now = datetime.now(timezone.utc)
+    client_now = utc_now - timedelta(minutes=timezone_offset)
+
     if period == PeriodType.today:
-        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        client_start_date = client_now.replace(hour=0, minute=0, second=0, microsecond=0)
+        start_date = client_start_date + timedelta(minutes=timezone_offset)
     elif period == PeriodType.week:
-        start_date = now - timedelta(days=7)
+        start_date = utc_now - timedelta(days=7)
     elif period == PeriodType.month:
-        start_date = now - timedelta(days=30)
+        start_date = utc_now - timedelta(days=30)
     elif period == PeriodType.year:
-        start_date = now - timedelta(days=365)
+        start_date = utc_now - timedelta(days=365)
     else:
-        start_date = now - timedelta(days=7)
+        start_date = utc_now - timedelta(days=7)
 
     stmt = select(AnalyticsEvent).where(
         and_(

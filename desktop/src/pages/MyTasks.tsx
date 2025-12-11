@@ -79,12 +79,34 @@ export function MyTasks() {
   }
 
   // Group tasks
+  // Use local date for comparison to handle timezone correctly
   const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
+  // Get local YYYY-MM-DD
+  const todayStr = now.toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
 
-  const overdueTasks = tasks.filter(t => !t.is_completed && t.due_date && new Date(t.due_date) < now && !t.due_date.startsWith(todayStr));
-  const todayTasks = tasks.filter(t => !t.is_completed && t.due_date?.startsWith(todayStr));
-  const upcomingTasks = tasks.filter(t => !t.is_completed && (!t.due_date || (new Date(t.due_date) > now && !t.due_date.startsWith(todayStr))));
+  const overdueTasks = tasks.filter(t => {
+    if (t.is_completed || !t.due_date) return false;
+    // Convert UTC due_date to local date string for comparison
+    const taskDate = new Date(t.due_date);
+    const taskDateStr = taskDate.toLocaleDateString('en-CA');
+    return taskDateStr < todayStr;
+  });
+
+  const todayTasks = tasks.filter(t => {
+    if (t.is_completed || !t.due_date) return false;
+    const taskDate = new Date(t.due_date);
+    const taskDateStr = taskDate.toLocaleDateString('en-CA');
+    return taskDateStr === todayStr;
+  });
+
+  const upcomingTasks = tasks.filter(t => {
+    if (t.is_completed) return false;
+    if (!t.due_date) return true; // No due date = upcoming/backlog
+    const taskDate = new Date(t.due_date);
+    const taskDateStr = taskDate.toLocaleDateString('en-CA');
+    return taskDateStr > todayStr;
+  });
+  
   const completedTasks = tasks.filter(t => t.is_completed);
 
   const displayedTasks = filter === "completed" ? completedTasks : 

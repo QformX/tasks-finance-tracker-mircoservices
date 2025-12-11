@@ -16,5 +16,7 @@ class DashboardStats(BaseModel):
     purchases_completed: int
     total_spending: float
     total_created_cost: float = 0.0
+    total_incomplete_purchases_cost: float = 0.0
+    overdue_tasks_count: int = 0
     period: str
     daily_stats: List[Dict[str, Any]] = []
