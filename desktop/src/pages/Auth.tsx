@@ -2,10 +2,12 @@ import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { register } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/context/LanguageContext";
 
 export function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const { login } = useAuth();
+  const { t } = useLanguage();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,10 +40,10 @@ export function AuthPage() {
       <div className="w-full max-w-md space-y-8 rounded-2xl bg-sidebar-dark p-8 border border-white/5 shadow-xl">
         <div className="text-center">
           <h2 className="text-3xl font-bold tracking-tight text-white">
-            {isLogin ? "Welcome back" : "Create an account"}
+            {isLogin ? t("welcome_back") : t("create_account")}
           </h2>
           <p className="mt-2 text-sm text-text-secondary">
-            {isLogin ? "Sign in to access your workspace" : "Get started with TaskMaster"}
+            {isLogin ? t("sign_in_desc") : t("get_started_desc")}
           </p>
         </div>
 
@@ -53,7 +55,7 @@ export function AuthPage() {
               isLogin ? "bg-primary text-white shadow-sm" : "text-text-secondary hover:text-white"
             )}
           >
-            Sign In
+            {t("sign_in")}
           </button>
           <button
             onClick={() => setIsLogin(false)}
@@ -62,7 +64,7 @@ export function AuthPage() {
               !isLogin ? "bg-primary text-white shadow-sm" : "text-text-secondary hover:text-white"
             )}
           >
-            Register
+            {t("sign_up")}
           </button>
         </div>
 
@@ -71,7 +73,7 @@ export function AuthPage() {
             {!isLogin && (
               <div>
                 <label htmlFor="username" className="block text-xs font-medium text-text-secondary uppercase tracking-wider mb-1">
-                  Username
+                  {t("username")}
                 </label>
                 <input
                   id="username"
@@ -87,7 +89,7 @@ export function AuthPage() {
             )}
             <div>
               <label htmlFor="email" className="block text-xs font-medium text-text-secondary uppercase tracking-wider mb-1">
-                Email address
+                {t("email")}
               </label>
               <input
                 id="email"
@@ -103,7 +105,7 @@ export function AuthPage() {
             </div>
             <div>
               <label htmlFor="password" className="block text-xs font-medium text-text-secondary uppercase tracking-wider mb-1">
-                Password
+                {t("password")}
               </label>
               <input
                 id="password"
@@ -130,7 +132,7 @@ export function AuthPage() {
             disabled={loading}
             className="flex w-full justify-center rounded-full bg-primary px-4 py-3 text-sm font-bold text-white shadow-lg shadow-purple-900/20 hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
-            {loading ? "Please wait..." : (isLogin ? "Sign in" : "Create account")}
+            {loading ? t("loading") : (isLogin ? t("sign_in") : t("create_account"))}
           </button>
         </form>
       </div>

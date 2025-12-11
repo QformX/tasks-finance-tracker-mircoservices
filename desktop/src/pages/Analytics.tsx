@@ -3,8 +3,10 @@ import { Link } from "react-router-dom";
 import { getDashboardStats, getRecentEvents, getActivityHeatmap, getTasks, getPurchases } from "@/lib/api";
 import type { DashboardStats, AnalyticsEvent, ActivityHeatmap, Task, Purchase } from "@/types";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/context/LanguageContext";
 
 export function Analytics() {
+  const { t } = useLanguage();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentEvents, setRecentEvents] = useState<AnalyticsEvent[]>([]);
   const [heatmap, setHeatmap] = useState<ActivityHeatmap | null>(null);
@@ -49,7 +51,7 @@ export function Analytics() {
   if (loading && !stats) {
     return (
       <div className="flex items-center justify-center h-full text-text-secondary">
-        Loading analytics...
+        {t("loading_analytics")}
       </div>
     );
   }
@@ -57,7 +59,7 @@ export function Analytics() {
   if (!stats) {
     return (
       <div className="flex items-center justify-center h-full text-text-secondary">
-        Failed to load analytics.
+        {t("failed_analytics")}
       </div>
     );
   }
@@ -71,8 +73,7 @@ export function Analytics() {
         {/* Page Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-white mb-1">Dashboard Overview</h2>
-            <p className="text-sm text-text-secondary">Welcome back, here's what's happening today.</p>
+            <h2 className="text-xl lg:text-2xl font-bold text-white mb-1 whitespace-nowrap shrink-0">{t("dashboard_overview")}</h2>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex bg-surface-dark p-1 rounded-lg border border-border-dark">
@@ -87,7 +88,7 @@ export function Analytics() {
                       : "text-text-secondary hover:text-white"
                   )}
                 >
-                  {p}
+                  {t(p)}
                 </button>
               ))}
             </div>
@@ -102,28 +103,28 @@ export function Analytics() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <StatCard 
             icon="shopping_bag" 
-            label="Total Spending" 
+            label={t("total_spending")} 
             value={`$${stats?.total_spending.toLocaleString() ?? 0}`} 
             trend="" 
             color="indigo" 
           />
           <StatCard 
             icon="check_circle" 
-            label="Tasks Completed" 
+            label={t("tasks_completed")} 
             value={stats?.tasks_completed.toString() ?? "0"} 
             trend="" 
             color="pink" 
           />
           <StatCard 
             icon="pending_actions" 
-            label="Tasks Created" 
+            label={t("tasks_created")} 
             value={stats?.tasks_created.toString() ?? "0"} 
             trend="" 
             color="amber" 
           />
            <StatCard 
             icon="event" 
-            label="Total Events" 
+            label={t("total_events")} 
             value={stats?.total_events.toString() ?? "0"} 
             trend="" 
             color="emerald" 
@@ -135,7 +136,7 @@ export function Analytics() {
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                  {/* Tasks Progress */}
                  <div className="bg-surface-dark rounded-2xl border border-border-dark p-6 flex flex-col items-center justify-center min-h-[200px]">
-                    <h3 className="text-base font-bold text-white mb-6 self-start">Today's Tasks</h3>
+                    <h3 className="text-base font-bold text-white mb-6 self-start">{t("todays_tasks")}</h3>
                     {todayTasks.length > 0 ? (
                         <div className="flex items-center gap-8">
                             <div className="relative w-32 h-32 flex items-center justify-center">
@@ -158,70 +159,66 @@ export function Analytics() {
                             <div className="flex flex-col gap-2">
                                 <div className="flex items-center gap-2">
                                     <div className="w-3 h-3 rounded-full bg-primary"></div>
-                                    <span className="text-sm text-gray-300">{todayTasks.filter(t => t.is_completed).length} Completed</span>
+                                    <span className="text-sm text-gray-300">{todayTasks.filter(t => t.is_completed).length} {t("completed")}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="w-3 h-3 rounded-full bg-[#27272a]"></div>
-                                    <span className="text-sm text-gray-300">{todayTasks.length - todayTasks.filter(t => t.is_completed).length} Remaining</span>
+                                    <span className="text-sm text-gray-300">{todayTasks.length - todayTasks.filter(t => t.is_completed).length} {t("remaining")}</span>
                                 </div>
                             </div>
                         </div>
                     ) : (
-                        <div className="text-text-secondary">No tasks assigned for today.</div>
+                        <div className="text-text-secondary">{t("no_tasks_today")}</div>
                     )}
                  </div>
 
                  {/* Purchases Progress */}
                  <div className="bg-surface-dark rounded-2xl border border-border-dark p-6 flex flex-col items-center justify-center min-h-[200px]">
-                    <h3 className="text-base font-bold text-white mb-6 self-start">Shopping List</h3>
+                    <h3 className="text-base font-bold text-white mb-6 self-start">{t("shopping_list")}</h3>
                     {todayPurchases.length > 0 ? (
-                        <div className="flex items-center gap-8">
-                            <div className="relative w-32 h-32 flex items-center justify-center">
-                                 <svg className="w-full h-full transform -rotate-90">
-                                    <circle cx="64" cy="64" r="56" stroke="#27272a" strokeWidth="12" fill="transparent" />
-                                    <circle 
-                                        cx="64" cy="64" r="56" 
-                                        stroke="#10b981" 
-                                        strokeWidth="12" 
-                                        fill="transparent" 
-                                        strokeDasharray={351.86} 
-                                        strokeDashoffset={351.86 - (351.86 * (todayPurchases.filter(p => p.is_bought).length / todayPurchases.length))} 
-                                        className="transition-all duration-1000 ease-out"
-                                    />
-                                 </svg>
-                                 <span className="absolute text-2xl font-bold text-white">
-                                     {Math.round((todayPurchases.filter(p => p.is_bought).length / todayPurchases.length) * 100)}%
-                                 </span>
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                                    <span className="text-sm text-gray-300">{todayPurchases.filter(p => p.is_bought).length} Bought</span>
+                        <div className="flex items-center gap-8 w-full justify-around">
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                    <span className="material-symbols-outlined">add_shopping_cart</span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-[#27272a]"></div>
-                                    <span className="text-sm text-gray-300">{todayPurchases.length - todayPurchases.filter(p => p.is_bought).length} To Buy</span>
+                                <div className="flex flex-col items-center">
+                                    <span className="text-2xl font-bold text-white">
+                                        ${todayPurchases.reduce((acc, p) => acc + (p.cost || 0), 0).toLocaleString()}
+                                    </span>
+                                    <span className="text-xs text-text-secondary uppercase tracking-wider font-bold">Created</span>
+                                </div>
+                            </div>
+                            <div className="w-px h-16 bg-white/10"></div>
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                                    <span className="material-symbols-outlined">shopping_cart_checkout</span>
+                                </div>
+                                <div className="flex flex-col items-center">
+                                    <span className="text-2xl font-bold text-white">
+                                        ${todayPurchases.filter(p => p.is_bought).reduce((acc, p) => acc + (p.cost || 0), 0).toLocaleString()}
+                                    </span>
+                                    <span className="text-xs text-text-secondary uppercase tracking-wider font-bold">Spent</span>
                                 </div>
                             </div>
                         </div>
                     ) : (
-                        <div className="text-text-secondary">No items in shopping list.</div>
+                        <div className="text-text-secondary">{t("no_items_in_shopping_list")}</div>
                     )}
                  </div>
              </div>
         ) : (
             <div className="bg-surface-dark rounded-2xl border border-border-dark p-6">
                 <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-base font-bold text-white">Activity Heatmap</h3>
+                    <h3 className="text-base font-bold text-white">{t("activity_heatmap")}</h3>
                     <div className="flex items-center gap-2 text-xs text-text-secondary">
-                        <span>Less</span>
+                        <span>{t("less")}</span>
                         <div className="flex gap-1">
                             <div className="w-3 h-3 rounded-sm bg-[#27272a]"></div>
                             <div className="w-3 h-3 rounded-sm bg-primary/30"></div>
                             <div className="w-3 h-3 rounded-sm bg-primary/60"></div>
                             <div className="w-3 h-3 rounded-sm bg-primary"></div>
                         </div>
-                        <span>More</span>
+                        <span>{t("more")}</span>
                     </div>
                 </div>
                 <div className="w-full overflow-x-auto pb-2">
@@ -236,15 +233,15 @@ export function Analytics() {
           <div className="lg:col-span-2 space-y-8">
             <div>
               <div className="flex items-center justify-between mb-5">
-                <h3 className="text-lg font-bold text-white">Recent Tasks</h3>
-                <Link to="/tasks" className="text-sm text-primary hover:text-primary-dark font-medium cursor-pointer">View All</Link>
+                <h3 className="text-lg font-bold text-white">{t("recent_tasks")}</h3>
+                <Link to="/tasks" className="text-sm text-primary hover:text-primary-dark font-medium cursor-pointer">{t("view_all")}</Link>
               </div>
               <div className="space-y-3">
                 {recentEvents.filter(e => e.event_type.includes("Task")).slice(0, 5).map(event => (
                   <TaskEventItem key={event.id} event={event} />
                 ))}
                 {recentEvents.filter(e => e.event_type.includes("Task")).length === 0 && (
-                  <div className="text-text-secondary text-sm text-center py-4 bg-surface-dark rounded-xl border border-border-dark">No recent tasks</div>
+                  <div className="text-text-secondary text-sm text-center py-4 bg-surface-dark rounded-xl border border-border-dark">{t("no_recent_tasks")}</div>
                 )}
               </div>
             </div>
@@ -270,16 +267,16 @@ export function Analytics() {
           <div className="space-y-6">
             {/* Event Distribution */}
             <div className="bg-surface-dark rounded-2xl border border-border-dark p-6">
-              <h3 className="text-base font-bold text-white mb-6">Event Distribution</h3>
+              <h3 className="text-base font-bold text-white mb-6">{t("event_distribution")}</h3>
               <div className="space-y-4">
                   <DistributionBar 
-                    label="Tasks" 
+                    label={t("tasks")} 
                     value={stats ? stats.tasks_created + stats.tasks_completed : 0} 
                     total={stats?.total_events || 1} 
                     color="bg-pink-500" 
                   />
                   <DistributionBar 
-                    label="Purchases" 
+                    label={t("purchases")} 
                     value={stats ? stats.purchases_created + stats.purchases_completed : 0} 
                     total={stats?.total_events || 1} 
                     color="bg-indigo-500" 
@@ -289,17 +286,17 @@ export function Analytics() {
 
             {/* Recent Purchases (Completed Only) */}
             <div className="bg-surface-dark rounded-2xl border border-border-dark p-6">
-              <h2 className="text-lg font-bold text-white mb-6">Recent Purchases (Bought)</h2>
+              <h2 className="text-lg font-bold text-white mb-6">{t("recent_purchases_bought")}</h2>
               <ul className="space-y-5">
                 {completedPurchases.slice(0, 5).map(event => (
                   <PurchaseEventItem key={event.id} event={event} />
                 ))}
                 {completedPurchases.length === 0 && (
-                  <div className="text-text-secondary text-sm text-center">No recent purchases</div>
+                  <div className="text-text-secondary text-sm text-center">{t("no_recent_purchases")}</div>
                 )}
               </ul>
               <Link to="/purchases" className="block w-full mt-6 py-2.5 border border-border-dark rounded-lg text-xs font-semibold text-gray-400 hover:bg-border-dark hover:text-white transition-colors text-center">
-                View All History
+                {t("view_all_history")}
               </Link>
             </div>
           </div>
@@ -402,11 +399,6 @@ function DistributionBar({ label, value, total, color }: { label: string, value:
 function HeatmapGrid({ heatmap, period }: { heatmap: ActivityHeatmap, period: string }) {
   if (!heatmap || heatmap.heatmap.length === 0) return null;
 
-  // Determine grid size based on period
-  // Week: 1 row, 7 cols
-  // Month: ~5 rows, 7 cols (calendar view) or 1 row 30 cols
-  // Year: 7 rows (days), 52 cols (weeks) - GitHub style
-  
   const maxActivity = Math.max(...heatmap.heatmap.map(d => d.activity), 1);
   
   if (period === "year") {
@@ -433,15 +425,13 @@ function HeatmapGrid({ heatmap, period }: { heatmap: ActivityHeatmap, period: st
       });
       if (currentWeek.length > 0) weeks.push(currentWeek);
 
-      // Transpose for rendering: 7 rows (days), N cols (weeks)
-      const rows = Array.from({ length: 7 }, (_, i) => i);
-
       return (
-          <div className="flex gap-1 min-w-max">
+        <div className="flex flex-col md:flex-row gap-8 items-start">
+          <div className="flex gap-1 min-w-max overflow-x-auto pb-2">
               {weeks.map((week, wIndex) => (
-                  <div key={wIndex} className="flex flex-col gap-1">
+                  <div key={wIndex} className="flex flex-col gap-0.5">
                       {week.map((day, dIndex) => {
-                          if (day.activity === -1) return <div key={day.date} className="w-3 h-3" />;
+                          if (day.activity === -1) return <div key={day.date} className="w-2.5 h-2.5" />;
                           
                           const intensity = day.activity === 0 ? 0 : Math.ceil((day.activity / maxActivity) * 4);
                           const bgClass = [
@@ -455,7 +445,7 @@ function HeatmapGrid({ heatmap, period }: { heatmap: ActivityHeatmap, period: st
                           return (
                               <div 
                                   key={day.date} 
-                                  className={cn("w-3 h-3 rounded-sm transition-colors", bgClass)}
+                                  className={cn("w-2.5 h-2.5 rounded-[1px] transition-colors", bgClass)}
                                   title={`${day.date}: ${day.activity} events`}
                               />
                           );
@@ -463,6 +453,41 @@ function HeatmapGrid({ heatmap, period }: { heatmap: ActivityHeatmap, period: st
                   </div>
               ))}
           </div>
+          
+          {/* Activity Direction Chart (Cross/Radar style) */}
+          <div className="flex-1 w-full min-w-[200px] flex flex-col items-center justify-center bg-surface-dark/50 rounded-xl p-4 border border-white/5">
+             <h4 className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-4">Activity Direction</h4>
+             <div className="relative w-48 h-48">
+                {/* Axis Lines */}
+                <div className="absolute top-0 bottom-0 left-1/2 w-px bg-white/10 -translate-x-1/2"></div>
+                <div className="absolute left-0 right-0 top-1/2 h-px bg-white/10 -translate-y-1/2"></div>
+                
+                {/* Labels */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 text-[10px] text-text-secondary font-medium">Tasks Created</div>
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-4 text-[10px] text-text-secondary font-medium">Tasks Completed</div>
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-2 text-[10px] text-text-secondary font-medium text-right w-20">Purchases Created</div>
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full pl-2 text-[10px] text-text-secondary font-medium w-20">Purchases Bought</div>
+
+                {/* Data Points (Mocked for now as we don't have granular breakdown in heatmap data, using stats if available or random for visual) */}
+                {/* Note: In a real scenario, we'd need 'stats' passed to this component or derived from a more detailed heatmap API */}
+                <div className="absolute inset-0">
+                    <svg className="w-full h-full overflow-visible">
+                        <polygon 
+                            points="96,24 168,96 96,168 24,96" 
+                            fill="rgba(124, 58, 237, 0.2)" 
+                            stroke="#7c3aed" 
+                            strokeWidth="2"
+                            className="animate-in fade-in duration-1000"
+                        />
+                        <circle cx="96" cy="24" r="3" fill="#7c3aed" />
+                        <circle cx="168" cy="96" r="3" fill="#7c3aed" />
+                        <circle cx="96" cy="168" r="3" fill="#7c3aed" />
+                        <circle cx="24" cy="96" r="3" fill="#7c3aed" />
+                    </svg>
+                </div>
+             </div>
+          </div>
+        </div>
       );
   }
 
@@ -474,6 +499,9 @@ function HeatmapGrid({ heatmap, period }: { heatmap: ActivityHeatmap, period: st
       {displayData.map((day, i) => {
         const height = (day.activity / maxActivity) * 100;
         const isMax = day.activity === maxActivity && maxActivity > 0;
+        const date = new Date(day.date);
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         
         return (
           <div key={day.date} className="w-full flex flex-col items-center gap-2 h-full justify-end group">
@@ -487,6 +515,10 @@ function HeatmapGrid({ heatmap, period }: { heatmap: ActivityHeatmap, period: st
               style={{ height: `${Math.max(height, 10)}%` }}
               title={`${day.date}: ${day.activity} events`}
             />
+            <div className="flex flex-col items-center gap-0.5">
+                <span className="text-[10px] font-bold text-text-secondary group-hover:text-white transition-colors">{dayName}</span>
+                <span className="text-[9px] text-text-secondary/70 group-hover:text-white/70 transition-colors">{dateStr}</span>
+            </div>
           </div>
         );
       })}

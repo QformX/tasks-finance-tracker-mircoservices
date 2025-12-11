@@ -3,13 +3,18 @@ import type { Purchase, Category } from "@/types";
 import { getPurchases, togglePurchaseCompletion, deletePurchase, getCategories } from "@/lib/api";
 import { PurchaseItem } from "@/components/PurchaseItem";
 import { CreatePurchaseModal } from "@/components/CreatePurchaseModal";
+import { EditPurchaseModal } from "@/components/EditPurchaseModal";
+import { useLanguage } from "@/context/LanguageContext";
 
 export function Purchases() {
+  const { t } = useLanguage();
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "active" | "bought">("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     Promise.all([loadPurchases(), loadCategories()]);
@@ -53,7 +58,7 @@ export function Purchases() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Are you sure you want to delete this purchase?")) return;
+    if (!confirm(t("delete_purchase_confirm"))) return;
     try {
       await deletePurchase(id);
       setPurchases(purchases.filter(p => p.id !== id));
@@ -66,6 +71,15 @@ export function Purchases() {
     setPurchases([newPurchase, ...purchases]);
   }
 
+  function handleEdit(purchase: Purchase) {
+    setEditingPurchase(purchase);
+    setIsEditModalOpen(true);
+  }
+
+  function handlePurchaseUpdated(updatedPurchase: Purchase) {
+    setPurchases(purchases.map(p => p.id === updatedPurchase.id ? updatedPurchase : p));
+  }
+
   const activePurchases = purchases.filter(p => !p.is_bought);
   const boughtPurchases = purchases.filter(p => p.is_bought);
 
@@ -73,33 +87,33 @@ export function Purchases() {
 
   return (
     <>
-      <div className="shrink-0 z-20 bg-background-dark sticky top-0">
-        <div className="w-full max-w-7xl mx-auto flex flex-col p-8 pb-4">
+      <div className="shrink-0 z-20 bg-background-dark sticky top-0 px-8">
+        <div className="w-full max-w-7xl mx-auto flex flex-col pt-8 pb-4">
           <div className="flex items-center justify-between gap-4 mb-6">
             <div className="flex flex-col gap-1">
-              <h2 className="text-white text-2xl font-bold leading-tight tracking-tight">Purchases</h2>
+              <h2 className="text-white text-xl lg:text-2xl font-bold leading-tight tracking-tight whitespace-nowrap shrink-0">{t("purchases_header")}</h2>
             </div>
             <button 
               onClick={() => setIsCreateModalOpen(true)}
               className="flex items-center gap-2 cursor-pointer justify-center overflow-hidden rounded-full h-10 px-5 bg-primary hover:bg-primary-dark transition-colors text-white text-xs font-bold shadow-lg shadow-purple-900/20 group"
             >
               <span className="material-symbols-outlined text-[18px]">add</span>
-              <span>New Purchase</span>
+              <span>{t("new_purchase")}</span>
             </button>
           </div>
-          <div className="flex flex-col lg:flex-row lg:flex-wrap gap-6 items-center justify-between">
-            <div className="w-full lg:max-w-md min-w-[300px]">
+          <div className="flex flex-col min-[1143px]:flex-row min-[1143px]:flex-wrap gap-6 items-center justify-between">
+            <div className="w-full min-[1143px]:max-w-md min-w-[300px]">
               <div className="flex w-full items-center rounded-2xl h-11 bg-[#1e1e21] group focus-within:ring-1 focus-within:ring-white/10 transition-all border border-transparent">
                 <div className="text-text-secondary flex items-center justify-center pl-4">
                   <span className="material-symbols-outlined text-[20px]">search</span>
                 </div>
-                <input className="flex w-full min-w-0 flex-1 resize-none bg-transparent border-none text-white focus:ring-0 h-full placeholder:text-text-secondary/70 px-3 text-sm font-medium outline-none" placeholder="Search purchases..." />
+                <input className="flex w-full min-w-0 flex-1 resize-none bg-transparent border-none text-white focus:ring-0 h-full placeholder:text-text-secondary/70 px-3 text-sm font-medium outline-none" placeholder={t("search_purchases_placeholder")} />
               </div>
             </div>
-            <div className="flex gap-4 items-center overflow-x-auto w-full lg:w-auto scrollbar-hide">
-              <FilterButton active={filter === "all"} onClick={() => setFilter("all")} label="All Purchases" />
-              <FilterButton active={filter === "active"} onClick={() => setFilter("active")} label="To Buy" count={activePurchases.length} />
-              <FilterButton active={filter === "bought"} onClick={() => setFilter("bought")} label="Bought" count={boughtPurchases.length} />
+            <div className="flex gap-4 items-center overflow-x-auto w-full min-[1143px]:w-auto scrollbar-hide">
+              <FilterButton active={filter === "all"} onClick={() => setFilter("all")} label={t("all_purchases")} />
+              <FilterButton active={filter === "active"} onClick={() => setFilter("active")} label={t("to_buy")} count={activePurchases.length} />
+              <FilterButton active={filter === "bought"} onClick={() => setFilter("bought")} label={t("bought")} count={boughtPurchases.length} />
             </div>
           </div>
         </div>
@@ -109,7 +123,7 @@ export function Purchases() {
         <div className="w-full max-w-7xl mx-auto flex flex-col gap-6">
           
           {loading ? (
-            <div className="text-text-secondary text-center py-10">Loading purchases...</div>
+            <div className="text-text-secondary text-center py-10">{t("loading_purchases")}</div>
           ) : (
             <>
               {filter === "all" ? (
@@ -119,7 +133,7 @@ export function Purchases() {
                     <div className="flex flex-col gap-1">
                       <h3 className="text-text-secondary text-[11px] font-bold uppercase tracking-widest mb-2 px-2 flex items-center gap-2">
                         <span className="material-symbols-outlined text-[14px]">shopping_cart</span>
-                        To Buy
+                        {t("to_buy")}
                       </h3>
                       {activePurchases.map(purchase => (
                         <PurchaseItem 
@@ -128,6 +142,7 @@ export function Purchases() {
                           categoryName={getCategoryName(purchase.category_id)} 
                           onToggle={() => handleToggle(purchase.id)} 
                           onDelete={() => handleDelete(purchase.id)} 
+                          onEdit={() => handleEdit(purchase)}
                         />
                       ))}
                     </div>
@@ -138,7 +153,7 @@ export function Purchases() {
                     <div className="flex flex-col gap-1 mt-2">
                       <h3 className="text-text-secondary text-[11px] font-bold uppercase tracking-widest mb-2 px-2 flex items-center gap-2">
                         <span className="material-symbols-outlined text-[14px]">check_circle</span>
-                        Bought
+                        {t("bought")}
                       </h3>
                       {boughtPurchases.map(purchase => (
                         <PurchaseItem 
@@ -147,13 +162,14 @@ export function Purchases() {
                           categoryName={getCategoryName(purchase.category_id)} 
                           onToggle={() => handleToggle(purchase.id)} 
                           onDelete={() => handleDelete(purchase.id)} 
+                          onEdit={() => handleEdit(purchase)}
                         />
                       ))}
                     </div>
                   )}
                   
                   {purchases.length === 0 && (
-                    <div className="text-text-secondary text-center py-10">No purchases found.</div>
+                    <div className="text-text-secondary text-center py-10">{t("no_purchases_found")}</div>
                   )}
                 </>
               ) : (
@@ -165,11 +181,12 @@ export function Purchases() {
                       categoryName={getCategoryName(purchase.category_id)} 
                       onToggle={() => handleToggle(purchase.id)} 
                       onDelete={() => handleDelete(purchase.id)} 
+                      onEdit={() => handleEdit(purchase)}
                     />
                   ))}
                   {displayedPurchases.length === 0 && (
                     <div className="text-text-secondary text-center py-10">
-                      {filter === "active" ? "No items to buy" : "No bought items"}
+                      {filter === "active" ? t("no_items_to_buy") : t("no_bought_items")}
                     </div>
                   )}
                 </div>
@@ -183,6 +200,12 @@ export function Purchases() {
         isOpen={isCreateModalOpen} 
         onClose={() => setIsCreateModalOpen(false)} 
         onPurchaseCreated={handlePurchaseCreated} 
+      />
+      <EditPurchaseModal 
+        isOpen={isEditModalOpen} 
+        onClose={() => setIsEditModalOpen(false)} 
+        purchase={editingPurchase}
+        onPurchaseUpdated={handlePurchaseUpdated} 
       />
     </>
   );

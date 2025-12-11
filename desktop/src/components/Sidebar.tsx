@@ -2,9 +2,12 @@ import { useAuth } from "@/context/AuthContext";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useRef } from "react";
+import logo from "@/assets/high-logo.svg";
+import { useLanguage } from "@/context/LanguageContext";
 
 export function Sidebar() {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const userPreferredCollapsed = useRef(false);
@@ -59,15 +62,12 @@ export function Sidebar() {
     >
       <div className={cn("flex h-full flex-col justify-between transition-all", isCollapsed ? "px-2 py-4" : "p-4")}>
         <div className={cn("flex flex-col gap-8", isCollapsed && "items-center")}>
-          <div className={cn("flex items-center h-12 group/header relative transition-all duration-300 ease-in-out w-full", isCollapsed ? "justify-center" : "px-2 justify-between")}>
-            <div className="flex items-center gap-3 overflow-hidden">
-              <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-8 bg-transparent border border-white/20 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-white" style={{ fontSize: "18px" }}>check</span>
-              </div>
+          <div className={cn("flex items-center h-16 group/header relative transition-all duration-300 ease-in-out w-full", isCollapsed ? "justify-center" : "px-2 justify-between")}>
+            <div className="flex items-center gap-4 overflow-hidden">
+              <img src={logo} alt="Cognito" className="size-12 shrink-0" />
               {!isCollapsed && (
                 <div className="flex flex-col min-w-0 animate-in fade-in duration-300">
-                  <h1 className="text-white text-base font-bold leading-none tracking-tight truncate">TaskMaster</h1>
-                  <p className="text-text-secondary text-[10px] font-medium mt-1 truncate">Pro Workspace</p>
+                  <h1 className="text-white text-2xl font-bold tracking-tight truncate py-1">Cognito</h1>
                 </div>
               )}
             </div>
@@ -87,11 +87,11 @@ export function Sidebar() {
             )}
           </div>
           <nav className={cn("flex flex-col gap-1 w-full", isCollapsed && "items-center")}>
-            <NavItem to="/" icon="dashboard" label="Dashboard" isCollapsed={isCollapsed} />
-            <NavItem to="/tasks" icon="task_alt" label="Tasks" isCollapsed={isCollapsed} />
-            <NavItem to="/purchases" icon="shopping_bag" label="Purchases" isCollapsed={isCollapsed} />
-            <NavItem to="/analytics" icon="pie_chart" label="Analytics" isCollapsed={isCollapsed} />
-            <NavItem to="/categories" icon="folder" label="Categories" isCollapsed={isCollapsed} />
+            <NavItem to="/" icon="dashboard" label={t("dashboard")} isCollapsed={isCollapsed} />
+            <NavItem to="/tasks" icon="task_alt" label={t("tasks")} isCollapsed={isCollapsed} />
+            <NavItem to="/purchases" icon="shopping_bag" label={t("purchases")} isCollapsed={isCollapsed} />
+            <NavItem to="/analytics" icon="pie_chart" label={t("analytics")} isCollapsed={isCollapsed} />
+            <NavItem to="/categories" icon="folder" label={t("categories")} isCollapsed={isCollapsed} />
           </nav>
         </div>
         <div className={cn("flex flex-col gap-2 pt-4 w-full", isCollapsed && "items-center")}>
@@ -104,10 +104,10 @@ export function Sidebar() {
                 ? "bg-black text-white shadow-lg shadow-black/20" 
                 : "text-text-secondary hover:text-white hover:bg-white/5"
             )}
-            title="Settings"
+            title={t("settings")}
           >
             <span className="material-symbols-outlined text-[20px]">settings</span>
-            {!isCollapsed && <span className="text-sm font-medium">Settings</span>}
+            {!isCollapsed && <span className="text-sm font-medium">{t("settings")}</span>}
           </NavLink>
           
           <div 

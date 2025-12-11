@@ -15,6 +15,7 @@ class TaskCreate(BaseModel):
 class TaskUpdate(BaseModel):
     """Схема для обновления задачи"""
     title: Optional[str] = None
+    category_id: Optional[uuid.UUID] = None
     is_completed: Optional[bool] = None
     due_date: Optional[datetime] = None
     description: Optional[str] = None

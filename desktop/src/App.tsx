@@ -8,6 +8,7 @@ import { Settings } from "@/pages/Settings";
 import { Profile } from "@/pages/Profile";
 import { AuthPage } from "@/pages/Auth";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { LanguageProvider } from "@/context/LanguageContext";
 import { Layout } from "@/components/Layout";
 import { Routes, Route, Navigate } from "react-router-dom";
 
@@ -45,9 +46,11 @@ function AppContent() {
 function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </LanguageProvider>
     </ErrorBoundary>
   );
 }

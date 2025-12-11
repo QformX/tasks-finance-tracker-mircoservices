@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Modal } from "@/components/Modal";
+import { Dropdown } from "@/components/Dropdown";
 import { createPurchase, getCategories } from "@/lib/api";
 import type { Category, Purchase } from "@/types";
 
@@ -109,18 +110,13 @@ export function CreatePurchaseModal({ isOpen, onClose, onPurchaseCreated, presel
 
         <div className="flex flex-col gap-1">
           <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Category</label>
-          <select 
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all appearance-none cursor-pointer"
-          >
-            <option value="" className="bg-surface-dark text-text-secondary">No Category</option>
-            {categories.map(category => (
-              <option key={category.id} value={category.id} className="bg-surface-dark text-white">
-                {category.title}
-              </option>
-            ))}
-          </select>
+          <Dropdown
+            items={[{ id: "", title: "No Category", type: "mixed", user_id: "" } as Category, ...categories]}
+            selectedItem={categories.find(c => c.id === categoryId) || { id: "", title: "No Category", type: "mixed", user_id: "" } as Category}
+            onSelect={(item) => setCategoryId(item.id)}
+            keyExtractor={(item) => item.id}
+            renderItem={(item) => item.title}
+          />
         </div>
 
         <div className="flex justify-end gap-3 mt-4">

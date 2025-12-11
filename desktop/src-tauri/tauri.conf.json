@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "TaskFinAi",
+  "productName": "Cognito",
   "version": "0.1.0",
   "identifier": "com.tauri.dev",
   "build": {
@@ -12,10 +12,11 @@
   "app": {
     "windows": [
       {
-        "title": "TaskFinanceAI",
+        "title": "Cognito",
         "width": 800,
         "height": 600,
         "minWidth": 800,
+        "minHeight": 600,
         "resizable": true,
         "fullscreen": false,
         "decorations": false,

@@ -1,8 +1,9 @@
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);
+  const timeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     const updateMaximizedState = async () => {
@@ -13,10 +14,23 @@ export function TitleBar() {
     updateMaximizedState();
 
     const appWindow = getCurrentWindow();
-    const unlisten = appWindow.listen('tauri://resize', updateMaximizedState);
+    
+    const handleResize = () => {
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = window.setTimeout(() => {
+        updateMaximizedState();
+      }, 200);
+    };
+
+    const unlisten = appWindow.listen('tauri://resize', handleResize);
 
     return () => {
       unlisten.then(f => f());
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+      }
     };
   }, []);
 
