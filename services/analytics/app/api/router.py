@@ -67,9 +67,9 @@ async def get_dashboard_stats(
     purchases = result_purchases.scalars().all()
     
     total_spending = sum(
-        p.payload.get('total_cost', 0) 
+        p.payload.get('total_cost') or p.payload.get('cost', 0)
         for p in purchases 
-        if 'total_cost' in p.payload
+        if 'total_cost' in p.payload or 'cost' in p.payload
     )
     
     # 3. Группировка по дням с разбивкой по типам

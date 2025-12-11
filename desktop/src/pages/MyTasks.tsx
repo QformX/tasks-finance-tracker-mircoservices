@@ -27,7 +27,7 @@ export function MyTasks() {
 
   async function loadTasks() {
     try {
-      const data = await getTasks("inbox"); 
+      const data = await getTasks("all"); 
       setTasks(data);
     } catch (error) {
       console.error("Failed to load tasks", error);
@@ -84,7 +84,7 @@ export function MyTasks() {
         <div className="w-full max-w-7xl mx-auto flex flex-col p-8 pb-4">
           <div className="flex items-center justify-between gap-4 mb-6">
             <div className="flex flex-col gap-1">
-              <h2 className="text-white text-2xl font-bold leading-tight tracking-tight">My Tasks</h2>
+              <h2 className="text-white text-2xl font-bold leading-tight tracking-tight">Tasks</h2>
             </div>
             <button 
               onClick={() => setIsCreateModalOpen(true)}
@@ -173,14 +173,6 @@ export function MyTasks() {
               )}
             </>
           )}
-
-          <div 
-            onClick={() => setIsCreateModalOpen(true)}
-            className="group flex items-center gap-3 bg-transparent border border-dashed border-white/10 hover:border-white/20 rounded-2xl p-4 transition-all cursor-pointer mt-4 justify-center hover:bg-white/[0.02]"
-          >
-            <span className="material-symbols-outlined text-text-secondary group-hover:text-white text-[20px]">add_circle</span>
-            <p className="text-text-secondary text-sm font-medium group-hover:text-white">Click to add a new task...</p>
-          </div>
         </div>
       </div>
 

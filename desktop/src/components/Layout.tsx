@@ -12,7 +12,7 @@ export function Layout({ children }: LayoutProps) {
       <TitleBar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <div className="flex-1 flex flex-col h-full pr-4 pb-4 overflow-hidden">
+        <div className="flex-1 flex flex-col h-full pr-[10px] pb-[10px] overflow-hidden">
           <main className="flex-1 flex flex-col h-full bg-background-dark relative overflow-hidden rounded-xl border border-white/5">
             {children}
           </main>

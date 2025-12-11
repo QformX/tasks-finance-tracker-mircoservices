@@ -95,17 +95,20 @@ export function Sidebar() {
           </nav>
         </div>
         <div className={cn("flex flex-col gap-2 pt-4 w-full", isCollapsed && "items-center")}>
-          <a 
-            className={cn(
-              "group flex items-center gap-3 rounded-full hover:bg-white/5 transition-all duration-300 text-text-secondary hover:text-white h-11",
-              isCollapsed ? "w-[52px] justify-center px-0" : "w-full px-4"
-            )} 
-            href="#"
+          <NavLink 
+            to="/settings"
+            className={({ isActive }) => cn(
+              "group flex items-center gap-3 rounded-full transition-all duration-300 h-11",
+              isCollapsed ? "w-[52px] justify-center px-0" : "w-full px-4",
+              isActive 
+                ? "bg-black text-white shadow-lg shadow-black/20" 
+                : "text-text-secondary hover:text-white hover:bg-white/5"
+            )}
             title="Settings"
           >
             <span className="material-symbols-outlined text-[20px]">settings</span>
             {!isCollapsed && <span className="text-sm font-medium">Settings</span>}
-          </a>
+          </NavLink>
           
           <div 
             className={cn(

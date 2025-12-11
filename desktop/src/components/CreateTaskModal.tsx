@@ -7,9 +7,10 @@ interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onTaskCreated: (task: Task) => void;
+  preselectedCategoryId?: string;
 }
 
-export function CreateTaskModal({ isOpen, onClose, onTaskCreated }: CreateTaskModalProps) {
+export function CreateTaskModal({ isOpen, onClose, onTaskCreated, preselectedCategoryId }: CreateTaskModalProps) {
   const [title, setTitle] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -21,11 +22,11 @@ export function CreateTaskModal({ isOpen, onClose, onTaskCreated }: CreateTaskMo
     if (isOpen) {
       loadCategories();
       setTitle("");
-      setCategoryId("");
+      setCategoryId(preselectedCategoryId || "");
       setDueDate("");
       setError("");
     }
-  }, [isOpen]);
+  }, [isOpen, preselectedCategoryId]);
 
   async function loadCategories() {
     try {

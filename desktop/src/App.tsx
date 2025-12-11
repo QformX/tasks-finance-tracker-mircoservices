@@ -1,6 +1,11 @@
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ApiTester } from "@/pages/ApiTester";
 import { MyTasks } from "@/pages/MyTasks";
+import { Purchases } from "@/pages/Purchases";
+import { Categories } from "@/pages/Categories";
+import { Analytics } from "@/pages/Analytics";
+import { Settings } from "@/pages/Settings";
+import { Profile } from "@/pages/Profile";
 import { AuthPage } from "@/pages/Auth";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { Layout } from "@/components/Layout";
@@ -26,6 +31,11 @@ function AppContent() {
       <Routes>
         <Route path="/" element={<ApiTester />} />
         <Route path="/tasks" element={<MyTasks />} />
+        <Route path="/purchases" element={<Purchases />} />
+        <Route path="/categories" element={<Categories />} />
+        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
