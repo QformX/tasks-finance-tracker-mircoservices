@@ -57,6 +57,7 @@ export interface DashboardStats {
   purchases_created: number;
   purchases_completed: number;
   total_spending: number;
+  total_created_cost: number;
   period: string;
   daily_stats: Array<{
     date: string;

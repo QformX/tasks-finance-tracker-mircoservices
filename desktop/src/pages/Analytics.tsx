@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getDashboardStats, getRecentEvents, getActivityHeatmap, getTasks, getPurchases } from "@/lib/api";
-import type { DashboardStats, AnalyticsEvent, ActivityHeatmap, Task, Purchase } from "@/types";
+import { getDashboardStats, getRecentEvents, getActivityHeatmap, getTasks, getPurchases, getCategories, getBoughtPurchaseIds } from "@/lib/api";
+import type { DashboardStats, AnalyticsEvent, ActivityHeatmap, Task, Purchase, Category } from "@/types";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -12,6 +12,10 @@ export function Analytics() {
   const [heatmap, setHeatmap] = useState<ActivityHeatmap | null>(null);
   const [todayTasks, setTodayTasks] = useState<Task[]>([]);
   const [todayPurchases, setTodayPurchases] = useState<Purchase[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [allBoughtPurchases, setAllBoughtPurchases] = useState<Purchase[]>([]);
+  const [overdueCount, setOverdueCount] = useState(0);
+  const [totalNeeded, setTotalNeeded] = useState(0);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<"today" | "week" | "month" | "year">("week");
 
@@ -22,20 +26,39 @@ export function Analytics() {
   async function loadData() {
     setLoading(true);
     try {
-      const [statsData, eventsData, heatmapData] = await Promise.all([
-        getDashboardStats(period === "today" ? "week" : period), // Backend doesn't support "today" for stats yet, fallback to week
-        getRecentEvents(20), // Fetch more to filter client-side
-        getActivityHeatmap(period === "week" || period === "today" ? 7 : period === "month" ? 30 : 365)
+      const [statsData, eventsData, heatmapData, allTasks, activePurchasesList, categoriesData, boughtPurchasesList, boughtIds] = await Promise.all([
+        getDashboardStats(period),
+        getRecentEvents(20),
+        getActivityHeatmap(period === "week" || period === "today" ? 7 : period === "month" ? 30 : 365),
+        getTasks("all"),
+        getPurchases(false),
+        getCategories(),
+        getPurchases(true),
+        getBoughtPurchaseIds(period)
       ]);
       
+      setCategories(categoriesData);
+      
+      // Filter bought purchases for the period
+      const periodBoughtPurchases = boughtPurchasesList.filter(p => boughtIds.includes(p.id));
+      setAllBoughtPurchases(periodBoughtPurchases);
+
+      // Calculate overdue tasks
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      const overdue = allTasks.filter(t => !t.is_completed && t.due_date && new Date(t.due_date) < now && !t.due_date.startsWith(todayStr));
+      setOverdueCount(overdue.length);
+
+      // Calculate total needed for active purchases
+      const needed = activePurchasesList.reduce((acc, p) => acc + ((p.cost || 0) * p.quantity), 0);
+      setTotalNeeded(needed);
+
       if (period === "today") {
-          const [tasks, activePurchases, boughtPurchases] = await Promise.all([
-            getTasks("today"),
-            getPurchases(false),
-            getPurchases(true)
-          ]);
+          const tasks = await getTasks("today");
           setTodayTasks(tasks);
-          setTodayPurchases([...activePurchases, ...boughtPurchases]);
+          // We don't need to set todayPurchases manually anymore as we use stats for sums
+          // But we need it for the "No items" check if we want to keep it consistent
+          // Or we can use stats counts
       }
 
       setStats(statsData);
@@ -100,132 +123,175 @@ export function Analytics() {
         </div>
 
         {/* KPI Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <StatCard 
-            icon="shopping_bag" 
+            icon="event_note" 
+            label={t("total_events")} 
+            value={stats?.total_events.toString() ?? "0"} 
+            trend="" 
+            color="indigo" 
+          />
+          <StatCard 
+            icon="add_task" 
+            label={t("tasks_created")} 
+            value={stats?.tasks_created.toString() ?? "0"} 
+            trend="" 
+            color="indigo" 
+          />
+          <StatCard 
+            icon="task_alt" 
+            label={t("tasks_completed")} 
+            value={stats?.tasks_completed.toString() ?? "0"} 
+            trend="" 
+            color="indigo" 
+          />
+           <StatCard 
+            icon="warning" 
+            label={t("tasks_overdue")} 
+            value={overdueCount.toString()} 
+            trend="" 
+            color="red" 
+          />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <StatCard 
+            icon="shopping_cart" 
+            label={t("purchases_created")} 
+            value={stats?.purchases_created.toString() ?? "0"} 
+            trend="" 
+            color="indigo" 
+          />
+          <StatCard 
+            icon="local_mall" 
+            label={t("purchases_completed")} 
+            value={stats?.purchases_completed.toString() ?? "0"} 
+            trend="" 
+            color="indigo" 
+          />
+          <StatCard 
+            icon="attach_money" 
             label={t("total_spending")} 
             value={`$${stats?.total_spending.toLocaleString() ?? 0}`} 
             trend="" 
             color="indigo" 
           />
-          <StatCard 
-            icon="check_circle" 
-            label={t("tasks_completed")} 
-            value={stats?.tasks_completed.toString() ?? "0"} 
-            trend="" 
-            color="pink" 
-          />
-          <StatCard 
-            icon="pending_actions" 
-            label={t("tasks_created")} 
-            value={stats?.tasks_created.toString() ?? "0"} 
-            trend="" 
-            color="amber" 
-          />
            <StatCard 
-            icon="event" 
-            label={t("total_events")} 
-            value={stats?.total_events.toString() ?? "0"} 
+            icon="savings" 
+            label={t("total_needed")} 
+            value={`$${totalNeeded.toLocaleString()}`} 
             trend="" 
-            color="emerald" 
+            color="blue" 
           />
         </div>
 
-        {/* Heatmap / Today's Progress Section */}
-        {period === "today" ? (
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 {/* Tasks Progress */}
-                 <div className="bg-surface-dark rounded-2xl border border-border-dark p-6 flex flex-col items-center justify-center min-h-[200px]">
-                    <h3 className="text-base font-bold text-white mb-6 self-start">{t("todays_tasks")}</h3>
-                    {todayTasks.length > 0 ? (
-                        <div className="flex items-center gap-8">
-                            <div className="relative w-32 h-32 flex items-center justify-center">
-                                 <svg className="w-full h-full transform -rotate-90">
-                                    <circle cx="64" cy="64" r="56" stroke="#27272a" strokeWidth="12" fill="transparent" />
-                                    <circle 
-                                        cx="64" cy="64" r="56" 
-                                        stroke="#7e22ce" 
-                                        strokeWidth="12" 
-                                        fill="transparent" 
-                                        strokeDasharray={351.86} 
-                                        strokeDashoffset={351.86 - (351.86 * (todayTasks.filter(t => t.is_completed).length / todayTasks.length))} 
-                                        className="transition-all duration-1000 ease-out"
-                                    />
-                                 </svg>
-                                 <span className="absolute text-2xl font-bold text-white">
-                                     {Math.round((todayTasks.filter(t => t.is_completed).length / todayTasks.length) * 100)}%
-                                 </span>
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-primary"></div>
-                                    <span className="text-sm text-gray-300">{todayTasks.filter(t => t.is_completed).length} {t("completed")}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-[#27272a]"></div>
-                                    <span className="text-sm text-gray-300">{todayTasks.length - todayTasks.filter(t => t.is_completed).length} {t("remaining")}</span>
-                                </div>
+        {/* Heatmap & Spending Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+            <div className="lg:col-span-8 flex flex-col gap-6">
+                {period === "today" ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
+                        {/* Tasks Progress */}
+                        <div className="bg-surface-dark rounded-2xl border border-border-dark p-6 flex flex-col min-h-[200px]">
+                            <h3 className="text-base font-bold text-white mb-6">{t("todays_tasks")}</h3>
+                            <div className="flex-1 flex flex-col items-center justify-center w-full">
+                                {todayTasks.length > 0 ? (
+                                    <>
+                                        <div 
+                                            className="relative w-48 h-48 rounded-full mb-6" 
+                                            style={{ 
+                                                background: `conic-gradient(#7e22ce 0% ${Math.round((todayTasks.filter(t => t.is_completed).length / todayTasks.length) * 100)}%, #27272a ${Math.round((todayTasks.filter(t => t.is_completed).length / todayTasks.length) * 100)}% 100%)` 
+                                            }}
+                                        >
+                                            <div className="absolute inset-0 m-8 bg-surface-dark rounded-full flex flex-col items-center justify-center shadow-inner">
+                                                <span className="text-3xl font-bold text-white">
+                                                    {Math.round((todayTasks.filter(t => t.is_completed).length / todayTasks.length) * 100)}%
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="w-full space-y-3">
+                                            <div className="flex items-center justify-between text-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-3 h-3 rounded-full bg-primary"></div>
+                                                    <span className="text-gray-300">{t("completed")}</span>
+                                                </div>
+                                                <span className="font-semibold text-white">{todayTasks.filter(t => t.is_completed).length}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-3 h-3 rounded-full bg-[#27272a]"></div>
+                                                    <span className="text-gray-300">{t("remaining")}</span>
+                                                </div>
+                                                <span className="font-semibold text-white">{todayTasks.length - todayTasks.filter(t => t.is_completed).length}</span>
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="text-text-secondary">{t("no_tasks_today")}</div>
+                                )}
                             </div>
                         </div>
-                    ) : (
-                        <div className="text-text-secondary">{t("no_tasks_today")}</div>
-                    )}
-                 </div>
 
-                 {/* Purchases Progress */}
-                 <div className="bg-surface-dark rounded-2xl border border-border-dark p-6 flex flex-col items-center justify-center min-h-[200px]">
-                    <h3 className="text-base font-bold text-white mb-6 self-start">{t("shopping_list")}</h3>
-                    {todayPurchases.length > 0 ? (
-                        <div className="flex items-center gap-8 w-full justify-around">
-                            <div className="flex flex-col items-center gap-2">
-                                <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400">
-                                    <span className="material-symbols-outlined">add_shopping_cart</span>
-                                </div>
-                                <div className="flex flex-col items-center">
-                                    <span className="text-2xl font-bold text-white">
-                                        ${todayPurchases.reduce((acc, p) => acc + (p.cost || 0), 0).toLocaleString()}
-                                    </span>
-                                    <span className="text-xs text-text-secondary uppercase tracking-wider font-bold">Created</span>
-                                </div>
-                            </div>
-                            <div className="w-px h-16 bg-white/10"></div>
-                            <div className="flex flex-col items-center gap-2">
-                                <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-                                    <span className="material-symbols-outlined">shopping_cart_checkout</span>
-                                </div>
-                                <div className="flex flex-col items-center">
-                                    <span className="text-2xl font-bold text-white">
-                                        ${todayPurchases.filter(p => p.is_bought).reduce((acc, p) => acc + (p.cost || 0), 0).toLocaleString()}
-                                    </span>
-                                    <span className="text-xs text-text-secondary uppercase tracking-wider font-bold">Spent</span>
-                                </div>
+                        {/* Purchases Progress */}
+                        <div className="bg-surface-dark rounded-2xl border border-border-dark p-6 flex flex-col min-h-[200px]">
+                            <h3 className="text-base font-bold text-white mb-6">{t("shopping_list")}</h3>
+                            <div className="flex-1 flex flex-col items-center justify-center">
+                                {(stats?.purchases_created || 0) > 0 || (stats?.purchases_completed || 0) > 0 ? (
+                                    <div className="flex items-center gap-8 w-full justify-around">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                                <span className="material-symbols-outlined">add_shopping_cart</span>
+                                            </div>
+                                            <div className="flex flex-col items-center">
+                                                <span className="text-2xl font-bold text-white">
+                                                    ${(stats?.total_created_cost || 0).toLocaleString()}
+                                                </span>
+                                                <span className="text-xs text-text-secondary uppercase tracking-wider font-bold">Created</span>
+                                            </div>
+                                        </div>
+                                        <div className="w-px h-16 bg-white/10"></div>
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                                                <span className="material-symbols-outlined">shopping_cart_checkout</span>
+                                            </div>
+                                            <div className="flex flex-col items-center">
+                                                <span className="text-2xl font-bold text-white">
+                                                    ${(stats?.total_spending || 0).toLocaleString()}
+                                                </span>
+                                                <span className="text-xs text-text-secondary uppercase tracking-wider font-bold">Spent</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-text-secondary">{t("no_items_in_shopping_list")}</div>
+                                )}
                             </div>
                         </div>
-                    ) : (
-                        <div className="text-text-secondary">{t("no_items_in_shopping_list")}</div>
-                    )}
-                 </div>
-             </div>
-        ) : (
-            <div className="bg-surface-dark rounded-2xl border border-border-dark p-6">
-                <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-base font-bold text-white">{t("activity_heatmap")}</h3>
-                    <div className="flex items-center gap-2 text-xs text-text-secondary">
-                        <span>{t("less")}</span>
-                        <div className="flex gap-1">
-                            <div className="w-3 h-3 rounded-sm bg-[#27272a]"></div>
-                            <div className="w-3 h-3 rounded-sm bg-primary/30"></div>
-                            <div className="w-3 h-3 rounded-sm bg-primary/60"></div>
-                            <div className="w-3 h-3 rounded-sm bg-primary"></div>
-                        </div>
-                        <span>{t("more")}</span>
                     </div>
-                </div>
-                <div className="w-full overflow-x-auto pb-2">
-                    {heatmap && <HeatmapGrid heatmap={heatmap} period={period} />}
-                </div>
+                ) : (
+                    <div className="bg-surface-dark rounded-2xl border border-border-dark p-6 h-full">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-base font-bold text-white">{t("activity_heatmap")}</h3>
+                            <div className="flex items-center gap-2 text-xs text-text-secondary">
+                                <span>{t("less")}</span>
+                                <div className="flex gap-1">
+                                    <div className="w-3 h-3 rounded-sm bg-[#27272a]"></div>
+                                    <div className="w-3 h-3 rounded-sm bg-primary/30"></div>
+                                    <div className="w-3 h-3 rounded-sm bg-primary/60"></div>
+                                    <div className="w-3 h-3 rounded-sm bg-primary"></div>
+                                </div>
+                                <span>{t("more")}</span>
+                            </div>
+                        </div>
+                        <div className="w-full overflow-x-auto pb-2">
+                            {heatmap && <HeatmapGrid heatmap={heatmap} period={period} />}
+                        </div>
+                    </div>
+                )}
             </div>
-        )}
+            
+            <div className="lg:col-span-4 bg-surface-dark rounded-2xl border border-border-dark p-6 flex flex-col">
+                <SpendingByCategory purchases={allBoughtPurchases} categories={categories} />
+            </div>
+        </div>
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -306,12 +372,87 @@ export function Analytics() {
   );
 }
 
-function StatCard({ icon, label, value, trend, color }: { icon: string, label: string, value: string, trend: string, color: "indigo" | "pink" | "amber" | "emerald" }) {
+function SpendingByCategory({ purchases, categories }: { purchases: Purchase[], categories: Category[] }) {
+    const { t } = useLanguage();
+    
+    const categorySpending = purchases.reduce((acc, p) => {
+        const catId = p.category_id || "uncategorized";
+        const cost = (p.cost || 0) * p.quantity;
+        acc[catId] = (acc[catId] || 0) + cost;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const totalSpending = Object.values(categorySpending).reduce((a, b) => a + b, 0);
+
+    // Default palette
+    const palette = ["#8B5CF6", "#A78BFA", "#C4B5FD", "#4B5563", "#EC4899", "#F59E0B", "#10B981"];
+
+    const spendingData = Object.entries(categorySpending).map(([catId, amount], index) => {
+        const category = categories.find(c => c.id === catId);
+        return {
+            id: catId,
+            name: category?.title || t("uncategorized") || "Uncategorized",
+            color: category?.color || palette[index % palette.length],
+            amount,
+            percentage: totalSpending > 0 ? (amount / totalSpending) * 100 : 0
+        };
+    }).sort((a, b) => b.amount - a.amount);
+
+    // Generate conic gradient string
+    let currentAngle = 0;
+    const gradientParts = spendingData.map(item => {
+        const start = currentAngle;
+        const end = currentAngle + item.percentage;
+        currentAngle = end;
+        return `${item.color} ${start}% ${end}%`;
+    });
+    
+    const gradient = gradientParts.length > 0 
+        ? `conic-gradient(${gradientParts.join(", ")})`
+        : "conic-gradient(#27272a 0% 100%)";
+
+    return (
+        <>
+            <h3 className="text-base font-bold text-white mb-6 self-start">{t("spending_breakdown") || "Spending Breakdown"}</h3>
+            <div className="flex flex-col items-center justify-center flex-1 w-full">
+                <div className="relative w-48 h-48 rounded-full mb-6" style={{ background: gradient }}>
+                    <div className="absolute inset-0 m-8 bg-surface-dark rounded-full flex flex-col items-center justify-center shadow-inner">
+                        <span className="text-xs text-text-secondary">{t("total") || "Total"}</span>
+                        <span className="text-xl font-bold text-white">${totalSpending.toLocaleString()}</span>
+                    </div>
+                </div>
+                <div className="w-full space-y-3">
+                    {spendingData.slice(0, 4).map(item => (
+                        <div key={item.id} className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
+                                <span className="text-gray-300">{item.name}</span>
+                            </div>
+                            <span className="font-semibold text-white">{Math.round(item.percentage)}%</span>
+                        </div>
+                    ))}
+                    {spendingData.length > 4 && (
+                        <div className="text-center text-xs text-text-secondary pt-2">
+                            + {spendingData.length - 4} {t("more_categories") || "more"}
+                        </div>
+                    )}
+                    {spendingData.length === 0 && (
+                        <div className="text-center text-text-secondary text-sm">{t("no_spending_data") || "No spending data"}</div>
+                    )}
+                </div>
+            </div>
+        </>
+    );
+}
+
+function StatCard({ icon, label, value, trend, color }: { icon: string, label: string, value: string, trend: string, color: "indigo" | "pink" | "amber" | "emerald" | "red" | "blue" }) {
   const colors = {
     indigo: "text-indigo-400 bg-indigo-400/10",
     pink: "text-pink-400 bg-pink-400/10",
     amber: "text-amber-400 bg-amber-400/10",
     emerald: "text-emerald-400 bg-emerald-400/10",
+    red: "text-red-400 bg-red-400/10",
+    blue: "text-blue-400 bg-blue-400/10",
   };
 
   const trendColor = trend.startsWith("+") ? "text-green-400 bg-green-500/10 border-green-500/10" : "text-gray-400 bg-white/5 border-white/5";
@@ -327,8 +468,8 @@ function StatCard({ icon, label, value, trend, color }: { icon: string, label: s
         </span>
       </div>
       <div>
-        <h3 className="text-3xl font-bold text-white mb-1">{value}</h3>
-        <p className="text-xs font-medium text-text-secondary uppercase tracking-wide">{label}</p>
+        <p className="text-xs font-medium text-text-secondary uppercase tracking-wide mb-2">{label}</p>
+        <h3 className="text-3xl font-bold text-white">{value}</h3>
       </div>
     </div>
   );

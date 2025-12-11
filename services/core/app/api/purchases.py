@@ -183,6 +183,7 @@ async def toggle_purchase(
                     "event_type": "PurchaseCompleted",
                     "purchase_id": str(purchase.id),
                     "user_id": str(user_id),
+                    "category_id": str(purchase.category_id) if purchase.category_id else None,
                     "title": purchase.title,
                     "cost": purchase.cost,
                     "quantity": purchase.quantity,

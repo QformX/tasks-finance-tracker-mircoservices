@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 from datetime import datetime, timedelta, timezone
-from typing import Dict
+from typing import Dict, List
 import uuid
 
 from app.core.database import get_session
@@ -24,7 +24,9 @@ async def get_dashboard_stats(
     - Поддержка периодов: week, month, year
     """
     now = datetime.now(timezone.utc)
-    if period == PeriodType.week:
+    if period == PeriodType.today:
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif period == PeriodType.week:
         start_date = now - timedelta(days=7)
     elif period == PeriodType.month:
         start_date = now - timedelta(days=30)
@@ -69,6 +71,23 @@ async def get_dashboard_stats(
     total_spending = sum(
         p.payload.get('total_cost') or p.payload.get('cost', 0)
         for p in purchases 
+        if 'total_cost' in p.payload or 'cost' in p.payload
+    )
+
+    # 2.1 Подсчёт стоимости созданных покупок (PurchaseCreated)
+    stmt_created = select(AnalyticsEvent).where(
+        and_(
+            AnalyticsEvent.user_id == user_id,
+            AnalyticsEvent.event_type == "PurchaseCreated",
+            AnalyticsEvent.created_at >= start_date
+        )
+    )
+    result_created = await session.execute(stmt_created)
+    created_purchases_events = result_created.scalars().all()
+    
+    total_created_cost = sum(
+        p.payload.get('total_cost') or p.payload.get('cost', 0)
+        for p in created_purchases_events
         if 'total_cost' in p.payload or 'cost' in p.payload
     )
     
@@ -128,8 +147,7 @@ async def get_dashboard_stats(
         tasks_completed=tasks_completed,
         purchases_created=purchases_created,
         purchases_completed=purchases_completed,
-        total_spending=total_spending,
-        period=period.value,
+        total_spending=total_spending,        total_created_cost=total_created_cost,        period=period.value,
         daily_stats=daily_stats
     )
 
@@ -231,3 +249,46 @@ async def get_activity_heatmap(
         "total_activity": total_activity,
         "heatmap": heatmap
     }
+
+@router.get("/purchases/bought", response_model=List[uuid.UUID])
+async def get_bought_purchase_ids(
+    period: PeriodType = Query(PeriodType.week, description="Период"),
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Получение списка ID купленных товаров за период
+    """
+    now = datetime.now(timezone.utc)
+    if period == PeriodType.today:
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif period == PeriodType.week:
+        start_date = now - timedelta(days=7)
+    elif period == PeriodType.month:
+        start_date = now - timedelta(days=30)
+    elif period == PeriodType.year:
+        start_date = now - timedelta(days=365)
+    else:
+        start_date = now - timedelta(days=7)
+
+    stmt = select(AnalyticsEvent).where(
+        and_(
+            AnalyticsEvent.user_id == user_id,
+            AnalyticsEvent.event_type == "PurchaseCompleted",
+            AnalyticsEvent.created_at >= start_date
+        )
+    )
+    
+    result = await session.execute(stmt)
+    events = result.scalars().all()
+    
+    purchase_ids = []
+    for event in events:
+        pid = event.payload.get("purchase_id")
+        if pid:
+            try:
+                purchase_ids.append(uuid.UUID(pid))
+            except ValueError:
+                pass
+                
+    return purchase_ids

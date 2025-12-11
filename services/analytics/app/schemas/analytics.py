@@ -3,6 +3,7 @@ from typing import List, Dict, Any
 from enum import Enum
 
 class PeriodType(str, Enum):
+    today = "today"
     week = "week"
     month = "month"
     year = "year"
@@ -14,5 +15,6 @@ class DashboardStats(BaseModel):
     purchases_created: int
     purchases_completed: int
     total_spending: float
+    total_created_cost: float = 0.0
     period: str
     daily_stats: List[Dict[str, Any]] = []

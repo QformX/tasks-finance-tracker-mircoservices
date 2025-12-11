@@ -136,6 +136,14 @@ const translations: Translations = {
     "no_recent_purchases": "No recent purchases",
     "view_all_history": "View All History",
     "event_distribution": "Event Distribution",
+    "spending_breakdown": "Spending Breakdown",
+    "total": "Total",
+    "more_categories": "more",
+    "no_spending_data": "No spending data",
+    "uncategorized": "Uncategorized",
+    "purchases_created": "Purchases Created",
+    "purchases_completed": "Purchases Completed",
+    "total_needed": "Total Needed",
 
     // Categories
     "categories_header": "Categories",
@@ -277,6 +285,14 @@ const translations: Translations = {
     "no_recent_purchases": "Нет недавних покупок",
     "view_all_history": "Смотреть всю историю",
     "event_distribution": "Распределение событий",
+    "spending_breakdown": "Разбивка расходов",
+    "total": "Всего",
+    "more_categories": "еще",
+    "no_spending_data": "Нет данных о расходах",
+    "uncategorized": "Без категории",
+    "purchases_created": "Создано покупок",
+    "purchases_completed": "Завершено покупок",
+    "total_needed": "Всего нужно",
 
     // Categories
     "categories_header": "Категории",

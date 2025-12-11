@@ -34,6 +34,10 @@ export function ApiTester() {
   const [smartViewTitle, setSmartViewTitle] = useState('My View');
   const [smartViewId, setSmartViewId] = useState('');
   
+  const [analyticsPeriod, setAnalyticsPeriod] = useState('week');
+  const [analyticsLimit, setAnalyticsLimit] = useState('10');
+  const [analyticsDays, setAnalyticsDays] = useState('365');
+  
   const [categories, setCategories] = useState<any[]>([]);
 
   // --- Helpers ---
@@ -130,7 +134,10 @@ export function ApiTester() {
   const getSmartViewItems = () => fetcher(`/api/smart-views/${smartViewId}/items`);
 
   // --- Analytics Actions ---
-  const getStats = () => fetcher('/stats/dashboard?period=week');
+  const getStats = () => fetcher(`/stats/dashboard?period=${analyticsPeriod}`);
+  const getRecentEvents = () => fetcher(`/stats/events/recent?limit=${analyticsLimit}`);
+  const getActivityHeatmap = () => fetcher(`/stats/activity-heatmap?days=${analyticsDays}`);
+  const getBoughtPurchaseIds = () => fetcher(`/stats/purchases/bought?period=${analyticsPeriod}`);
 
   return (
     <div className="p-4 bg-gray-900 text-white min-h-screen flex gap-4 font-mono text-sm">
@@ -296,8 +303,40 @@ export function ApiTester() {
         {/* Analytics Section */}
         <div className="p-4 border border-gray-700 rounded bg-gray-800/50">
           <h2 className="text-lg font-bold mb-2 text-orange-400">Analytics</h2>
-          <div className="flex gap-2">
+          
+          <div className="flex gap-2 mb-2 items-center">
+            <select 
+              className="bg-gray-900 border border-gray-600 p-1 rounded"
+              value={analyticsPeriod}
+              onChange={e => setAnalyticsPeriod(e.target.value)}
+            >
+              <option value="today">Today</option>
+              <option value="week">Week</option>
+              <option value="month">Month</option>
+              <option value="year">Year</option>
+            </select>
             <button className="bg-orange-600 hover:bg-orange-700 px-3 py-1 rounded" onClick={getStats}>Get Dashboard Stats</button>
+            <button className="bg-orange-600 hover:bg-orange-700 px-3 py-1 rounded" onClick={getBoughtPurchaseIds}>Get Bought IDs</button>
+          </div>
+
+          <div className="flex gap-2 mb-2 items-center">
+            <input 
+              className="bg-gray-900 border border-gray-600 p-1 rounded w-20" 
+              placeholder="Limit" 
+              value={analyticsLimit} 
+              onChange={e => setAnalyticsLimit(e.target.value)} 
+            />
+            <button className="bg-orange-600 hover:bg-orange-700 px-3 py-1 rounded" onClick={getRecentEvents}>Get Recent Events</button>
+          </div>
+
+          <div className="flex gap-2 items-center">
+            <input 
+              className="bg-gray-900 border border-gray-600 p-1 rounded w-20" 
+              placeholder="Days" 
+              value={analyticsDays} 
+              onChange={e => setAnalyticsDays(e.target.value)} 
+            />
+            <button className="bg-orange-600 hover:bg-orange-700 px-3 py-1 rounded" onClick={getActivityHeatmap}>Get Heatmap</button>
           </div>
         </div>
       </div>
