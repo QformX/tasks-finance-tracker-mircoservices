@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.core.events import mq_client
 from app.core.database import init_db
 
@@ -28,6 +29,14 @@ app = FastAPI(
     docs_url="/docs",
     openapi_url="/openapi.json",
     description="Микросервис для управления задачами и покупками с CQRS и событийной архитектурой"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:1420", "http://localhost:80", "http://localhost"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Include all routers
