@@ -90,8 +90,8 @@ export function Sidebar() {
             <NavItem to="/" icon="dashboard" label={t("dashboard")} isCollapsed={isCollapsed} />
             <NavItem to="/tasks" icon="task_alt" label={t("tasks")} isCollapsed={isCollapsed} />
             <NavItem to="/purchases" icon="shopping_bag" label={t("purchases")} isCollapsed={isCollapsed} />
-            <NavItem to="/analytics" icon="pie_chart" label={t("analytics")} isCollapsed={isCollapsed} />
             <NavItem to="/categories" icon="folder" label={t("categories")} isCollapsed={isCollapsed} />
+            <NavItem to="/analytics" icon="pie_chart" label={t("analytics")} isCollapsed={isCollapsed} />
           </nav>
         </div>
         <div className={cn("flex flex-col gap-2 pt-4 w-full", isCollapsed && "items-center")}>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { getDashboardStats, getRecentEvents, getActivityHeatmap, getTasks, getPurchases, getCategories, getBoughtPurchaseIds } from "@/lib/api";
 import type { DashboardStats, AnalyticsEvent, ActivityHeatmap, Task, Purchase, Category } from "@/types";
@@ -21,6 +21,19 @@ export function Analytics() {
   const [allBoughtPurchases, setAllBoughtPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<"today" | "week" | "month" | "year">("week");
+  
+  const [isDatePopupOpen, setIsDatePopupOpen] = useState(false);
+  const datePopupRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (datePopupRef.current && !datePopupRef.current.contains(event.target as Node)) {
+        setIsDatePopupOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -113,7 +126,7 @@ export function Analytics() {
             <h2 className="text-xl lg:text-2xl font-bold text-white mb-1 whitespace-nowrap shrink-0">{t("dashboard_overview")}</h2>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex bg-surface-dark p-1 rounded-lg border border-border-dark">
+            <div className="hidden sm:flex bg-surface-dark p-1 rounded-lg border border-border-dark">
               {(["today", "week", "month", "year"] as const).map((p) => (
                 <button
                   key={p}
@@ -129,9 +142,41 @@ export function Analytics() {
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-surface-dark border border-border-dark rounded-full text-xs font-medium text-gray-300 cursor-default">
-              <span className="material-symbols-outlined text-[16px]">calendar_today</span>
-              <span>{getDateRangeLabel()}</span>
+            <div className="relative" ref={datePopupRef}>
+              <button 
+                onClick={() => setIsDatePopupOpen(!isDatePopupOpen)}
+                className="flex items-center gap-2 justify-center h-10 px-3 lg:px-5 bg-surface-dark border border-border-dark rounded-full text-xs font-bold text-gray-300 hover:text-white hover:border-white/20 cursor-pointer transition-all"
+              >
+                <span className="material-symbols-outlined text-[18px]">calendar_today</span>
+                <span className="hidden lg:inline whitespace-nowrap">{getDateRangeLabel()}</span>
+              </button>
+
+              {isDatePopupOpen && (
+                <div className="absolute right-0 top-full mt-2 z-50 bg-[#1e1e21] border border-white/10 rounded-xl shadow-xl p-3 min-w-[200px] animate-in fade-in zoom-in-95 duration-200">
+                    <div className="text-xs text-text-secondary mb-1 font-medium uppercase tracking-wider text-center">Selected Period</div>
+                    <div className="text-sm font-bold text-white text-center mb-3">{getDateRangeLabel()}</div>
+                    
+                    <div className="grid grid-cols-2 gap-2 sm:hidden">
+                      {(["today", "week", "month", "year"] as const).map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => {
+                            setPeriod(p);
+                            setIsDatePopupOpen(false);
+                          }}
+                          className={cn(
+                            "px-2 py-1.5 text-xs font-bold rounded-md transition-all capitalize",
+                            period === p 
+                              ? "bg-primary text-white shadow-sm" 
+                              : "bg-white/5 text-text-secondary hover:text-white"
+                          )}
+                        >
+                          {t(p)}
+                        </button>
+                      ))}
+                    </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
