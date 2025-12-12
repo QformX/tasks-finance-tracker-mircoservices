@@ -1,24 +1,49 @@
-import { useEffect, useState, useRef } from "react";
-import type { Category, Task, Purchase } from "@/types";
-import { getCategories, getTasks, getPurchases, toggleTaskCompletion, deleteTask, togglePurchaseCompletion, deletePurchase, deleteCategory } from "@/lib/api";
-import { TaskItem } from "@/components/TaskItem";
-import { PurchaseItem } from "@/components/PurchaseItem";
+import { useEffect, useState } from "react";
+import type { Task, Purchase } from "@/types";
 import { CreateTaskModal } from "@/components/CreateTaskModal";
 import { EditTaskModal } from "@/components/EditTaskModal";
 import { CreatePurchaseModal } from "@/components/CreatePurchaseModal";
 import { EditPurchaseModal } from "@/components/EditPurchaseModal";
 import { CreateCategoryModal } from "@/components/CreateCategoryModal";
 import { DeleteCategoryModal } from "@/components/DeleteCategoryModal";
-import { Dropdown } from "@/components/Dropdown";
-import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
+import { CategoryHeader } from "@/components/categories/CategoryHeader";
+import { CategoryContent } from "@/components/categories/CategoryContent";
+import { CategoryEmptyState } from "@/components/categories/CategoryEmptyState";
+import { useCategories } from "@/hooks/useCategories";
+import { useTasks } from "@/hooks/useTasks";
+import { usePurchases } from "@/hooks/usePurchases";
 
 export function Categories() {
   const { t } = useLanguage();
-  const [categories, setCategories] = useState<Category[]>([]);
+  const { 
+    categories, 
+    loadCategories, 
+    addCategory, 
+    removeCategory 
+  } = useCategories();
+
+  const { 
+    tasks, 
+    fetchTasks, 
+    toggleTask, 
+    deleteTask, 
+    addTask, 
+    updateTaskInList,
+    setTasksList
+  } = useTasks();
+
+  const { 
+    purchases, 
+    fetchPurchases, 
+    togglePurchase, 
+    deletePurchase, 
+    addPurchase, 
+    updatePurchaseInList,
+    setPurchasesList
+  } = usePurchases();
+
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(false);
   
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -32,7 +57,7 @@ export function Categories() {
 
   useEffect(() => {
     loadCategories();
-  }, []);
+  }, [loadCategories]);
 
   useEffect(() => {
     if (categories.length > 0) {
@@ -45,15 +70,6 @@ export function Categories() {
     }
   }, [currentIndex, categories]);
 
-  async function loadCategories() {
-    try {
-      const data = await getCategories();
-      setCategories(data);
-    } catch (error) {
-      console.error("Failed to load categories", error);
-    }
-  }
-
   async function loadCategoryItems(categoryId: string) {
     setLoading(true);
     try {
@@ -63,21 +79,15 @@ export function Categories() {
       const promises = [];
       
       if (category.type === "tasks" || category.type === "mixed") {
-        promises.push(getTasks("all", categoryId).then(setTasks));
+        promises.push(fetchTasks("all", categoryId));
       } else {
-        setTasks([]);
+        setTasksList([]);
       }
 
       if (category.type === "purchases" || category.type === "mixed") {
-        // Load both active and bought purchases
-        promises.push(
-          Promise.all([
-            getPurchases(false, categoryId),
-            getPurchases(true, categoryId)
-          ]).then(([active, bought]) => setPurchases([...active, ...bought]))
-        );
+        promises.push(fetchPurchases(categoryId));
       } else {
-        setPurchases([]);
+        setPurchasesList([]);
       }
 
       await Promise.all(promises);
@@ -96,47 +106,9 @@ export function Categories() {
     setCurrentIndex((prev) => (prev - 1 + categories.length) % categories.length);
   }
 
-  // Task Handlers
-  async function handleTaskToggle(id: string) {
-    try {
-      await toggleTaskCompletion(id);
-      setTasks(tasks.map(t => t.id === id ? { ...t, is_completed: !t.is_completed } : t));
-    } catch (error) {
-      console.error("Failed to toggle task", error);
-    }
-  }
-
   function handleEditTask(task: Task) {
     setEditingTask(task);
     setIsEditTaskModalOpen(true);
-  }
-
-  function handleTaskUpdated(updatedTask: Task) {
-    if (updatedTask.category_id !== categories[currentIndex].id) {
-      setTasks(tasks.filter(t => t.id !== updatedTask.id));
-    } else {
-      setTasks(tasks.map(t => t.id === updatedTask.id ? updatedTask : t));
-    }
-  }
-
-  async function handleTaskDelete(id: string) {
-    if (!confirm("Are you sure you want to delete this task?")) return;
-    try {
-      await deleteTask(id);
-      setTasks(tasks.filter(t => t.id !== id));
-    } catch (error) {
-      console.error("Failed to delete task", error);
-    }
-  }
-
-  // Purchase Handlers
-  async function handlePurchaseToggle(id: string) {
-    try {
-      await togglePurchaseCompletion(id);
-      setPurchases(purchases.map(p => p.id === id ? { ...p, is_bought: !p.is_bought } : p));
-    } catch (error) {
-      console.error("Failed to toggle purchase", error);
-    }
   }
 
   function handleEditPurchase(purchase: Purchase) {
@@ -144,198 +116,61 @@ export function Categories() {
     setIsEditPurchaseModalOpen(true);
   }
 
-  function handlePurchaseUpdated(updatedPurchase: Purchase) {
-    if (updatedPurchase.category_id !== categories[currentIndex].id) {
-      setPurchases(purchases.filter(p => p.id !== updatedPurchase.id));
-    } else {
-      setPurchases(purchases.map(p => p.id === updatedPurchase.id ? updatedPurchase : p));
-    }
-  }
-
-  async function handlePurchaseDelete(id: string) {
-    if (!confirm("Are you sure you want to delete this purchase?")) return;
-    try {
-      await deletePurchase(id);
-      setPurchases(purchases.filter(p => p.id !== id));
-    } catch (error) {
-      console.error("Failed to delete purchase", error);
-    }
-  }
-
-  function handleCategoryCreated(newCategory: Category) {
-    setCategories([...categories, newCategory]);
+  function handleCategoryCreated(newCategory: any) {
+    addCategory(newCategory);
     setCurrentIndex(categories.length); // Switch to the new category (it's at the end)
   }
 
   async function handleCategoryDelete(strategy: "delete_all" | "move_to_category", targetCategoryId?: string) {
     if (!currentCategory) return;
-    await deleteCategory(currentCategory.id, strategy, targetCategoryId);
+    const success = await removeCategory(currentCategory.id, strategy, targetCategoryId);
     
-    // Remove from list
-    const newCategories = categories.filter(c => c.id !== currentCategory.id);
-    setCategories(newCategories);
-    setCurrentIndex(0); // Reset to first
+    if (success) {
+      setCurrentIndex(0); // Reset to first
+    }
   }
 
   const currentCategory = categories[currentIndex];
 
   if (categories.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-4">
-        <div className="text-text-secondary">{t("no_categories_found")}</div>
-        <button 
-          onClick={() => setIsCategoryModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold transition-colors"
-        >
-          <span className="material-symbols-outlined">add</span>
-          {t("create_category")}
-        </button>
-        <CreateCategoryModal 
-          isOpen={isCategoryModalOpen} 
-          onClose={() => setIsCategoryModalOpen(false)} 
-          onCategoryCreated={handleCategoryCreated} 
-        />
-      </div>
+      <CategoryEmptyState 
+        isModalOpen={isCategoryModalOpen}
+        onCloseModal={() => setIsCategoryModalOpen(false)}
+        onOpenModal={() => setIsCategoryModalOpen(true)}
+        onCategoryCreated={handleCategoryCreated}
+      />
     );
   }
 
   return (
     <>
-      <div className="shrink-0 z-20 bg-background-dark sticky top-0 px-4 lg:px-8">
-        <div className="w-full max-w-7xl mx-auto flex flex-col pt-4 lg:pt-8 pb-4">
-          <div className="flex items-center justify-between gap-2 lg:gap-4 mb-6">
-            <h2 className="text-white text-xl lg:text-2xl font-bold leading-tight tracking-tight whitespace-nowrap shrink-0 hidden sm:block">{t("categories_header")}</h2>
-            
-            <div className="flex items-center gap-2 lg:gap-4 flex-1 justify-center sm:justify-start sm:flex-none">
-              <button 
-                onClick={handlePrev}
-                className="size-8 lg:size-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-text-secondary hover:text-white transition-colors shrink-0"
-              >
-                <span className="material-symbols-outlined">keyboard_arrow_left</span>
-              </button>
-              
-              <Dropdown
-                className="w-40 sm:w-56 lg:w-64"
-                buttonClassName="px-8 py-1"
-                items={categories}
-                selectedItem={currentCategory}
-                onSelect={(cat) => {
-                  const idx = categories.findIndex(c => c.id === cat.id);
-                  setCurrentIndex(idx);
-                }}
-                keyExtractor={(cat) => cat.id}
-                renderItem={(cat, isSelected) => (
-                  <>
-                    <span className={cn("font-bold text-base lg:text-lg truncate max-w-full", isSelected ? "text-primary" : "text-white")}>{cat.title}</span>
-                    <span className="text-text-secondary text-[10px] lg:text-xs uppercase tracking-wider font-bold">{cat.type}</span>
-                  </>
-                )}
-              />
+      <CategoryHeader 
+        categories={categories}
+        currentCategory={currentCategory}
+        onPrev={handlePrev}
+        onNext={handleNext}
+        onSelectCategory={(cat) => {
+          const idx = categories.findIndex(c => c.id === cat.id);
+          setCurrentIndex(idx);
+        }}
+        onDeleteClick={() => setIsDeleteCategoryModalOpen(true)}
+        onAddTaskClick={() => setIsTaskModalOpen(true)}
+        onAddPurchaseClick={() => setIsPurchaseModalOpen(true)}
+      />
 
-              <button 
-                onClick={handleNext}
-                className="size-8 lg:size-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-text-secondary hover:text-white transition-colors shrink-0"
-              >
-                <span className="material-symbols-outlined">keyboard_arrow_right</span>
-              </button>
-            </div>
-
-            <div className="flex gap-2 shrink-0">
-              <button 
-                onClick={() => setIsDeleteCategoryModalOpen(true)}
-                className="size-10 rounded-full bg-white/5 hover:bg-red-500/20 text-text-secondary hover:text-red-400 flex items-center justify-center transition-colors mr-2"
-                title={t("delete_category")}
-              >
-                <span className="material-symbols-outlined text-[20px]">delete</span>
-              </button>
-
-              <button 
-                onClick={() => setIsTaskModalOpen(true)}
-                disabled={!(currentCategory.type === "tasks" || currentCategory.type === "mixed")}
-                className={cn(
-                  "flex items-center gap-2 justify-center overflow-hidden rounded-full h-10 px-3 xl:px-5 transition-colors text-white text-xs font-bold shadow-lg",
-                  (currentCategory.type === "tasks" || currentCategory.type === "mixed")
-                    ? "bg-primary hover:bg-primary-dark shadow-purple-900/20 cursor-pointer"
-                    : "bg-white/5 text-white/20 shadow-none cursor-not-allowed"
-                )}
-              >
-                <span className="material-symbols-outlined text-[18px]">add_task</span>
-                <span className="hidden xl:inline">{t("add_task")}</span>
-              </button>
-              
-              <button 
-                onClick={() => setIsPurchaseModalOpen(true)}
-                disabled={!(currentCategory.type === "purchases" || currentCategory.type === "mixed")}
-                className={cn(
-                  "flex items-center gap-2 justify-center overflow-hidden rounded-full h-10 px-3 xl:px-5 transition-colors text-white text-xs font-bold shadow-lg",
-                  (currentCategory.type === "purchases" || currentCategory.type === "mixed")
-                    ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/20 cursor-pointer"
-                    : "bg-white/5 text-white/20 shadow-none cursor-not-allowed"
-                )}
-              >
-                <span className="material-symbols-outlined text-[18px]">shopping_cart</span>
-                <span className="hidden xl:inline">{t("add_purchase")}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto w-full px-8 pb-20">
-        <div className="w-full max-w-7xl mx-auto flex flex-col gap-6">
-          {loading ? (
-            <div className="text-text-secondary text-center py-10">{t("loading_items")}</div>
-          ) : (
-            <>
-              {/* Tasks Section */}
-              {tasks.length > 0 && (
-                <div className="flex flex-col gap-2">
-                  <h3 className="text-text-secondary text-[11px] font-bold uppercase tracking-widest mb-2 px-2 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[14px]">task_alt</span>
-                    {t("tasks")}
-                  </h3>
-                  {tasks.map(task => (
-                    <TaskItem 
-                      key={task.id} 
-                      task={task} 
-                      categoryName={currentCategory.title}
-                      onToggle={() => handleTaskToggle(task.id)} 
-                      onDelete={() => handleTaskDelete(task.id)} 
-                      onEdit={() => handleEditTask(task)}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {/* Purchases Section */}
-              {purchases.length > 0 && (
-                <div className="flex flex-col gap-2">
-                  <h3 className="text-text-secondary text-[11px] font-bold uppercase tracking-widest mb-2 px-2 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[14px]">shopping_bag</span>
-                    {t("purchases")}
-                  </h3>
-                  {purchases.map(purchase => (
-                    <PurchaseItem 
-                      key={purchase.id} 
-                      purchase={purchase} 
-                      categoryName={currentCategory.title}
-                      onToggle={() => handlePurchaseToggle(purchase.id)} 
-                      onDelete={() => handlePurchaseDelete(purchase.id)} 
-                      onEdit={() => handleEditPurchase(purchase)}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {tasks.length === 0 && purchases.length === 0 && (
-                <div className="text-text-secondary text-center py-10">
-                  {t("no_items_in_category")}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+      <CategoryContent 
+        loading={loading}
+        tasks={tasks}
+        purchases={purchases}
+        categoryName={currentCategory.title}
+        onTaskToggle={toggleTask}
+        onTaskDelete={deleteTask}
+        onTaskEdit={handleEditTask}
+        onPurchaseToggle={togglePurchase}
+        onPurchaseDelete={deletePurchase}
+        onPurchaseEdit={handleEditPurchase}
+      />
 
       <button
         onClick={() => setIsCategoryModalOpen(true)}
@@ -348,14 +183,14 @@ export function Categories() {
       <CreateTaskModal 
         isOpen={isTaskModalOpen} 
         onClose={() => setIsTaskModalOpen(false)} 
-        onTaskCreated={(newTask) => setTasks([newTask, ...tasks])}
+        onTaskCreated={(newTask) => addTask(newTask)}
         preselectedCategoryId={currentCategory.id}
       />
 
       <CreatePurchaseModal 
         isOpen={isPurchaseModalOpen} 
         onClose={() => setIsPurchaseModalOpen(false)} 
-        onPurchaseCreated={(newPurchase) => setPurchases([newPurchase, ...purchases])}
+        onPurchaseCreated={(newPurchase) => addPurchase(newPurchase)}
         preselectedCategoryId={currentCategory.id}
       />
 
@@ -377,13 +212,13 @@ export function Categories() {
         isOpen={isEditTaskModalOpen} 
         onClose={() => setIsEditTaskModalOpen(false)} 
         task={editingTask}
-        onTaskUpdated={handleTaskUpdated} 
+        onTaskUpdated={(updatedTask) => updateTaskInList(updatedTask, currentCategory.id)} 
       />
       <EditPurchaseModal 
         isOpen={isEditPurchaseModalOpen} 
         onClose={() => setIsEditPurchaseModalOpen(false)} 
         purchase={editingPurchase}
-        onPurchaseUpdated={handlePurchaseUpdated} 
+        onPurchaseUpdated={(updatedPurchase) => updatePurchaseInList(updatedPurchase, currentCategory.id)} 
       />
     </>
   );

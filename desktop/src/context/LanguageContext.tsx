@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 
 type Language = "en" | "ru";
 
@@ -48,7 +48,6 @@ const translations: Translations = {
     "profile_desc": "Manage your personal information and security settings.",
     "personal_info": "Personal Information",
     "display_name": "Display Name",
-    "username": "Username",
     "email_address": "Email Address",
     "bio": "Bio",
     "allowed_formats": "Allowed *.jpeg, *.jpg, *.png",
@@ -197,7 +196,6 @@ const translations: Translations = {
     "profile_desc": "Управление личной информацией и настройками безопасности.",
     "personal_info": "Личная информация",
     "display_name": "Отображаемое имя",
-    "username": "Имя пользователя",
     "email_address": "Email адрес",
     "bio": "О себе",
     "allowed_formats": "Допустимые форматы *.jpeg, *.jpg, *.png",
