@@ -12,7 +12,7 @@ import { SpendingByCategory } from "@/components/analytics/SpendingByCategory";
 import { TaskEventItem, PurchaseEventItem } from "@/components/analytics/EventItems";
 
 export function Analytics() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentEvents, setRecentEvents] = useState<AnalyticsEvent[]>([]);
   const [heatmap, setHeatmap] = useState<ActivityHeatmap | null>(null);
@@ -78,6 +78,32 @@ export function Analytics() {
   const completedPurchases = recentEvents.filter(e => e.event_type === "PurchaseCompleted");
   const createdPurchases = recentEvents.filter(e => e.event_type === "PurchaseCreated");
 
+  function getDateRangeLabel() {
+    const end = new Date();
+    const start = new Date();
+    
+    if (period === "today") {
+      return end.toLocaleDateString(language, { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+    
+    if (period === "week") {
+      start.setDate(end.getDate() - 7);
+    } else if (period === "month") {
+      start.setDate(end.getDate() - 30);
+    } else if (period === "year") {
+      start.setDate(end.getDate() - 365);
+    }
+    
+    const startYear = start.getFullYear();
+    const endYear = end.getFullYear();
+
+    if (startYear !== endYear) {
+      return `${start.toLocaleDateString(language, { day: 'numeric', month: 'short', year: 'numeric' })} - ${end.toLocaleDateString(language, { day: 'numeric', month: 'short', year: 'numeric' })}`;
+    }
+    
+    return `${start.toLocaleDateString(language, { day: 'numeric', month: 'short' })} - ${end.toLocaleDateString(language, { day: 'numeric', month: 'short', year: 'numeric' })}`;
+  }
+
   return (
     <div className="flex-1 overflow-y-auto w-full bg-background-dark">
       <div className="w-full max-w-7xl mx-auto flex flex-col p-8 gap-8">
@@ -105,7 +131,7 @@ export function Analytics() {
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-surface-dark border border-border-dark rounded-full text-xs font-medium text-gray-300 cursor-default">
               <span className="material-symbols-outlined text-[16px]">calendar_today</span>
-              <span>{new Date().toLocaleDateString()}</span>
+              <span>{getDateRangeLabel()}</span>
             </div>
           </div>
         </div>
@@ -223,7 +249,7 @@ export function Analytics() {
                             <h3 className="text-base font-bold text-white mb-6">{t("shopping_list")}</h3>
                             <div className="flex-1 flex flex-col items-center justify-center">
                                 {(stats?.purchases_created || 0) > 0 || (stats?.purchases_completed || 0) > 0 ? (
-                                    <div className="flex items-center gap-8 w-full justify-around">
+                                    <div className="flex flex-col sm:flex-row md:flex-col xl:flex-row items-center gap-6 w-full justify-around">
                                         <div className="flex flex-col items-center gap-2">
                                             <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400">
                                                 <span className="material-symbols-outlined">add_shopping_cart</span>
@@ -235,7 +261,7 @@ export function Analytics() {
                                                 <span className="text-xs text-text-secondary uppercase tracking-wider font-bold">Created</span>
                                             </div>
                                         </div>
-                                        <div className="w-px h-16 bg-white/10"></div>
+                                        <div className="w-16 h-px sm:w-px sm:h-16 md:w-16 md:h-px xl:w-px xl:h-16 bg-white/10"></div>
                                         <div className="flex flex-col items-center gap-2">
                                             <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
                                                 <span className="material-symbols-outlined">shopping_cart_checkout</span>

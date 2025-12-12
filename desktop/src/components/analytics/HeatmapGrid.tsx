@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { ActivityHeatmap } from "@/types";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface HeatmapGridProps {
   heatmap: ActivityHeatmap;
@@ -7,6 +8,7 @@ interface HeatmapGridProps {
 }
 
 export function HeatmapGrid({ heatmap, period }: HeatmapGridProps) {
+  const { language } = useLanguage();
   if (!heatmap || heatmap.heatmap.length === 0) return null;
 
   const maxActivity = Math.max(...heatmap.heatmap.map(d => d.activity), 1);
@@ -36,32 +38,84 @@ export function HeatmapGrid({ heatmap, period }: HeatmapGridProps) {
       if (currentWeek.length > 0) weeks.push(currentWeek);
 
       return (
-        <div className="flex flex-col gap-8 items-start w-full">
-          <div className="flex gap-1 min-w-max overflow-x-auto pb-2 w-full">
-              {weeks.map((week, wIndex) => (
-                  <div key={wIndex} className="flex flex-col gap-0.5">
-                      {week.map((day) => {
-                          if (day.activity === -1) return <div key={day.date} className="w-2.5 h-2.5" />;
-                          
-                          const intensity = day.activity === 0 ? 0 : Math.ceil((day.activity / maxActivity) * 4);
-                          const bgClass = [
-                              "bg-[#27272a]", // 0
-                              "bg-primary/30", // 1
-                              "bg-primary/50", // 2
-                              "bg-primary/70", // 3
-                              "bg-primary",    // 4
-                          ][Math.min(intensity, 4)];
+        <div className="flex flex-col gap-4 items-center w-full">
+          <div className="flex items-start gap-2">
+            {/* Day Labels */}
+            <div className="flex flex-col gap-0.5 mt-[1px]">
+               {[0, 1, 2, 3, 4, 5, 6].map(i => (
+                   <div key={i} className="h-2 w-6 flex items-center justify-end">
+                       {(i === 1 || i === 3 || i === 5) && (
+                           <span className="text-[9px] text-text-secondary leading-none capitalize">
+                               {new Date(2024, 0, 7 + i).toLocaleDateString(language, { weekday: 'short' })}
+                           </span>
+                       )}
+                   </div>
+               ))}
+            </div>
 
-                          return (
-                              <div 
-                                  key={day.date} 
-                                  className={cn("w-2.5 h-2.5 rounded-[1px] transition-colors", bgClass)}
-                                  title={`${day.date}: ${day.activity} events`}
-                              />
-                          );
-                      })}
-                  </div>
-              ))}
+            <div className="flex flex-col gap-1">
+                <div className="flex gap-0.5 w-full justify-center overflow-x-auto pb-1 scrollbar-hide">
+                    {weeks.map((week, wIndex) => (
+                        <div key={wIndex} className="flex flex-col gap-0.5">
+                            {week.map((day) => {
+                                if (day.activity === -1) return <div key={day.date} className="w-2 h-2" />;
+                                
+                                const intensity = day.activity === 0 ? 0 : Math.ceil((day.activity / maxActivity) * 4);
+                                const bgClass = [
+                                    "bg-[#27272a]", // 0
+                                    "bg-primary/30", // 1
+                                    "bg-primary/50", // 2
+                                    "bg-primary/70", // 3
+                                    "bg-primary",    // 4
+                                ][Math.min(intensity, 4)];
+
+                                return (
+                                    <div 
+                                        key={day.date} 
+                                        className={cn("w-2 h-2 rounded-[1px] transition-colors", bgClass)}
+                                        title={`${day.date}: ${day.activity} events`}
+                                    />
+                                );
+                            })}
+                        </div>
+                    ))}
+                </div>
+
+                {/* Month Labels */}
+                <div className="flex gap-0.5 w-full justify-center h-4">
+                    {weeks.map((week, wIndex) => {
+                        const firstDay = week.find(d => !d.date.startsWith('empty'));
+                        if (!firstDay) return <div key={wIndex} className="w-2" />;
+                        
+                        const date = new Date(firstDay.date);
+                        const month = date.toLocaleString(language, { month: 'short' });
+                        
+                        let showLabel = false;
+                        if (wIndex === 0) {
+                            showLabel = true;
+                        } else {
+                            const prevWeek = weeks[wIndex - 1];
+                            const prevDay = prevWeek.find(d => !d.date.startsWith('empty'));
+                            if (prevDay) {
+                                const prevDate = new Date(prevDay.date);
+                                if (prevDate.getMonth() !== date.getMonth()) {
+                                    showLabel = true;
+                                }
+                            }
+                        }
+
+                        return (
+                            <div key={wIndex} className="w-2 relative">
+                                {showLabel && (
+                                    <span className="absolute top-0 left-0 text-[9px] text-text-secondary whitespace-nowrap capitalize">
+                                        {month}
+                                    </span>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
           </div>
         </div>
       );
@@ -142,13 +196,42 @@ export function HeatmapGrid({ heatmap, period }: HeatmapGridProps) {
   }
 
   // Default / Week / Month view (Bar chart style but nicer)
-  const displayData = heatmap.heatmap.slice(-(period === "week" ? 7 : 30));
+  const daysCount = period === "week" ? 7 : 30;
+  const filledData = [];
+  const today = new Date();
+  
+  // Create a map for quick lookup
+  const activityMap = new Map(heatmap.heatmap.map(d => [d.date, d.activity]));
+
+  for (let i = daysCount - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toLocaleDateString('en-CA'); // YYYY-MM-DD
+    
+    filledData.push({
+      date: dateStr,
+      activity: activityMap.get(dateStr) || 0
+    });
+  }
+  
+  const displayData = filledData;
   
   return (
     <div className="h-full min-h-[160px] flex items-end justify-between gap-2 px-2">
       {displayData.map((day) => {
         const height = (day.activity / maxActivity) * 100;
-        const isMax = day.activity === maxActivity && maxActivity > 0;
+        const intensity = day.activity === 0 ? 0 : Math.ceil((day.activity / maxActivity) * 4);
+        
+        // Use similar logic to year view but for bars
+        const bgClass = day.activity === 0 
+            ? "bg-[#27272a] hover:bg-[#3f3f46]" 
+            : [
+                "bg-primary/30 hover:bg-primary/40", // 1
+                "bg-primary/50 hover:bg-primary/60", // 2
+                "bg-primary/70 hover:bg-primary/80", // 3
+                "bg-primary hover:bg-primary-dark",    // 4
+              ][Math.min(intensity, 4) - 1] || "bg-primary";
+
         const date = new Date(day.date);
         const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
         const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -158,9 +241,8 @@ export function HeatmapGrid({ heatmap, period }: HeatmapGridProps) {
             <div 
               className={cn(
                 "w-full rounded-t-sm relative transition-all duration-300 min-w-[4px]",
-                isMax 
-                  ? "bg-primary hover:bg-primary-dark shadow-[0_0_15px_rgba(124,58,237,0.3)]" 
-                  : "bg-[#27272a] hover:bg-[#3f3f46]"
+                bgClass,
+                day.activity === maxActivity && maxActivity > 0 && "shadow-[0_0_15px_rgba(124,58,237,0.3)]"
               )}
               style={{ height: `${Math.max(height, 10)}%` }}
               title={`${day.date}: ${day.activity} events`}

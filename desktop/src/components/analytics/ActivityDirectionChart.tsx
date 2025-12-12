@@ -29,7 +29,15 @@ export function ActivityDirectionChart({ stats }: { stats: DashboardStats | null
     const bottomPoint = { x: centerX, y: centerY + bottomRadius };
     const leftPoint = { x: centerX - leftRadius, y: centerY };
 
-    const polygonPoints = `${topPoint.x},${topPoint.y} ${rightPoint.x},${rightPoint.y} ${bottomPoint.x},${bottomPoint.y} ${leftPoint.x},${leftPoint.y}`;
+    // Parabolic path (curved inwards using center as control point)
+    const pathD = `
+      M ${topPoint.x},${topPoint.y} 
+      Q ${centerX},${centerY} ${rightPoint.x},${rightPoint.y} 
+      Q ${centerX},${centerY} ${bottomPoint.x},${bottomPoint.y} 
+      Q ${centerX},${centerY} ${leftPoint.x},${leftPoint.y} 
+      Q ${centerX},${centerY} ${topPoint.x},${topPoint.y} 
+      Z
+    `;
 
     return (
           <div className="flex-1 w-full min-w-[200px] flex flex-col items-center justify-center">
@@ -55,8 +63,8 @@ export function ActivityDirectionChart({ stats }: { stats: DashboardStats | null
 
                 <div className="absolute inset-0">
                     <svg className="w-full h-full overflow-visible">
-                        <polygon 
-                            points={polygonPoints}
+                        <path 
+                            d={pathD}
                             fill="rgba(124, 58, 237, 0.2)" 
                             stroke="#7c3aed" 
                             strokeWidth="2"
