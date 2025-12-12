@@ -77,7 +77,7 @@ async def get_dashboard_stats(
     purchases = result_purchases.scalars().all()
     
     total_spending = sum(
-        p.payload.get('total_cost') or p.payload.get('cost', 0)
+        (p.payload.get('total_cost') or p.payload.get('cost') or 0)
         for p in purchases 
         if 'total_cost' in p.payload or 'cost' in p.payload
     )
@@ -94,7 +94,7 @@ async def get_dashboard_stats(
     created_purchases_events = result_created.scalars().all()
     
     total_created_cost = sum(
-        p.payload.get('total_cost') or p.payload.get('cost', 0)
+        (p.payload.get('total_cost') or p.payload.get('cost') or 0)
         for p in created_purchases_events
         if 'total_cost' in p.payload or 'cost' in p.payload
     )
@@ -117,7 +117,7 @@ async def get_dashboard_stats(
             completed_purchase_ids.add(pid)
             
     total_incomplete_purchases_cost = sum(
-        p.payload.get('total_cost') or p.payload.get('cost', 0)
+        (p.payload.get('total_cost') or p.payload.get('cost') or 0)
         for p in created_purchases_events
         if ('total_cost' in p.payload or 'cost' in p.payload) and 
            p.payload.get("purchase_id") not in completed_purchase_ids

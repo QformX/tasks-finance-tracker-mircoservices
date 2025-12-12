@@ -39,6 +39,7 @@ export function ApiTester() {
   const [analyticsDays, setAnalyticsDays] = useState('365');
   
   const [categories, setCategories] = useState<any[]>([]);
+  const [aiMessage, setAiMessage] = useState('Create a task called Buy Milk');
 
   // --- Helpers ---
   const headers = () => ({
@@ -94,6 +95,59 @@ export function ApiTester() {
     method: 'PATCH',
     body: JSON.stringify({ title: taskTitle }) 
   });
+
+  // --- AI Actions ---
+  const doAiChat = async () => {
+    if (!user?.id) {
+      log("No user logged in");
+      return;
+    }
+    
+    log(`POST /ai/chat...`);
+    try {
+      const res = await fetch(`${API_BASE}/ai/chat`, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({
+          message: aiMessage,
+          user_id: user.id
+        })
+      });
+      
+      if (!res.body) {
+        log("No response body");
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+      let text = '';
+
+      log("Streaming response...");
+      
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        const chunkValue = decoder.decode(value, { stream: !done });
+        text += chunkValue;
+        
+        // Update logs with current accumulated text
+        setLogs(prev => {
+            const newLogs = [...prev];
+            if (newLogs.length > 0 && newLogs[0].startsWith("[STREAM]")) {
+                newLogs[0] = `[STREAM] ${text}`;
+                return newLogs;
+            } else {
+                return [`[STREAM] ${text}`, ...prev];
+            }
+        });
+      }
+      log("Stream complete");
+    } catch (e) {
+      log(e);
+    }
+  };
 
   // --- Categories Actions ---
   const getCategories = async () => {
@@ -339,6 +393,21 @@ export function ApiTester() {
             <button className="bg-orange-600 hover:bg-orange-700 px-3 py-1 rounded" onClick={getActivityHeatmap}>Get Heatmap</button>
           </div>
         </div>
+
+        {/* AI Service Section */}
+        <div className="p-4 border border-gray-700 rounded bg-gray-800/50">
+          <h2 className="text-lg font-bold mb-2 text-purple-400">AI Service</h2>
+          <div className="flex gap-2 mb-2">
+            <input 
+              className="bg-gray-900 border border-gray-600 p-1 rounded flex-1" 
+              placeholder="Message to AI..." 
+              value={aiMessage} 
+              onChange={e => setAiMessage(e.target.value)} 
+            />
+            <button className="bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded" onClick={doAiChat}>Send</button>
+          </div>
+        </div>
+
       </div>
 
       {/* Right Panel: Logs */}

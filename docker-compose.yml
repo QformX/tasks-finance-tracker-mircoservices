@@ -56,6 +56,19 @@ services:
       timeout: 5s
       retries: 5
 
+  rabbitmq-ai:
+    image: rabbitmq:3-management-alpine
+    env_file:
+      - .env
+    ports:
+      - "15673:15672" # Management UI
+      - "5673:5672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   redis:
     image: redis:7-alpine
     healthcheck:
@@ -77,6 +90,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    restart: unless-stopped
   
   core-service:
     build:
@@ -92,6 +106,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    restart: unless-stopped
 
   analytics-service:
     build:
@@ -105,6 +120,27 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    restart: unless-stopped
+
+  ai-service:
+    build:
+      context: ./services/ai_service
+    env_file:
+      - .env
+    environment:
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      RABBITMQ_URL: amqp://user:password@rabbitmq-ai:5672/
+      DATABASE_URL: ${CORE_DATABASE_URL}
+    ports:
+      - "8003:8000"
+    depends_on:
+      rabbitmq-ai:
+        condition: service_healthy
+      postgres-core:
+        condition: service_healthy
+    restart: unless-stopped
 
   # --- Workers ---
   core-worker:
@@ -117,6 +153,24 @@ services:
     command: ["python", "-m", "app.workers.events_consumer"]
     depends_on:
       postgres-core:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  core-rpc-worker:
+    build:
+      context: ./services/core
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${CORE_DATABASE_URL}
+      AI_RABBITMQ_URL: amqp://user:password@rabbitmq-ai:5672/
+    command: ["faststream", "run", "app.rpc_worker:app"]
+    depends_on:
+      postgres-core:
+        condition: service_healthy
+      rabbitmq-ai:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
@@ -148,6 +202,7 @@ services:
       - users-service
       - core-service
       - analytics-service
+      - ai-service
 
 volumes:
   users_pg_data:

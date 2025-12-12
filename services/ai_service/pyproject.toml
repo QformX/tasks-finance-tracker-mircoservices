@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "ai-service"
+version = "0.1.0"
+description = "AI Service for Tasks & Finance Tracker"
+authors = ["Admin <admin@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.109.0"
+uvicorn = "^0.27.0"
+faststream = {extras = ["rabbit"], version = "^0.5.0"}
+langchain = "^0.1.0"
+langchain-google-genai = "^0.0.5"
+langchain-openai = "^0.0.5"
+langchain-groq = "^0.0.1"
+langchain-community = "^0.0.10"
+pydantic = "^2.5.0"
+sqlalchemy = "^2.0.0"
+asyncpg = "^0.29.0"
+tavily-python = "^0.3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -15,6 +15,7 @@ from app.models import Task
 from app.schemas import TaskCreate, TaskUpdate, TaskResponse, FilterType
 from app.core.events import mq_client
 from app.core.auth import get_current_user_id
+from app.services.tasks import TaskService
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -138,7 +139,6 @@ async def get_tasks(
 @router.post("/", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 async def create_task(
     task_in: TaskCreate,
-    background_tasks: BackgroundTasks,
     user_id: uuid.UUID = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_session)
 ):
@@ -148,50 +148,7 @@ async def create_task(
     - Инвалидация кэша списков
     - Отправка события TaskCreated в RabbitMQ
     """
-    new_task = Task(
-        user_id=user_id,
-        title=task_in.title,
-        category_id=task_in.category_id,
-        due_date=task_in.due_date,
-        is_completed=False
-    )
-    
-    session.add(new_task)
-    await session.commit()
-    await session.refresh(new_task)
-    
-    async def add_reminder():
-        try:
-            if new_task.due_date:
-                timestamp = int(new_task.due_date.timestamp())
-                await redis_client.zadd(
-                    f"reminders:{user_id}",
-                    {str(new_task.id): timestamp}
-                )
-        except Exception as e:
-            print(f"Failed to add reminder: {e}")
-    
-    background_tasks.add_task(add_reminder)
-    background_tasks.add_task(_invalidate_tasks_cache, user_id)
-    
-    async def send_event():
-        try:
-            event = {
-                "event_type": "TaskCreated",
-                "task_id": str(new_task.id),
-                "user_id": str(user_id),
-                "title": new_task.title,
-                "category_id": str(new_task.category_id) if new_task.category_id else None,
-                "due_date": new_task.due_date.isoformat() if new_task.due_date else None,
-                "created_at": new_task.created_at.isoformat()
-            }
-            await mq_client.publish(routing_key="core.task.created", message=event)
-        except Exception as e:
-            print(f"Failed to publish event: {e}")
-    
-    background_tasks.add_task(send_event)
-    
-    return new_task
+    return await TaskService.create(session, user_id, task_in)
 
 @router.post("/{task_id}/toggle", response_model=TaskResponse)
 async def toggle_task(
@@ -287,18 +244,12 @@ async def update_task(
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_task(
     task_id: uuid.UUID,
-    background_tasks: BackgroundTasks,
     user_id: uuid.UUID = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_session)
 ):
     """Удаление задачи"""
-    task = await session.get(Task, task_id)
-    if not task or task.user_id != user_id:
+    success = await TaskService.delete(session, user_id, task_id)
+    if not success:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
-    
-    await session.delete(task)
-    await session.commit()
-    
-    background_tasks.add_task(_invalidate_tasks_cache, user_id)
     
     return None
