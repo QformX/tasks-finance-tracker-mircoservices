@@ -1,0 +1,156 @@
+services:
+  # --- Databases ---
+  postgres-users:
+    image: postgres:15-alpine
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: users_db
+    volumes:
+      - users_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d users_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-core:
+    image: postgres:15-alpine
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: core_db
+    volumes:
+      - core_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d core_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  analytics-db:
+    image: postgres:15-alpine
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: analytics_db
+    volumes:
+      - analytics_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d analytics_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # --- Broker & Cache ---
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    env_file:
+      - .env
+    ports:
+      - "15672:15672" # Management UI
+      - "5672:5672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # --- Services ---
+  users-service:
+    build:
+      context: ./services/users
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${USERS_DATABASE_URL}
+    depends_on:
+      postgres-users:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+  
+  core-service:
+    build:
+      context: ./services/core
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${CORE_DATABASE_URL}
+    depends_on:
+      postgres-core:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  analytics-service:
+    build:
+      context: ./services/analytics
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${ANALYTICS_DATABASE_URL}
+    depends_on:
+      analytics-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  # --- Workers ---
+  core-worker:
+    build:
+      context: ./services/core
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${CORE_DATABASE_URL}
+    command: ["python", "-m", "app.workers.events_consumer"]
+    depends_on:
+      postgres-core:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  analytics-worker:
+    build:
+      context: ./services/analytics
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${ANALYTICS_DATABASE_URL}
+    command: ["python", "-m", "app.workers.events_consumer"]
+    depends_on:
+      analytics-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # --- Gateway ---
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - users-service
+      - core-service
+      - analytics-service
+
+volumes:
+  users_pg_data:
+  core_pg_data:
+  analytics_pg_data:
+

@@ -1,0 +1,304 @@
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from typing import List, Optional
+import uuid
+import json
+import asyncio
+import redis.asyncio as redis
+import hashlib
+from datetime import datetime, date, timedelta
+
+from app.core.database import get_session
+from app.core.config import settings
+from app.models import Task
+from app.schemas import TaskCreate, TaskUpdate, TaskResponse, FilterType
+from app.core.events import mq_client
+from app.core.auth import get_current_user_id
+
+router = APIRouter(prefix="/tasks", tags=["tasks"])
+
+redis_client = redis.from_url(settings.redis_url, decode_responses=True)
+
+def _generate_cache_key(user_id: uuid.UUID, **params) -> str:
+    """Генерация ключа кэша на основе параметров"""
+    params_str = json.dumps(params, sort_keys=True, default=str)
+    params_hash = hashlib.md5(params_str.encode()).hexdigest()
+    return f"user:{user_id}:tasks:{params_hash}"
+
+async def _invalidate_tasks_cache(user_id: uuid.UUID):
+    """Инвалидация всех кэшей задач пользователя"""
+    try:
+        pattern = f"user:{user_id}:tasks:*"
+        async for key in redis_client.scan_iter(match=pattern):
+            await redis_client.delete(key)
+    except Exception as e:
+        print(f"Failed to invalidate cache: {e}")
+
+@router.get("/", response_model=List[TaskResponse])
+async def get_tasks(
+    category_id: Optional[uuid.UUID] = Query(None, description="Фильтр по категории"),
+    filter: Optional[FilterType] = Query(None, description="Быстрый фильтр: today/overdue/inbox"),
+    is_completed: Optional[bool] = Query(None, description="Фильтр по статусу (true - завершённые, false - незавершённые, без параметра - все)"),
+    timezone_offset: Optional[int] = Query(None, description="Timezone offset in minutes (client - UTC)"),
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Получение списка задач с фильтрацией
+    - Кэширование в Redis (TTL 60s)
+    - Поддержка быстрых фильтров (today, overdue, inbox)
+    - is_completed=None (по умолчанию) - все задачи
+    - is_completed=false - только незавершённые
+    - is_completed=true - только завершённые
+    """
+    # Generate cache key
+    cache_params = {
+        "category_id": str(category_id) if category_id else None,
+        "filter": filter.value if filter else None,
+        "is_completed": is_completed,
+        "timezone_offset": timezone_offset
+    }
+    cache_key = _generate_cache_key(user_id, **cache_params)
+    
+    try:
+        cached_data = await redis_client.get(cache_key)
+        if cached_data:
+            print(f"Cache HIT for {cache_key}")
+            tasks_data = json.loads(cached_data)
+            return [TaskResponse(**task) for task in tasks_data]
+    except Exception as e:
+        print(f"Redis error: {e}")
+    
+    stmt = select(Task).where(Task.user_id == user_id)
+    
+    if is_completed is not None:
+        stmt = stmt.where(Task.is_completed == is_completed)
+    
+    if category_id:
+        stmt = stmt.where(Task.category_id == category_id)
+    
+    if filter == FilterType.today:
+        if timezone_offset is not None:
+            # Calculate client today based on offset
+            # JS offset is (UTC - Local) in minutes.
+            # Local = UTC - Offset
+            utc_now = datetime.utcnow()
+            client_now = utc_now - timedelta(minutes=timezone_offset)
+            client_today = client_now.date()
+            
+            # Range in Local time: 00:00 to 23:59:59
+            local_start = datetime.combine(client_today, datetime.min.time())
+            
+            # Convert back to UTC for DB query
+            # UTC = Local + Offset
+            utc_start = local_start + timedelta(minutes=timezone_offset)
+            utc_end = utc_start + timedelta(days=1)
+            
+            stmt = stmt.where(Task.due_date >= utc_start)
+            stmt = stmt.where(Task.due_date < utc_end)
+        else:
+            today = date.today()
+            stmt = stmt.where(Task.due_date >= datetime.combine(today, datetime.min.time()))
+            stmt = stmt.where(Task.due_date < datetime.combine(today, datetime.max.time()))
+    elif filter == FilterType.overdue:
+        stmt = stmt.where(Task.due_date < datetime.now())
+        stmt = stmt.where(Task.is_completed == False)
+    elif filter == FilterType.inbox:
+        stmt = stmt.where(Task.category_id.is_(None))
+    
+    stmt = stmt.order_by(Task.created_at.desc())
+    
+    result = await session.execute(stmt)
+    tasks = result.scalars().all()
+    
+    async def cache_result():
+        try:
+            tasks_data = [
+                {
+                    "id": str(t.id),
+                    "user_id": str(t.user_id),
+                    "category_id": str(t.category_id) if t.category_id else None,
+                    "title": t.title,
+                    "is_completed": t.is_completed,
+                    "due_date": t.due_date.isoformat() if t.due_date else None,
+                    "created_at": t.created_at.isoformat()
+                }
+                for t in tasks
+            ]
+            await redis_client.setex(cache_key, 60, json.dumps(tasks_data))
+            print(f"Cache SET for {cache_key}")
+        except Exception as e:
+            print(f"Failed to cache: {e}")
+    
+    asyncio.create_task(cache_result())
+    
+    return tasks
+
+@router.post("/", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
+async def create_task(
+    task_in: TaskCreate,
+    background_tasks: BackgroundTasks,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Создание новой задачи
+    - Добавление напоминания в Redis Sorted Set (если есть due_date)
+    - Инвалидация кэша списков
+    - Отправка события TaskCreated в RabbitMQ
+    """
+    new_task = Task(
+        user_id=user_id,
+        title=task_in.title,
+        category_id=task_in.category_id,
+        due_date=task_in.due_date,
+        is_completed=False
+    )
+    
+    session.add(new_task)
+    await session.commit()
+    await session.refresh(new_task)
+    
+    async def add_reminder():
+        try:
+            if new_task.due_date:
+                timestamp = int(new_task.due_date.timestamp())
+                await redis_client.zadd(
+                    f"reminders:{user_id}",
+                    {str(new_task.id): timestamp}
+                )
+        except Exception as e:
+            print(f"Failed to add reminder: {e}")
+    
+    background_tasks.add_task(add_reminder)
+    background_tasks.add_task(_invalidate_tasks_cache, user_id)
+    
+    async def send_event():
+        try:
+            event = {
+                "event_type": "TaskCreated",
+                "task_id": str(new_task.id),
+                "user_id": str(user_id),
+                "title": new_task.title,
+                "category_id": str(new_task.category_id) if new_task.category_id else None,
+                "due_date": new_task.due_date.isoformat() if new_task.due_date else None,
+                "created_at": new_task.created_at.isoformat()
+            }
+            await mq_client.publish(routing_key="core.task.created", message=event)
+        except Exception as e:
+            print(f"Failed to publish event: {e}")
+    
+    background_tasks.add_task(send_event)
+    
+    return new_task
+
+@router.post("/{task_id}/toggle", response_model=TaskResponse)
+async def toggle_task(
+    task_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Переключение статуса задачи (completed/uncompleted)
+    - Инвалидация кэша
+    - Отправка события TaskCompleted (если задача была завершена)
+    """
+    task = await session.get(Task, task_id)
+    if not task or task.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    
+    was_completed_before = task.is_completed
+    task.is_completed = not task.is_completed
+    
+    await session.commit()
+    await session.refresh(task)
+    
+    background_tasks.add_task(_invalidate_tasks_cache, user_id)
+    
+    if not was_completed_before and task.is_completed:
+        async def send_event():
+            try:
+                event = {
+                    "event_type": "TaskCompleted",
+                    "task_id": str(task.id),
+                    "user_id": str(user_id),
+                    "title": task.title,
+                    "completed_at": datetime.utcnow().isoformat()
+                }
+                await mq_client.publish(routing_key="core.task.completed", message=event)
+            except Exception as e:
+                print(f"Failed to publish event: {e}")
+        
+        background_tasks.add_task(send_event)
+    
+    return task
+
+@router.patch("/{task_id}", response_model=TaskResponse)
+async def update_task(
+    task_id: uuid.UUID,
+    task_update: TaskUpdate,
+    background_tasks: BackgroundTasks,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Обновление задачи (частичное или полное)
+    - Инвалидация кэша
+    - Отправка события TaskCompleted (если is_completed изменилось на True)
+    """
+    task = await session.get(Task, task_id)
+    if not task or task.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    
+    update_data = task_update.model_dump(exclude_unset=True)
+    was_completed_now = False
+    
+    if update_data:
+        for field, value in update_data.items():
+            if field == "is_completed" and value is True and not task.is_completed:
+                was_completed_now = True
+            setattr(task, field, value)
+        
+        await session.commit()
+        await session.refresh(task)
+    
+    background_tasks.add_task(_invalidate_tasks_cache, user_id)
+    
+    if was_completed_now:
+        async def send_event():
+            try:
+                event = {
+                    "event_type": "TaskCompleted",
+                    "task_id": str(task.id),
+                    "user_id": str(user_id),
+                    "title": task.title,
+                    "completed_at": datetime.utcnow().isoformat()
+                }
+                await mq_client.publish(routing_key="core.task.completed", message=event)
+            except Exception as e:
+                print(f"Failed to publish event: {e}")
+        
+        background_tasks.add_task(send_event)
+    
+    return task
+
+@router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_task(
+    task_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_session)
+):
+    """Удаление задачи"""
+    task = await session.get(Task, task_id)
+    if not task or task.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    
+    await session.delete(task)
+    await session.commit()
+    
+    background_tasks.add_task(_invalidate_tasks_cache, user_id)
+    
+    return None
