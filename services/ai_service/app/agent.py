@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from typing import AsyncGenerator
 from langchain_groq import ChatGroq
 from langchain.agents import AgentExecutor, create_react_agent
@@ -14,6 +15,13 @@ template = '''Answer the following questions as best you can. You have access to
 
 {tools}
 
+IMPORTANT GUIDELINES:
+1. You MUST answer in the SAME LANGUAGE as the user's request. If the user asks in Russian, answer in Russian. If in English, answer in English.
+2. Your "Final Answer" must be natural, human-readable, and helpful. Do not just dump JSON or raw data. Explain what you did or what the data means.
+3. If you created a task or purchase, confirm it clearly.
+4. You have access to the 'Current Date and Time'. Use it to calculate specific dates (YYYY-MM-DD) for arguments when the user uses relative terms like "today", "tomorrow", "in 3 days", "next Friday".
+5. If the user asks to create MULTIPLE items (e.g., "buy milk and bread"), you MUST call the creation tool MULTIPLE times, once for each item. Do not try to pass a list to the tool.
+
 Use the following format:
 
 Question: the input question you must answer
@@ -23,7 +31,7 @@ Action Input: the input to the action
 Observation: the result of the action
 ... (this Thought/Action/Action Input/Observation can repeat N times)
 Thought: I now know the final answer
-Final Answer: the final answer to the original input question
+Final Answer: the final answer to the original input question (in the user's language)
 
 Begin!
 
@@ -40,15 +48,26 @@ async def process_chat(message: str, user_id: str) -> AsyncGenerator[str, None]:
     """
     Process a chat message and yield events/responses.
     """
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    current_day = datetime.now().strftime("%A")
+
     # Inject user_id into the prompt context
-    input_with_context = f"User ID: {user_id}\nRequest: {message}\n\nIMPORTANT: When calling tools that require user_id, ALWAYS use '{user_id}'."
+    input_with_context = f"""
+Current Date and Time: {current_time} ({current_day})
+User ID: {user_id}
+Request: {message}
+
+IMPORTANT: 
+1. When calling tools that require user_id, ALWAYS use '{user_id}'.
+2. Use 'Current Date and Time' to resolve relative dates (today, tomorrow, next friday, etc.) into YYYY-MM-DD format for tool arguments.
+"""
     
     async for chunk in agent_executor.astream({"input": input_with_context}):
         if "actions" in chunk:
             for action in chunk["actions"]:
-                yield f"Action: {action.tool} -> {action.tool_input}\n"
+                print(f"Action: {action.tool} -> {action.tool_input}")
         elif "steps" in chunk:
             for step in chunk["steps"]:
-                yield f"Observation: {step.observation}\n"
+                print(f"Observation: {step.observation}")
         elif "output" in chunk:
             yield chunk["output"]

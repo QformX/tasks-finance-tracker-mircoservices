@@ -88,6 +88,7 @@ export function Sidebar() {
           </div>
           <nav className={cn("flex flex-col gap-1 w-full", isCollapsed && "items-center")}>
             <NavItem to="/" icon="dashboard" label={t("dashboard")} isCollapsed={isCollapsed} />
+            <NavItem to="/chat" icon="chat" label="AI Chat" isCollapsed={isCollapsed} />
             <NavItem to="/tasks" icon="task_alt" label={t("tasks")} isCollapsed={isCollapsed} />
             <NavItem to="/purchases" icon="shopping_bag" label={t("purchases")} isCollapsed={isCollapsed} />
             <NavItem to="/categories" icon="folder" label={t("categories")} isCollapsed={isCollapsed} />

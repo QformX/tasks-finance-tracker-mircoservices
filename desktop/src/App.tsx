@@ -7,6 +7,7 @@ import { Analytics } from "@/pages/Analytics";
 import { Settings } from "@/pages/Settings";
 import { Profile } from "@/pages/Profile";
 import { AuthPage } from "@/pages/Auth";
+import { AiChat } from "@/pages/AiChat";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { Layout } from "@/components/Layout";
@@ -31,6 +32,7 @@ function AppContent() {
     <Layout>
       <Routes>
         <Route path="/" element={<ApiTester />} />
+        <Route path="/chat" element={<AiChat />} />
         <Route path="/tasks" element={<MyTasks />} />
         <Route path="/purchases" element={<Purchases />} />
         <Route path="/categories" element={<Categories />} />

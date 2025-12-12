@@ -3,14 +3,15 @@ import uuid
 import re
 import ast
 import json
+import httpx
+import jwt
 from typing import Optional, Any
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from langchain_core.tools import tool
 from faststream.rabbit import RabbitBroker
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy import text
 from langchain_community.tools.tavily_search import TavilySearchResults
-from app.schemas.commands import CreateTaskCMD, CreatePurchaseCMD, DeleteItemCMD
+from app.schemas.commands import CreateTaskCMD, CreatePurchaseCMD, DeleteItemCMD, CreateCategoryCMD
+from app.config import settings
 
 def parse_agent_input(input_val: Any) -> dict:
     """Helper to parse input that might be a stringified dict or JSON."""
@@ -38,14 +39,15 @@ def parse_agent_input(input_val: Any) -> dict:
     try:
         # Regex to capture key=value pairs where value can be quoted or unquoted (numbers/bools)
         # Matches: key="value", key='value', key=123, key=true
-        pattern = r"(\w+)\s*=\s*(?:['\"]([^'\"]*)['\"]|([^\s,]+))"
+        # Updated pattern to allow spaces in unquoted values (terminated by comma or end of string)
+        pattern = r"(\w+)\s*=\s*(?:['\"]([^'\"]*)['\"]|([^,]+?))(?:\s*,|\s*$)"
         matches = re.findall(pattern, input_str)
         if matches:
             result = {}
             for key, val_quoted, val_unquoted in matches:
                 # val_quoted is the value if quotes were used
                 # val_unquoted is the value if no quotes were used
-                val = val_quoted if val_quoted else val_unquoted
+                val = val_quoted if val_quoted else val_unquoted.strip()
                 
                 # Try to convert numbers/bools
                 if val_unquoted:
@@ -77,9 +79,12 @@ def extract_uuid(text: str) -> str:
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
 broker = RabbitBroker(RABBITMQ_URL)
 
-# Initialize Database Engine (Using main DB as replica is skipped)
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://user:password@postgres-core:5432/core_db")
-engine = create_async_engine(DATABASE_URL)
+def create_access_token(user_id: str) -> str:
+    """Create a temporary access token for internal API calls."""
+    expire = datetime.now(timezone.utc) + timedelta(minutes=5)
+    to_encode = {"sub": user_id, "exp": expire}
+    encoded_jwt = jwt.encode(to_encode, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+    return encoded_jwt
 
 @tool
 async def create_task_rpc(user_id: str, title: Optional[str] = None, category_id: Optional[str] = None, due_date: Optional[str] = None) -> str:
@@ -180,8 +185,52 @@ async def create_purchase_rpc(user_id: str, title: Optional[str] = None, categor
         return f"Error creating purchase: {str(e)}"
 
 @tool
+async def create_category_rpc(user_id: str, title: Optional[str] = None, type: Optional[str] = None) -> str:
+    """Create a new category. type must be 'tasks', 'purchases', or 'mixed'."""
+    try:
+        # Handle potential JSON/Dict input for user_id
+        parsed_input = parse_agent_input(user_id)
+        if isinstance(parsed_input, dict):
+            if 'user_id' in parsed_input:
+                user_id = parsed_input.get('user_id')
+            if not title and 'title' in parsed_input:
+                title = parsed_input.get('title')
+            if not type and 'type' in parsed_input:
+                type = parsed_input.get('type')
+
+        if not title or not type:
+            return "Error: 'title' and 'type' are required."
+            
+        if type not in ["tasks", "purchases", "mixed"]:
+            return "Error: 'type' must be 'tasks', 'purchases', or 'mixed'."
+
+        clean_user_id = extract_uuid(str(user_id))
+
+        cmd = CreateCategoryCMD(
+            user_id=uuid.UUID(clean_user_id),
+            title=title,
+            type=type
+        )
+        
+        if not getattr(broker, "connected", False):
+            await broker.connect()
+
+        # RPC call
+        result = await broker.publish(
+            {
+                "command": "create_category",
+                "data": cmd.model_dump(mode='json')
+            },
+            queue="core-rpc-queue",
+            rpc=True
+        )
+        return f"Category created successfully: {result}"
+    except Exception as e:
+        return f"Error creating category: {str(e)}"
+
+@tool
 async def delete_item_rpc(user_id: str, item_type: Optional[str] = None, item_id: Optional[str] = None) -> str:
-    """Delete a task or purchase. item_type must be 'task' or 'purchase'."""
+    """Delete a task, purchase, or category. item_type must be 'task', 'purchase', or 'category'."""
     try:
         # Handle potential JSON/Dict input for user_id
         parsed_input = parse_agent_input(user_id)
@@ -238,7 +287,7 @@ async def search_product(query: str) -> str:
 
 @tool
 async def get_my_data(user_id: str) -> str:
-    """Get the user's current tasks and purchases from the database (Read-Only)."""
+    """Get the user's current tasks and purchases from the Core Service API."""
     try:
         # Handle potential JSON/Dict input for user_id
         parsed_user = parse_agent_input(user_id)
@@ -246,21 +295,17 @@ async def get_my_data(user_id: str) -> str:
             user_id = parsed_user['user_id']
             
         clean_user_id = extract_uuid(str(user_id))
+        token = create_access_token(clean_user_id)
+        headers = {"Authorization": f"Bearer {token}"}
         
-        async with AsyncSession(engine) as session:
+        async with httpx.AsyncClient() as client:
             # Fetch tasks
-            tasks_result = await session.execute(
-                text("SELECT id, title, is_completed, due_date FROM tasks WHERE user_id = :user_id ORDER BY created_at DESC LIMIT 10"),
-                {"user_id": clean_user_id}
-            )
-            tasks = [{"id": str(r.id), "title": r.title, "completed": r.is_completed, "due": str(r.due_date)} for r in tasks_result]
+            tasks_resp = await client.get(f"{settings.core_service_url}/tasks/", headers=headers)
+            tasks = tasks_resp.json() if tasks_resp.status_code == 200 else []
             
             # Fetch purchases
-            purchases_result = await session.execute(
-                text("SELECT id, title, is_bought, cost, quantity FROM purchases WHERE user_id = :user_id ORDER BY id DESC LIMIT 10"),
-                {"user_id": clean_user_id}
-            )
-            purchases = [{"id": str(r.id), "title": r.title, "bought": r.is_bought, "cost": r.cost, "qty": r.quantity} for r in purchases_result]
+            purchases_resp = await client.get(f"{settings.core_service_url}/purchases/", headers=headers)
+            purchases = purchases_resp.json() if purchases_resp.status_code == 200 else []
             
             return f"Current Data:\nTasks: {tasks}\nPurchases: {purchases}"
     except Exception as e:
@@ -268,7 +313,7 @@ async def get_my_data(user_id: str) -> str:
 
 @tool
 async def get_user_categories(user_id: str) -> str:
-    """Get list of categories for a user. Returns names and IDs."""
+    """Get list of categories for a user from the Core Service API."""
     try:
         # Handle potential JSON/Dict input
         parsed = parse_agent_input(user_id)
@@ -276,15 +321,16 @@ async def get_user_categories(user_id: str) -> str:
             user_id = parsed['user_id']
             
         clean_user_id = extract_uuid(str(user_id))
+        token = create_access_token(clean_user_id)
+        headers = {"Authorization": f"Bearer {token}"}
         
-        async with AsyncSession(engine) as session:
-            result = await session.execute(
-                text("SELECT id, title, type FROM categories WHERE user_id = :user_id"),
-                {"user_id": clean_user_id}
-            )
-            categories = [{"id": str(row.id), "name": row.title, "type": row.type} for row in result]
-            return str(categories)
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{settings.core_service_url}/categories/", headers=headers)
+            if resp.status_code == 200:
+                return str(resp.json())
+            else:
+                return f"Error fetching categories: {resp.text}"
     except Exception as e:
         return f"Error fetching categories: {str(e)}"
 
-tools = [create_task_rpc, create_purchase_rpc, delete_item_rpc, search_product, get_my_data, get_user_categories]
+tools = [create_task_rpc, create_purchase_rpc, create_category_rpc, delete_item_rpc, search_product, get_my_data, get_user_categories]

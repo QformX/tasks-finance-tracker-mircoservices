@@ -42,6 +42,20 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres-ai:
+    image: postgres:15-alpine
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ai_db
+    volumes:
+      - ai_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d ai_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   # --- Broker & Cache ---
   rabbitmq:
     image: rabbitmq:3-management-alpine
@@ -132,13 +146,14 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       GROQ_API_KEY: ${GROQ_API_KEY}
       RABBITMQ_URL: amqp://user:password@rabbitmq-ai:5672/
-      DATABASE_URL: ${CORE_DATABASE_URL}
+      DATABASE_URL: postgresql+asyncpg://user:password@postgres-ai:5432/ai_db
+      CORE_SERVICE_URL: http://core-service:8000
     ports:
       - "8003:8000"
     depends_on:
       rabbitmq-ai:
         condition: service_healthy
-      postgres-core:
+      postgres-ai:
         condition: service_healthy
     restart: unless-stopped
 
@@ -208,4 +223,5 @@ volumes:
   users_pg_data:
   core_pg_data:
   analytics_pg_data:
+  ai_pg_data:
 

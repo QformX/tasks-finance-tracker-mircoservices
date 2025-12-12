@@ -16,7 +16,12 @@ class CreatePurchaseCMD(BaseModel):
     cost: Optional[float] = None
     quantity: int = 1
 
+class CreateCategoryCMD(BaseModel):
+    user_id: UUID
+    title: str
+    type: Literal["tasks", "purchases", "mixed"]
+
 class DeleteItemCMD(BaseModel):
     user_id: UUID
     item_id: UUID
-    item_type: Literal["task", "purchase"]
+    item_type: Literal["task", "purchase", "category"]

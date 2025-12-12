@@ -2,11 +2,12 @@ import os
 from faststream import FastStream
 from faststream.rabbit import RabbitBroker
 from app.core.config import settings
-from app.schemas.commands import CreateTaskCMD, CreatePurchaseCMD, DeleteItemCMD
+from app.schemas.commands import CreateTaskCMD, CreatePurchaseCMD, DeleteItemCMD, CreateCategoryCMD
 from app.services.tasks import TaskService
 from app.services.purchases import PurchaseService
+from app.services.categories import CategoryService
 from app.core.database import SessionLocal
-from app.schemas import TaskCreate, PurchaseCreate
+from app.schemas import TaskCreate, PurchaseCreate, CategoryCreate
 from app.core.events import mq_client
 import logging
 
@@ -67,12 +68,24 @@ async def handle_rpc_command(msg: dict):
                 result = await PurchaseService.create(session, cmd.user_id, purchase_in)
                 return {"status": "success", "id": str(result.id)}
 
+            elif command == "create_category":
+                cmd = CreateCategoryCMD(**data)
+                category_in = CategoryCreate(
+                    title=cmd.title,
+                    type=cmd.type
+                )
+                result = await CategoryService.create(session, cmd.user_id, category_in)
+                return {"status": "success", "id": str(result.id)}
+
             elif command == "delete_item":
                 cmd = DeleteItemCMD(**data)
                 if cmd.item_type == "task":
                     await TaskService.delete(session, cmd.user_id, cmd.item_id)
                 elif cmd.item_type == "purchase":
                     await PurchaseService.delete(session, cmd.user_id, cmd.item_id)
+                elif cmd.item_type == "category":
+                    # Default strategy for RPC delete is delete_all
+                    await CategoryService.delete(session, cmd.user_id, cmd.item_id, strategy="delete_all")
                 return {"status": "success"}
 
             else:
