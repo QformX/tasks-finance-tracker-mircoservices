@@ -28,7 +28,12 @@ export function PurchaseItem({ purchase, categoryName, categoryColor, onToggle, 
   }, []);
 
   return (
-    <div className="group flex items-center gap-4 hover:bg-white/[0.03] rounded-2xl p-3 transition-all cursor-pointer">
+    <div className={cn(
+      "group flex items-center gap-4 bg-sidebar-dark border border-white/5 rounded-2xl p-4 transition-all duration-300 cursor-pointer",
+      purchase.is_bought 
+        ? "opacity-50 hover:opacity-80" 
+        : "shadow-sm hover:border-primary/30 hover:shadow-md hover:scale-[1.01]"
+    )}>
       <div className="flex shrink-0 items-center justify-center pl-1">
         <input 
           type="checkbox" 
