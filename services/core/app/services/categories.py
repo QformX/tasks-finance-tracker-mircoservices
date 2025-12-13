@@ -4,7 +4,7 @@ import uuid
 from typing import Optional
 from datetime import datetime
 from app.models import Category, Task, Purchase
-from app.schemas import CategoryCreate
+from app.schemas import CategoryCreate, CategoryUpdate
 from app.core.events import mq_client
 
 class CategoryService:
@@ -13,7 +13,9 @@ class CategoryService:
         new_category = Category(
             user_id=user_id,
             title=category_in.title,
-            type=category_in.type.value
+            type=category_in.type.value,
+            color=category_in.color,
+            icon=category_in.icon
         )
         
         session.add(new_category)
@@ -28,6 +30,7 @@ class CategoryService:
                 "user_id": str(user_id),
                 "title": new_category.title,
                 "type": new_category.type,
+                "color": new_category.color,
                 "created_at": datetime.utcnow().isoformat()
             }
             await mq_client.publish(routing_key="core.category.created", message=event)
@@ -35,6 +38,40 @@ class CategoryService:
             print(f"Failed to publish event: {e}")
             
         return new_category
+
+    @staticmethod
+    async def update(
+        session: AsyncSession, 
+        user_id: uuid.UUID, 
+        category_id: uuid.UUID, 
+        category_in: CategoryUpdate
+    ) -> Optional[Category]:
+        category = await session.get(Category, category_id)
+        if not category or category.user_id != user_id:
+            return None
+            
+        update_data = category_in.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(category, field, value)
+            
+        await session.commit()
+        await session.refresh(category)
+        
+        # Publish event
+        try:
+            event = {
+                "event_type": "CategoryUpdated",
+                "category_id": str(category.id),
+                "user_id": str(user_id),
+                "title": category.title,
+                "color": category.color,
+                "updated_at": datetime.utcnow().isoformat()
+            }
+            await mq_client.publish(routing_key="core.category.updated", message=event)
+        except Exception as e:
+            print(f"Failed to publish event: {e}")
+            
+        return category
 
     @staticmethod
     async def delete(

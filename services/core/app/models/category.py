@@ -16,6 +16,8 @@ class Category(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
     title: Mapped[str] = mapped_column(String, index=True)
     type: Mapped[str] = mapped_column(String)  # 'tasks', 'purchases', 'mixed'
+    color: Mapped[str] = mapped_column(String, nullable=True)
+    icon: Mapped[str] = mapped_column(String, nullable=True)
 
     # Relationships
     tasks: Mapped[List["Task"]] = relationship("Task", back_populates="category")

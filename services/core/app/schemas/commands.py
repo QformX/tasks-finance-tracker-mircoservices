@@ -9,6 +9,14 @@ class CreateTaskCMD(BaseModel):
     category_id: Optional[UUID] = None
     due_date: Optional[datetime] = None
 
+class UpdateTaskCMD(BaseModel):
+    user_id: UUID
+    task_id: UUID
+    title: Optional[str] = None
+    category_id: Optional[UUID] = None
+    due_date: Optional[datetime] = None
+    is_completed: Optional[bool] = None
+
 class CreatePurchaseCMD(BaseModel):
     user_id: UUID
     title: str

@@ -7,7 +7,7 @@ from datetime import datetime
 
 from app.core.database import get_session
 from app.models import Category, Task, Purchase
-from app.schemas import CategoryCreate, CategoryResponse, CategoryType
+from app.schemas import CategoryCreate, CategoryUpdate, CategoryResponse, CategoryType
 from app.core.events import mq_client
 from app.core.auth import get_current_user_id
 from app.services.categories import CategoryService
@@ -47,6 +47,21 @@ async def create_category(
     - Отправка события в RabbitMQ
     """
     return await CategoryService.create(session, user_id, category_in)
+
+@router.patch("/{category_id}", response_model=CategoryResponse)
+async def update_category(
+    category_id: uuid.UUID,
+    category_in: CategoryUpdate,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Обновление категории (название, цвет, иконка)
+    """
+    category = await CategoryService.update(session, user_id, category_id, category_in)
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    return category
 
 @router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_category(

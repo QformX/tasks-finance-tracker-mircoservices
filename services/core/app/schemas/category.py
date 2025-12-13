@@ -19,11 +19,20 @@ class CategoryCreate(BaseModel):
     icon: Optional[str] = None
 
 
+class CategoryUpdate(BaseModel):
+    """Схема для обновления категории"""
+    title: Optional[str] = None
+    color: Optional[str] = None
+    icon: Optional[str] = None
+
+
 class CategoryResponse(BaseModel):
     """Схема ответа с данными категории"""
     id: uuid.UUID
     user_id: uuid.UUID
     title: str
     type: str
+    color: Optional[str] = None
+    icon: Optional[str] = None
     
     model_config = ConfigDict(from_attributes=True)

@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 from typing import Optional
+from datetime import datetime
 import uuid
 
 
@@ -29,5 +30,4 @@ class PurchaseResponse(BaseModel):
     is_bought: bool
     cost: Optional[float]
     quantity: int
-    
-    model_config = ConfigDict(from_attributes=True)
+    created_at: datetime

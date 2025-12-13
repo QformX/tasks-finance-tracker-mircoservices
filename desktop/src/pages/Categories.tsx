@@ -5,6 +5,7 @@ import { EditTaskModal } from "@/components/EditTaskModal";
 import { CreatePurchaseModal } from "@/components/CreatePurchaseModal";
 import { EditPurchaseModal } from "@/components/EditPurchaseModal";
 import { CreateCategoryModal } from "@/components/CreateCategoryModal";
+import { EditCategoryModal } from "@/components/EditCategoryModal";
 import { DeleteCategoryModal } from "@/components/DeleteCategoryModal";
 import { useLanguage } from "@/context/LanguageContext";
 import { CategoryHeader } from "@/components/categories/CategoryHeader";
@@ -20,6 +21,7 @@ export function Categories() {
     categories, 
     loadCategories, 
     addCategory, 
+    updateCategoryInList,
     removeCategory 
   } = useCategories();
 
@@ -49,6 +51,7 @@ export function Categories() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [isEditCategoryModalOpen, setIsEditCategoryModalOpen] = useState(false);
   const [isDeleteCategoryModalOpen, setIsDeleteCategoryModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
@@ -154,6 +157,7 @@ export function Categories() {
           const idx = categories.findIndex(c => c.id === cat.id);
           setCurrentIndex(idx);
         }}
+        onEditClick={() => setIsEditCategoryModalOpen(true)}
         onDeleteClick={() => setIsDeleteCategoryModalOpen(true)}
         onAddTaskClick={() => setIsTaskModalOpen(true)}
         onAddPurchaseClick={() => setIsPurchaseModalOpen(true)}
@@ -164,6 +168,7 @@ export function Categories() {
         tasks={tasks}
         purchases={purchases}
         categoryName={currentCategory.title}
+        categoryColor={currentCategory.color}
         onTaskToggle={toggleTask}
         onTaskDelete={deleteTask}
         onTaskEdit={handleEditTask}
@@ -198,6 +203,13 @@ export function Categories() {
         isOpen={isCategoryModalOpen} 
         onClose={() => setIsCategoryModalOpen(false)} 
         onCategoryCreated={handleCategoryCreated} 
+      />
+
+      <EditCategoryModal
+        isOpen={isEditCategoryModalOpen}
+        onClose={() => setIsEditCategoryModalOpen(false)}
+        category={currentCategory}
+        onCategoryUpdated={(updatedCategory) => updateCategoryInList(updatedCategory)}
       />
       
       <DeleteCategoryModal

@@ -11,6 +11,7 @@ interface PurchasesListProps {
     displayed: Purchase[];
   };
   getCategoryName: (categoryId: string | null) => string | undefined;
+  getCategoryColor: (categoryId: string | null) => string | undefined;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (purchase: Purchase) => void;
@@ -21,6 +22,7 @@ export function PurchasesList({
   filter,
   groupedPurchases,
   getCategoryName,
+  getCategoryColor,
   onToggle,
   onDelete,
   onEdit
@@ -40,41 +42,47 @@ export function PurchasesList({
                 <>
                   {/* To Buy Section */}
                   {active.length > 0 && (
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-2">
                       <h3 className="text-text-secondary text-[11px] font-bold uppercase tracking-widest mb-2 px-2 flex items-center gap-2">
                         <span className="material-symbols-outlined text-[14px]">shopping_cart</span>
                         {t("to_buy")}
                       </h3>
-                      {active.map(purchase => (
-                        <PurchaseItem 
-                          key={purchase.id} 
-                          purchase={purchase} 
-                          categoryName={getCategoryName(purchase.category_id)} 
-                          onToggle={() => onToggle(purchase.id)} 
-                          onDelete={() => onDelete(purchase.id)} 
-                          onEdit={() => onEdit(purchase)}
-                        />
-                      ))}
+                      <div className="flex flex-col gap-1">
+                        {active.map(purchase => (
+                          <PurchaseItem 
+                            key={purchase.id} 
+                            categoryColor={getCategoryColor(purchase.category_id)}
+                            purchase={purchase} 
+                            categoryName={getCategoryName(purchase.category_id)} 
+                            onToggle={() => onToggle(purchase.id)} 
+                            onDelete={() => onDelete(purchase.id)} 
+                            onEdit={() => onEdit(purchase)}
+                          />
+                        ))}
+                      </div>
                     </div>
                   )}
 
                   {/* Bought Section */}
                   {bought.length > 0 && (
-                    <div className="flex flex-col gap-1 mt-2">
+                    <div className="flex flex-col gap-2 mt-4">
                       <h3 className="text-text-secondary text-[11px] font-bold uppercase tracking-widest mb-2 px-2 flex items-center gap-2">
                         <span className="material-symbols-outlined text-[14px]">check_circle</span>
                         {t("bought")}
                       </h3>
-                      {bought.map(purchase => (
-                        <PurchaseItem 
-                          key={purchase.id} 
-                          purchase={purchase} 
-                          categoryName={getCategoryName(purchase.category_id)} 
-                          onToggle={() => onToggle(purchase.id)} 
-                          onDelete={() => onDelete(purchase.id)} 
-                          onEdit={() => onEdit(purchase)}
-                        />
-                      ))}
+                      <div className="flex flex-col gap-1">
+                        {bought.map(purchase => (
+                          <PurchaseItem 
+                            key={purchase.id} 
+                            purchase={purchase} 
+                            categoryColor={getCategoryColor(purchase.category_id)}
+                            categoryName={getCategoryName(purchase.category_id)} 
+                            onToggle={() => onToggle(purchase.id)} 
+                            onDelete={() => onDelete(purchase.id)} 
+                            onEdit={() => onEdit(purchase)}
+                          />
+                        ))}
+                      </div>
                     </div>
                   )}
                   
@@ -87,6 +95,7 @@ export function PurchasesList({
                   {displayed.map(purchase => (
                     <PurchaseItem 
                       key={purchase.id} 
+                      categoryColor={getCategoryColor(purchase.category_id)}
                       purchase={purchase} 
                       categoryName={getCategoryName(purchase.category_id)} 
                       onToggle={() => onToggle(purchase.id)} 

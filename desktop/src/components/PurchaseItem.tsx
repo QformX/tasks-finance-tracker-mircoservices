@@ -6,12 +6,13 @@ import { useLanguage } from "@/context/LanguageContext";
 interface PurchaseItemProps {
   purchase: Purchase;
   categoryName?: string;
+  categoryColor?: string;
   onToggle: (id: string) => void;
   onDelete?: (id: string) => void;
   onEdit?: (purchase: Purchase) => void;
 }
 
-export function PurchaseItem({ purchase, categoryName, onToggle, onDelete, onEdit }: PurchaseItemProps) {
+export function PurchaseItem({ purchase, categoryName, categoryColor, onToggle, onDelete, onEdit }: PurchaseItemProps) {
   const { t } = useLanguage();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -39,8 +40,6 @@ export function PurchaseItem({ purchase, categoryName, onToggle, onDelete, onEdi
       <div className="flex flex-col gap-0.5 flex-1 min-w-0">
         <p className={cn("text-white text-sm font-semibold leading-normal", purchase.is_bought && "line-through text-text-secondary")}>{purchase.title}</p>
         <div className="flex items-center gap-2">
-          <span className="text-text-secondary text-[11px]">{categoryName || t("no_category") || "No Category"}</span>
-          <span className="text-text-secondary text-[10px]">•</span>
           <span className="text-text-secondary text-[11px] font-medium">
             {purchase.quantity} {t("pcs") || "pcs"}
           </span>
@@ -50,6 +49,15 @@ export function PurchaseItem({ purchase, categoryName, onToggle, onDelete, onEdi
       {purchase.cost && (
         <div className="text-green-500 font-bold text-base shrink-0">
           ${purchase.cost}
+        </div>
+      )}
+
+      {categoryName && (
+        <div 
+          className="px-2 py-0.5 rounded-md text-[10px] font-medium text-white shrink-0"
+          style={{ backgroundColor: categoryColor || '#a855f7' }}
+        >
+          {categoryName}
         </div>
       )}
 

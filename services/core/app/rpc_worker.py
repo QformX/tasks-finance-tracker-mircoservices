@@ -2,12 +2,12 @@ import os
 from faststream import FastStream
 from faststream.rabbit import RabbitBroker
 from app.core.config import settings
-from app.schemas.commands import CreateTaskCMD, CreatePurchaseCMD, DeleteItemCMD, CreateCategoryCMD
+from app.schemas.commands import CreateTaskCMD, CreatePurchaseCMD, DeleteItemCMD, CreateCategoryCMD, UpdateTaskCMD
 from app.services.tasks import TaskService
 from app.services.purchases import PurchaseService
 from app.services.categories import CategoryService
 from app.core.database import SessionLocal
-from app.schemas import TaskCreate, PurchaseCreate, CategoryCreate
+from app.schemas import TaskCreate, PurchaseCreate, CategoryCreate, TaskUpdate
 from app.core.events import mq_client
 import logging
 
@@ -56,6 +56,27 @@ async def handle_rpc_command(msg: dict):
                 )
                 result = await TaskService.create(session, cmd.user_id, task_in)
                 return {"status": "success", "id": str(result.id)}
+
+            elif command == "update_task":
+                cmd = UpdateTaskCMD(**data)
+                task_in = TaskUpdate(
+                    title=cmd.title,
+                    category_id=cmd.category_id,
+                    due_date=cmd.due_date,
+                    is_completed=cmd.is_completed
+                )
+                # Filter out None values to avoid overwriting with None
+                update_data = {k: v for k, v in task_in.model_dump().items() if v is not None}
+                if not update_data:
+                     return {"status": "success", "message": "No changes detected"}
+                     
+                task_in_filtered = TaskUpdate(**update_data)
+                
+                result = await TaskService.update(session, cmd.user_id, cmd.task_id, task_in_filtered)
+                if result:
+                    return {"status": "success", "id": str(result.id)}
+                else:
+                    return {"status": "error", "message": "Task not found"}
 
             elif command == "create_purchase":
                 cmd = CreatePurchaseCMD(**data)

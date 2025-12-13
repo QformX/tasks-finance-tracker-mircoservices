@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from "react";
 import { Dropdown } from "@/components/Dropdown";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
@@ -9,6 +10,7 @@ interface CategoryHeaderProps {
   onPrev: () => void;
   onNext: () => void;
   onSelectCategory: (category: Category) => void;
+  onEditClick: () => void;
   onDeleteClick: () => void;
   onAddTaskClick: () => void;
   onAddPurchaseClick: () => void;
@@ -20,11 +22,24 @@ export function CategoryHeader({
   onPrev,
   onNext,
   onSelectCategory,
+  onEditClick,
   onDeleteClick,
   onAddTaskClick,
   onAddPurchaseClick,
 }: CategoryHeaderProps) {
   const { t } = useLanguage();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <div className="shrink-0 z-20 bg-background-dark sticky top-0 px-4 lg:px-8">
@@ -64,13 +79,40 @@ export function CategoryHeader({
             </div>
 
             <div className="flex gap-2 shrink-0">
-              <button 
-                onClick={onDeleteClick}
-                className="size-10 rounded-full bg-white/5 hover:bg-red-500/20 text-text-secondary hover:text-red-400 flex items-center justify-center transition-colors mr-2"
-                title={t("delete_category")}
-              >
-                <span className="material-symbols-outlined text-[20px]">delete</span>
-              </button>
+              <div className="relative" ref={menuRef}>
+                  <button 
+                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    className="size-10 rounded-full bg-white/5 hover:bg-white/10 text-text-secondary hover:text-white flex items-center justify-center transition-colors mr-2"
+                    title={t("category_settings") || "Category Settings"}
+                  >
+                    <span className="material-symbols-outlined text-[20px]">settings</span>
+                  </button>
+
+                  {isMenuOpen && (
+                    <div className="absolute right-0 top-12 z-50 w-48 bg-[#1e1e21] border border-white/10 rounded-xl shadow-xl overflow-hidden flex flex-col py-1">
+                       <button 
+                         onClick={() => {
+                            setIsMenuOpen(false);
+                            onEditClick();
+                         }}
+                         className="flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:text-white hover:bg-white/5 transition-colors text-left"
+                       >
+                         <span className="material-symbols-outlined text-[18px]">edit</span>
+                         {t("edit_category") || "Edit Category"}
+                       </button>
+                       <button 
+                         onClick={() => {
+                            setIsMenuOpen(false);
+                            onDeleteClick();
+                         }}
+                         className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors text-left"
+                       >
+                         <span className="material-symbols-outlined text-[18px]">delete</span>
+                         {t("delete_category") || "Delete Category"}
+                       </button>
+                    </div>
+                  )}
+              </div>
 
               <button 
                 onClick={onAddTaskClick}

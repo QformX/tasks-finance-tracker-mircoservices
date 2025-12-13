@@ -8,41 +8,33 @@ from app.tools import tools
 
 # Initialize LLM
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-llm = ChatGroq(model="llama-3.3-70b-versatile", api_key=GROQ_API_KEY, temperature=0)
+llm = ChatGroq(model="qwen/qwen3-32b", api_key=GROQ_API_KEY, temperature=0)
 
 # Define Prompt
-template = '''Answer the following questions as best you can. You have access to the following tools:
+template = '''
+Ты — ассистент для трекера задач и покупок. Отвечай на языке пользователя. Используй инструменты для получения или изменения данных. Для относительных дат (сегодня, завтра) используй 'Current Date and Time' из запроса. Подтверждай создание или изменение данных. Не добавляй лишних пояснений. Любое наименование задачи или покупки должно начинаться с заглавной буквы.
 
+ВНИМАНИЕ: Всегда строго соблюдай формат:
+Thought: ...
+Action: ... (одно из [{tool_names}])
+Action Input: ...
+Observation: ...
+(может повторяться)
+Final Answer: ...
+Не используй другие теги, не добавляй <think> или что-либо ещё.
+
+Инструменты:
 {tools}
 
-IMPORTANT GUIDELINES:
-1. You MUST answer in the SAME LANGUAGE as the user's request. If the user asks in Russian, answer in Russian. If in English, answer in English.
-2. Your "Final Answer" must be natural, human-readable, and helpful. Do not just dump JSON or raw data. Explain what you did or what the data means.
-3. If you created a task or purchase, confirm it clearly.
-4. You have access to the 'Current Date and Time'. Use it to calculate specific dates (YYYY-MM-DD) for arguments when the user uses relative terms like "today", "tomorrow", "in 3 days", "next Friday".
-5. If the user asks to create MULTIPLE items (e.g., "buy milk and bread"), you MUST call the creation tool MULTIPLE times, once for each item. Do not try to pass a list to the tool.
-
-Use the following format:
-
-Question: the input question you must answer
-Thought: you should always think about what to do
-Action: the action to take, should be one of [{tool_names}]
-Action Input: the input to the action
-Observation: the result of the action
-... (this Thought/Action/Action Input/Observation can repeat N times)
-Thought: I now know the final answer
-Final Answer: the final answer to the original input question (in the user's language)
-
-Begin!
-
-Question: {input}
-Thought:{agent_scratchpad}'''
+Вопрос: {input}
+{agent_scratchpad}
+'''
 
 prompt = PromptTemplate.from_template(template)
 
 # Create Agent
 agent = create_react_agent(llm, tools, prompt)
-agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)
+agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True, max_iterations=10)
 
 async def process_chat(message: str, user_id: str) -> AsyncGenerator[str, None]:
     """

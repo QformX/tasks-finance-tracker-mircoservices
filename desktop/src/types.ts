@@ -16,6 +16,7 @@ export interface Purchase {
   is_bought: boolean;
   cost: number | null;
   quantity: number;
+  created_at: string;
 }
 
 export interface Category {

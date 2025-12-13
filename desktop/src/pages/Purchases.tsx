@@ -20,7 +20,8 @@ export function Purchases() {
 
   const {
     loadCategories,
-    getCategoryName
+    getCategoryName,
+    getCategoryColor
   } = useCategories();
 
   const [filter, setFilter] = useState<"all" | "active" | "bought">("all");
@@ -64,6 +65,7 @@ export function Purchases() {
           displayed: displayedPurchases
         }}
         getCategoryName={getCategoryName}
+        getCategoryColor={getCategoryColor}
         onToggle={togglePurchase}
         onDelete={deletePurchase}
         onEdit={handleEdit}

@@ -10,8 +10,11 @@ from datetime import datetime, timedelta, timezone
 from langchain_core.tools import tool
 from faststream.rabbit import RabbitBroker
 from langchain_community.tools.tavily_search import TavilySearchResults
-from app.schemas.commands import CreateTaskCMD, CreatePurchaseCMD, DeleteItemCMD, CreateCategoryCMD
+from app.schemas.commands import CreateTaskCMD, CreatePurchaseCMD, DeleteItemCMD, CreateCategoryCMD, UpdateTaskCMD
 from app.config import settings
+from langchain.chains.summarize import load_summarize_chain
+from langchain_core.documents import Document
+from langchain_groq import ChatGroq
 
 def parse_agent_input(input_val: Any) -> dict:
     """Helper to parse input that might be a stringified dict or JSON."""
@@ -134,6 +137,59 @@ async def create_task_rpc(user_id: str, title: Optional[str] = None, category_id
         return f"Task created successfully: {result}"
     except Exception as e:
         return f"Error creating task: {str(e)}"
+
+@tool
+async def update_task_rpc(user_id: str, task_id: Optional[str] = None, title: Optional[str] = None, category_id: Optional[str] = None, due_date: Optional[str] = None, is_completed: Optional[bool] = None) -> str:
+    """Update an existing task. Provide only the fields you want to update."""
+    try:
+        # Handle potential JSON/Dict input for user_id
+        parsed_input = parse_agent_input(user_id)
+        if isinstance(parsed_input, dict):
+            if 'user_id' in parsed_input:
+                user_id = parsed_input.get('user_id')
+            if not task_id and 'task_id' in parsed_input:
+                task_id = parsed_input.get('task_id')
+            
+            if not title and 'title' in parsed_input:
+                title = parsed_input.get('title')
+            if not category_id and 'category_id' in parsed_input:
+                category_id = parsed_input.get('category_id')
+            if not due_date and 'due_date' in parsed_input:
+                due_date = parsed_input.get('due_date')
+            if is_completed is None and 'is_completed' in parsed_input:
+                is_completed = parsed_input.get('is_completed')
+
+        if not task_id:
+            return "Error: 'task_id' is required to update a task."
+            
+        clean_user_id = extract_uuid(str(user_id))
+        clean_task_id = extract_uuid(str(task_id))
+        clean_category_id = extract_uuid(str(category_id)) if category_id else None
+
+        cmd = UpdateTaskCMD(
+            user_id=uuid.UUID(clean_user_id),
+            task_id=uuid.UUID(clean_task_id),
+            title=title,
+            category_id=uuid.UUID(clean_category_id) if clean_category_id else None,
+            due_date=datetime.fromisoformat(due_date) if due_date else None,
+            is_completed=is_completed
+        )
+        
+        if not getattr(broker, "connected", False):
+            await broker.connect()
+
+        # RPC call
+        result = await broker.publish(
+            {
+                "command": "update_task",
+                "data": cmd.model_dump(mode='json')
+            },
+            queue="core-rpc-queue",
+            rpc=True
+        )
+        return f"Task updated successfully: {result}"
+    except Exception as e:
+        return f"Error updating task: {str(e)}"
 
 @tool
 async def create_purchase_rpc(user_id: str, title: Optional[str] = None, category_id: Optional[str] = None, cost: Optional[float] = None, quantity: int = 1) -> str:
@@ -286,34 +342,74 @@ async def search_product(query: str) -> str:
         return f"Error searching: {str(e)}"
 
 @tool
-async def get_my_data(user_id: str) -> str:
-    """Get the user's current tasks and purchases from the Core Service API."""
+async def get_user_data(user_id: str, item_type: str = "all", limit: int = 10, status: str = "active", fields: str = "id,title") -> str:
+    """
+    Get user's tasks and/or purchases with field filtering.
+    Args:
+        user_id: User UUID
+        item_type: 'tasks', 'purchases', or 'all' (default)
+        limit: Max number of items to return (default 10)
+        status: 'active' (default), 'completed', or 'all'
+        fields: Comma-separated list of fields to return (default: id,title)
+    Returns only the requested fields for each item to minimize context size.
+    """
     try:
-        # Handle potential JSON/Dict input for user_id
-        parsed_user = parse_agent_input(user_id)
-        if isinstance(parsed_user, dict) and 'user_id' in parsed_user:
-            user_id = parsed_user['user_id']
-            
+        parsed_input = parse_agent_input(user_id)
+        if isinstance(parsed_input, dict):
+            if 'user_id' in parsed_input:
+                user_id = parsed_input.get('user_id')
+            if 'item_type' in parsed_input:
+                item_type = parsed_input.get('item_type')
+            if 'limit' in parsed_input:
+                limit = int(parsed_input.get('limit'))
+            if 'status' in parsed_input:
+                status = parsed_input.get('status')
+            if 'fields' in parsed_input:
+                fields = parsed_input.get('fields')
         clean_user_id = extract_uuid(str(user_id))
         token = create_access_token(clean_user_id)
         headers = {"Authorization": f"Bearer {token}"}
-        
+        tasks_data = []
+        purchases_data = []
+        field_list = [f.strip() for f in fields.split(",") if f.strip()]
         async with httpx.AsyncClient() as client:
-            # Fetch tasks
-            tasks_resp = await client.get(f"{settings.core_service_url}/tasks/", headers=headers)
-            tasks = tasks_resp.json() if tasks_resp.status_code == 200 else []
-            
-            # Fetch purchases
-            purchases_resp = await client.get(f"{settings.core_service_url}/purchases/", headers=headers)
-            purchases = purchases_resp.json() if purchases_resp.status_code == 200 else []
-            
-            return f"Current Data:\nTasks: {tasks}\nPurchases: {purchases}"
+            # Fetch Tasks
+            if item_type in ["tasks", "all"]:
+                params = {}
+                if status == "active":
+                    params["is_completed"] = "false"
+                elif status == "completed":
+                    params["is_completed"] = "true"
+                tasks_resp = await client.get(f"{settings.core_service_url}/tasks/", headers=headers, params=params)
+                if tasks_resp.status_code == 200:
+                    all_tasks = tasks_resp.json()
+                    for t in all_tasks[:limit]:
+                        filtered = {k: t.get(k) for k in field_list if k in t}
+                        tasks_data.append(filtered)
+            # Fetch Purchases
+            if item_type in ["purchases", "all"]:
+                fetch_bought = True if status == "completed" else False
+                params = {"is_bought": str(fetch_bought).lower()}
+                purchases_resp = await client.get(f"{settings.core_service_url}/purchases/", headers=headers, params=params)
+                if purchases_resp.status_code == 200:
+                    all_purchases = purchases_resp.json()
+                    for p in all_purchases[:limit]:
+                        filtered = {k: p.get(k) for k in field_list if k in p}
+                        purchases_data.append(filtered)
+            result = []
+            if tasks_data:
+                result.append(f"Tasks ({len(tasks_data)}): {tasks_data}")
+            if purchases_data:
+                result.append(f"Purchases ({len(purchases_data)}): {purchases_data}")
+            if not result:
+                return "No data found."
+            return "\n".join(result)
     except Exception as e:
         return f"Error fetching data: {str(e)}"
 
 @tool
 async def get_user_categories(user_id: str) -> str:
-    """Get list of categories for a user from the Core Service API."""
+    """Get list of categories for a user. Returns simplified list (id, title, type)."""
     try:
         # Handle potential JSON/Dict input
         parsed = parse_agent_input(user_id)
@@ -327,10 +423,59 @@ async def get_user_categories(user_id: str) -> str:
         async with httpx.AsyncClient() as client:
             resp = await client.get(f"{settings.core_service_url}/categories/", headers=headers)
             if resp.status_code == 200:
-                return str(resp.json())
+                categories = resp.json()
+                # Simplify response to save tokens
+                simplified = [
+                    {"id": c["id"], "title": c["title"], "type": c["type"]} 
+                    for c in categories
+                ]
+                return str(simplified)
             else:
                 return f"Error fetching categories: {resp.text}"
     except Exception as e:
         return f"Error fetching categories: {str(e)}"
 
-tools = [create_task_rpc, create_purchase_rpc, create_category_rpc, delete_item_rpc, search_product, get_my_data, get_user_categories]
+@tool
+def summarize_text(text: str, language: str = "ru") -> str:
+    """
+    Summarize a long text/document to fit LLM context. Use for large notes, descriptions, or chat history.
+    Args:
+        text: The text to summarize
+        language: Output language (ru/en)
+    """
+    try:
+        # Use a small LLM for summarization to save tokens (or reuse main LLM)
+        api_key = os.getenv("GROQ_API_KEY")
+        llm = ChatGroq(model="llama-3.3-8b", api_key=api_key, temperature=0)
+        chain = load_summarize_chain(llm, chain_type="stuff")
+        doc = Document(page_content=text)
+        summary = chain.run([doc])
+        if language == "ru":
+            return f"Резюме: {summary}"
+        return f"Summary: {summary}"
+    except Exception as e:
+        return f"Error summarizing: {str(e)}"
+
+@tool
+def batch_summarize_text(texts: list[str], language: str = "ru") -> list[str]:
+    """
+    Summarize a list of texts/documents in batch to fit LLM context. Uses batching for efficiency.
+    Args:
+        texts: List of texts to summarize
+        language: Output language (ru/en)
+    Returns a list of summaries.
+    """
+    try:
+        api_key = os.getenv("GROQ_API_KEY")
+        llm = ChatGroq(model="llama-3.3-8b", api_key=api_key, temperature=0)
+        chain = load_summarize_chain(llm, chain_type="stuff")
+        docs = [Document(page_content=t) for t in texts]
+        # Используем .batch() для параллельной обработки
+        summaries = chain.batch([[doc] for doc in docs])
+        if language == "ru":
+            return [f"Резюме: {s}" for s in summaries]
+        return [f"Summary: {s}" for s in summaries]
+    except Exception as e:
+        return [f"Error summarizing: {str(e)}"]
+
+tools = [create_task_rpc, update_task_rpc, create_purchase_rpc, create_category_rpc, delete_item_rpc, search_product, get_user_data, get_user_categories, summarize_text, batch_summarize_text]

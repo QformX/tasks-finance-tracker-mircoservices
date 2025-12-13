@@ -1,5 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from "@/context/AuthContext";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
+import 'highlight.js/styles/github-dark.css';
 
 const API_BASE = "http://127.0.0.1:80";
 
@@ -9,16 +13,28 @@ interface Message {
   timestamp: string;
 }
 
+const MarkdownLink = (props: any) => (
+  <a {...props} target="_blank" rel="noopener noreferrer">{props.children}</a>
+);
+
 export function AiChat() {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [input]);
 
   useEffect(() => {
     scrollToBottom();
@@ -168,7 +184,18 @@ export function AiChat() {
                     ? 'bg-white/10 text-white rounded-tr-none'
                     : 'bg-surface-dark border border-border-dark text-gray-200 rounded-tl-none w-full'
                 }`}>
-                    {msg.content}
+                    {msg.role === 'assistant' ? (
+                        <ReactMarkdown
+                            children={msg.content}
+                            remarkPlugins={[remarkGfm]}
+                            rehypePlugins={[rehypeHighlight]}
+                            components={{
+                              a: MarkdownLink
+                            }}
+                        />
+                    ) : (
+                        msg.content
+                    )}
                 </div>
                 
                 {/* Action Buttons for Assistant */}
@@ -218,20 +245,21 @@ export function AiChat() {
                 </div>
             )}
 
-            <div className="relative flex items-center bg-surface-dark rounded-2xl shadow-lg border border-border-dark ring-1 ring-white/5 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary transition-all duration-300">
-                <button className="p-3 ml-1 text-gray-400 hover:text-primary transition-colors cursor-pointer">
+            <div className="relative flex items-end bg-surface-dark rounded-2xl shadow-lg border border-border-dark ring-1 ring-white/5 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary transition-all duration-300">
+                <button className="p-3 ml-1 mb-1 text-gray-400 hover:text-primary transition-colors cursor-pointer">
                     <span className="material-symbols-outlined rotate-45">attach_file</span>
                 </button>
-                <input 
-                    className="flex-1 bg-transparent border-none focus:ring-0 text-white placeholder-gray-500 py-4 px-2 outline-none" 
+                <textarea 
+                    ref={textareaRef}
+                    className="flex-1 bg-transparent border-none focus:ring-0 text-white placeholder-gray-500 py-4 px-2 outline-none resize-none overflow-hidden min-h-[56px]" 
                     placeholder="Type a message to your assistant..." 
-                    type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
                     disabled={isLoading}
+                    rows={1}
                 />
-                <div className="flex items-center pr-2 gap-1">
+                <div className="flex items-center pr-2 gap-1 mb-1">
                     <button className="p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-white/10 cursor-pointer">
                         <span className="material-symbols-outlined">mic</span>
                     </button>

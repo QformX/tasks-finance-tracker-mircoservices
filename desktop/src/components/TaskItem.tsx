@@ -6,13 +6,14 @@ import { useLanguage } from "@/context/LanguageContext";
 interface TaskItemProps {
   task: Task;
   categoryName?: string;
+  categoryColor?: string;
   onToggle: (id: string) => void;
   onDelete?: (id: string) => void;
   onEdit?: (task: Task) => void;
   isOverdue?: boolean;
 }
 
-export function TaskItem({ task, categoryName, onToggle, onDelete, onEdit, isOverdue }: TaskItemProps) {
+export function TaskItem({ task, categoryName, categoryColor, onToggle, onDelete, onEdit, isOverdue }: TaskItemProps) {
   const { t } = useLanguage();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -40,13 +41,21 @@ export function TaskItem({ task, categoryName, onToggle, onDelete, onEdit, isOve
       <div className="flex flex-col gap-0.5 flex-1 min-w-0">
         <p className={cn("text-white text-sm font-semibold leading-normal", task.is_completed && "line-through text-text-secondary")}>{task.title}</p>
         <div className="flex items-center gap-2">
-          <span className="text-text-secondary text-[11px]">{categoryName || t("no_category") || "No Category"}</span>
-          <span className="text-text-secondary text-[10px]">•</span>
           <span className={cn("text-[11px] font-medium", isOverdue ? "text-red-400" : "text-green-500")}>
             {task.due_date ? new Date(task.due_date).toLocaleDateString() : t("no_date") || "No Date"}
           </span>
         </div>
       </div>
+
+      {categoryName && (
+        <div 
+          className="px-2 py-0.5 rounded-md text-[10px] font-medium text-white shrink-0"
+          style={{ backgroundColor: categoryColor || '#a855f7' }}
+        >
+          {categoryName}
+        </div>
+      )}
+
       <div className="flex items-center gap-4">
         <div className="flex items-center relative" ref={menuRef}>
           <button 
