@@ -4,9 +4,10 @@ from sqlalchemy import String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
+from app.models.mixins import SyncMixin
 
 
-class Category(Base):
+class Category(Base, SyncMixin):
     """
     Модель категории для группировки задач и покупок
     """

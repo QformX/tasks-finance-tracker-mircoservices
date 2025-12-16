@@ -5,9 +5,10 @@ from sqlalchemy import String, Boolean, Float, Integer, ForeignKey, DateTime, fu
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
+from app.models.mixins import SyncMixin
 
 
-class Purchase(Base):
+class Purchase(Base, SyncMixin):
     """
     Модель покупки
     """

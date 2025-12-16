@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Task } from "@/types";
 import { CreateTaskModal } from "@/components/CreateTaskModal";
-import { EditTaskModal } from "@/components/EditTaskModal";
+import { TaskDetailsModal } from "@/components/TaskDetailsModal";
 import { TasksHeader } from "@/components/tasks/TasksHeader";
 import { TasksList } from "@/components/tasks/TasksList";
 import { useTasks } from "@/hooks/useTasks";
@@ -29,14 +29,16 @@ export function MyTasks() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [initialEditMode, setInitialEditMode] = useState(false);
 
   useEffect(() => {
     fetchTasks("all");
     loadCategories();
   }, [fetchTasks, loadCategories]);
 
-  function handleEdit(task: Task) {
+  function handleEdit(task: Task, editMode: boolean = false) {
     setEditingTask(task);
+    setInitialEditMode(editMode);
     setIsEditModalOpen(true);
   }
 
@@ -115,11 +117,12 @@ export function MyTasks() {
         onClose={() => setIsCreateModalOpen(false)} 
         onTaskCreated={addTask} 
       />
-      <EditTaskModal 
+      <TaskDetailsModal 
         isOpen={isEditModalOpen} 
         onClose={() => setIsEditModalOpen(false)} 
         task={editingTask}
-        onTaskUpdated={updateTask} 
+        onTaskUpdated={updateTask}
+        initialEditMode={initialEditMode}
       />
     </>
   );

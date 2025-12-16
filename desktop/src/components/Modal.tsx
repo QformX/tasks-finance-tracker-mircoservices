@@ -41,15 +41,24 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-4 border-b border-white/5">
-          <h2 className="text-white font-bold text-lg">{title}</h2>
+        {title ? (
+          <div className="flex items-center justify-between p-4 border-b border-white/5">
+            <h2 className="text-white font-bold text-lg">{title}</h2>
+            <button 
+              onClick={onClose}
+              className="text-text-secondary hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+          </div>
+        ) : (
           <button 
             onClick={onClose}
-            className="text-text-secondary hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+            className="absolute top-2 right-2 text-text-secondary hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors z-10"
           >
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
-        </div>
+        )}
         <div className="p-4 overflow-y-auto">
           {children}
         </div>

@@ -43,8 +43,9 @@ export function CreateCategoryModal({ isOpen, onClose, onCategoryCreated }: Crea
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create New Category">
+    <Modal isOpen={isOpen} onClose={onClose}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <h2 className="text-lg font-bold text-white mb-2">Create New Category</h2>
         {error && (
           <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-2 rounded-lg text-sm">
             {error}

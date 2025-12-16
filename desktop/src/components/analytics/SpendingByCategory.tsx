@@ -33,13 +33,13 @@ export function SpendingByCategory({ purchases, categories }: SpendingByCategory
     }).sort((a, b) => b.amount - a.amount);
 
     // Generate conic gradient string
-    let currentAngle = 0;
-    const gradientParts = spendingData.map(item => {
-        const start = currentAngle;
-        const end = currentAngle + item.percentage;
-        currentAngle = end;
-        return `${item.color} ${start}% ${end}%`;
-    });
+    const { parts: gradientParts } = spendingData.reduce((acc, item) => {
+        const start = acc.currentPercentage;
+        const end = acc.currentPercentage + item.percentage;
+        acc.parts.push(`${item.color} ${start}% ${end}%`);
+        acc.currentPercentage = end;
+        return acc;
+    }, { currentPercentage: 0, parts: [] as string[] });
     
     const gradient = gradientParts.length > 0 
         ? `conic-gradient(${gradientParts.join(", ")})`

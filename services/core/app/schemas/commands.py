@@ -8,6 +8,7 @@ class CreateTaskCMD(BaseModel):
     title: str
     category_id: Optional[UUID] = None
     due_date: Optional[datetime] = None
+    description: Optional[str] = None
 
 class UpdateTaskCMD(BaseModel):
     user_id: UUID
@@ -16,6 +17,7 @@ class UpdateTaskCMD(BaseModel):
     category_id: Optional[UUID] = None
     due_date: Optional[datetime] = None
     is_completed: Optional[bool] = None
+    description: Optional[str] = None
 
 class CreatePurchaseCMD(BaseModel):
     user_id: UUID

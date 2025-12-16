@@ -121,6 +121,7 @@ async def get_tasks(
                     "user_id": str(t.user_id),
                     "category_id": str(t.category_id) if t.category_id else None,
                     "title": t.title,
+                    "description": t.description,
                     "is_completed": t.is_completed,
                     "due_date": t.due_date.isoformat() if t.due_date else None,
                     "created_at": t.created_at.isoformat()

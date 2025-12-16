@@ -61,6 +61,7 @@ export function EditPurchaseModal({ isOpen, onClose, purchase, onPurchaseUpdated
       onPurchaseUpdated(updatedPurchase);
       onClose();
     } catch (err) {
+      console.error(err);
       setError("Failed to update purchase");
     } finally {
       setLoading(false);

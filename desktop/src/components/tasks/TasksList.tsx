@@ -12,7 +12,7 @@ interface TasksListProps {
   getCategoryColor: (categoryId: string | null) => string | undefined;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
-  onEdit: (task: Task) => void;
+  onEdit: (task: Task, editMode?: boolean) => void;
 }
 
 export function TasksList({ 
@@ -53,7 +53,7 @@ export function TasksList({
                           categoryColor={getCategoryColor(task.category_id)}
                           onToggle={() => onToggle(task.id)} 
                           onDelete={() => onDelete(task.id)} 
-                          onEdit={() => onEdit(task)} 
+                          onEdit={onEdit} 
                           isOverdue={isOverdueGroup}
                         />
                       ))}
@@ -74,7 +74,7 @@ export function TasksList({
                       categoryColor={getCategoryColor(task.category_id)}
                       onToggle={() => onToggle(task.id)} 
                       onDelete={() => onDelete(task.id)} 
-                      onEdit={() => onEdit(task)} 
+                      onEdit={onEdit} 
                       isOverdue={filter === "overdue"} 
                     />
                   ))}

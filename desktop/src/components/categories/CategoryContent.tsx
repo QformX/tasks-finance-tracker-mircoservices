@@ -3,7 +3,7 @@ import { PurchaseItem } from "@/components/PurchaseItem";
 import { DateHeader } from "@/components/DateHeader";
 import { useLanguage } from "@/context/LanguageContext";
 import type { Task, Purchase } from "@/types";
-import { groupItemsByDate, cn } from "@/lib/utils";
+import { groupItemsByDate } from "@/lib/utils";
 
 interface CategoryContentProps {
   loading: boolean;

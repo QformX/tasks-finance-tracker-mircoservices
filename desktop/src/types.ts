@@ -3,6 +3,7 @@ export interface Task {
   user_id: string;
   category_id: string | null;
   title: string;
+  description?: string;
   is_completed: boolean;
   due_date: string | null;
   created_at: string;

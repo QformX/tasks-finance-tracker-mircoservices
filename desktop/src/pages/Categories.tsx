@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import type { Task, Purchase } from "@/types";
 import { CreateTaskModal } from "@/components/CreateTaskModal";
-import { EditTaskModal } from "@/components/EditTaskModal";
+import { TaskDetailsModal } from "@/components/TaskDetailsModal";
 import { CreatePurchaseModal } from "@/components/CreatePurchaseModal";
 import { EditPurchaseModal } from "@/components/EditPurchaseModal";
 import { CreateCategoryModal } from "@/components/CreateCategoryModal";
@@ -62,18 +62,7 @@ export function Categories() {
     loadCategories();
   }, [loadCategories]);
 
-  useEffect(() => {
-    if (categories.length > 0) {
-      // Ensure index is valid
-      if (currentIndex >= categories.length) {
-        setCurrentIndex(0);
-      } else {
-        loadCategoryItems(categories[currentIndex].id);
-      }
-    }
-  }, [currentIndex, categories]);
-
-  async function loadCategoryItems(categoryId: string) {
+  const loadCategoryItems = useCallback(async (categoryId: string) => {
     setLoading(true);
     try {
       const category = categories.find(c => c.id === categoryId);
@@ -99,7 +88,18 @@ export function Categories() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [categories, fetchTasks, fetchPurchases, setTasksList, setPurchasesList]);
+
+  useEffect(() => {
+    if (categories.length > 0) {
+      // Ensure index is valid
+      if (currentIndex >= categories.length) {
+        setCurrentIndex(0);
+      } else {
+        loadCategoryItems(categories[currentIndex].id);
+      }
+    }
+  }, [currentIndex, categories, loadCategoryItems]);
 
   function handleNext() {
     setCurrentIndex((prev) => (prev + 1) % categories.length);
@@ -220,7 +220,7 @@ export function Categories() {
         categories={categories}
       />
 
-      <EditTaskModal 
+      <TaskDetailsModal 
         isOpen={isEditTaskModalOpen} 
         onClose={() => setIsEditTaskModalOpen(false)} 
         task={editingTask}

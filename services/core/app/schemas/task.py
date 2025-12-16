@@ -27,6 +27,7 @@ class TaskResponse(BaseModel):
     user_id: uuid.UUID
     category_id: Optional[uuid.UUID]
     title: str
+    description: Optional[str] = None
     is_completed: bool
     due_date: Optional[datetime]
     created_at: datetime

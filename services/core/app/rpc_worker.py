@@ -52,7 +52,8 @@ async def handle_rpc_command(msg: dict):
                 task_in = TaskCreate(
                     title=cmd.title,
                     category_id=cmd.category_id,
-                    due_date=cmd.due_date
+                    due_date=cmd.due_date,
+                    description=cmd.description
                 )
                 result = await TaskService.create(session, cmd.user_id, task_in)
                 return {"status": "success", "id": str(result.id)}
@@ -63,7 +64,8 @@ async def handle_rpc_command(msg: dict):
                     title=cmd.title,
                     category_id=cmd.category_id,
                     due_date=cmd.due_date,
-                    is_completed=cmd.is_completed
+                    is_completed=cmd.is_completed,
+                    description=cmd.description
                 )
                 # Filter out None values to avoid overwriting with None
                 update_data = {k: v for k, v in task_in.model_dump().items() if v is not None}

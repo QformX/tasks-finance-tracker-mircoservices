@@ -94,6 +94,11 @@ const translations: Translations = {
     "loading_tasks": "Loading tasks...",
     "no_tasks_found": "No tasks found.",
     "delete_task_confirm": "Are you sure you want to delete this task?",
+    "edit_task": "Edit Task",
+    "task_details": "Task Details",
+    "description": "Description",
+    "add_description": "Add details (Markdown supported)",
+    "no_description": "No description provided.",
 
     // Purchases
     "purchases_header": "Purchases",
@@ -242,6 +247,11 @@ const translations: Translations = {
     "loading_tasks": "Загрузка задач...",
     "no_tasks_found": "Задачи не найдены.",
     "delete_task_confirm": "Вы уверены, что хотите удалить эту задачу?",
+    "edit_task": "Редактировать задачу",
+    "task_details": "Детали задачи",
+    "description": "Описание",
+    "add_description": "Добавить описание (поддерживается Markdown)",
+    "no_description": "Описание отсутствует.",
 
     // Purchases
     "purchases_header": "Покупки",
@@ -337,6 +347,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useLanguage() {
   const context = useContext(LanguageContext);
   if (context === undefined) {

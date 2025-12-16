@@ -13,6 +13,7 @@ interface CreateTaskModalProps {
 
 export function CreateTaskModal({ isOpen, onClose, onTaskCreated, preselectedCategoryId }: CreateTaskModalProps) {
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
@@ -23,6 +24,7 @@ export function CreateTaskModal({ isOpen, onClose, onTaskCreated, preselectedCat
     if (isOpen) {
       loadCategories();
       setTitle("");
+      setDescription("");
       setCategoryId(preselectedCategoryId || "");
       setDueDate("");
       setError("");
@@ -49,11 +51,13 @@ export function CreateTaskModal({ isOpen, onClose, onTaskCreated, preselectedCat
       const task = await createTask(
         title, 
         categoryId || undefined, 
-        dueDate ? new Date(dueDate).toISOString() : undefined
+        dueDate ? new Date(dueDate).toISOString() : undefined,
+        description || undefined
       );
       onTaskCreated(task);
       onClose();
     } catch (err) {
+      console.error(err);
       setError("Failed to create task");
     } finally {
       setLoading(false);
@@ -61,8 +65,9 @@ export function CreateTaskModal({ isOpen, onClose, onTaskCreated, preselectedCat
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create New Task">
+    <Modal isOpen={isOpen} onClose={onClose}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <h2 className="text-lg font-bold text-white mb-2">Create New Task</h2>
         {error && (
           <div className="bg-red-500/10 text-red-500 text-sm p-3 rounded-lg">
             {error}
@@ -78,6 +83,16 @@ export function CreateTaskModal({ isOpen, onClose, onTaskCreated, preselectedCat
             placeholder="What needs to be done?"
             className="bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-text-secondary/50 focus:outline-none focus:border-primary/50 transition-colors"
             autoFocus
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Description</label>
+          <textarea 
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Add details (Markdown supported)"
+            className="bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-text-secondary/50 focus:outline-none focus:border-primary/50 transition-colors min-h-[100px] resize-y"
           />
         </div>
 

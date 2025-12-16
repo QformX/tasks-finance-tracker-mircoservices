@@ -16,6 +16,7 @@ class TaskService:
         new_task = Task(
             user_id=user_id,
             title=task_in.title,
+            description=task_in.description,
             category_id=task_in.category_id,
             due_date=task_in.due_date,
             is_completed=False

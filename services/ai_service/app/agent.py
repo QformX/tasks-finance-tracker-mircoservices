@@ -2,38 +2,49 @@ import os
 from datetime import datetime
 from typing import AsyncGenerator
 from langchain_groq import ChatGroq
-from langchain.agents import AgentExecutor, create_react_agent
-from langchain_core.prompts import PromptTemplate
+from langchain.agents import AgentExecutor, create_tool_calling_agent
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.globals import set_llm_cache
+from langchain_community.cache import RedisCache
+from redis import Redis
 from app.tools import tools
+
+# Setup Redis Cache
+try:
+    redis_client = Redis(host="redis", port=6379, db=0)
+    set_llm_cache(RedisCache(redis_client))
+    print("Redis Cache initialized for LLM.")
+except Exception as e:
+    print(f"Failed to initialize Redis Cache: {e}")
 
 # Initialize LLM
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-llm = ChatGroq(model="qwen/qwen3-32b", api_key=GROQ_API_KEY, temperature=0)
+# Using a standard Groq model that supports tool calling reliably
+llm = ChatGroq(model="llama-3.3-70b-versatile", api_key=GROQ_API_KEY, temperature=0)
 
 # Define Prompt
-template = '''
-Ты — ассистент для трекера задач и покупок. Отвечай на языке пользователя. Используй инструменты для получения или изменения данных. Для относительных дат (сегодня, завтра) используй 'Current Date and Time' из запроса. Подтверждай создание или изменение данных. Не добавляй лишних пояснений. Любое наименование задачи или покупки должно начинаться с заглавной буквы.
+prompt = ChatPromptTemplate.from_messages([
+    ("system", """You are a helpful assistant for a task and finance tracker.
+Answer in the user's language (Russian).
+Use tools to fetch or modify data.
+Use 'Current Date and Time' from the context to resolve relative dates.
+Confirm actions.
+Do not add unnecessary explanations.
+Use sentence case for task/purchase titles (e.g., "Buy milk", not "BUY MILK").
 
-ВНИМАНИЕ: Всегда строго соблюдай формат:
-Thought: ...
-Action: ... (одно из [{tool_names}])
-Action Input: ...
-Observation: ...
-(может повторяться)
-Final Answer: ...
-Не используй другие теги, не добавляй <think> или что-либо ещё.
-
-Инструменты:
-{tools}
-
-Вопрос: {input}
-{agent_scratchpad}
-'''
-
-prompt = PromptTemplate.from_template(template)
+CRITICAL INSTRUCTION FOR DEPENDENCIES:
+If you need to create a parent object (like a Category) and then child objects (like Tasks or Purchases) that belong to it:
+1. Call the tool to create the Category first.
+2. WAIT for the tool to return the new Category ID.
+3. ONLY THEN call the tools to create the Tasks/Purchases, passing the new 'category_id'.
+NEVER guess the category_id or try to do both in the same step.
+"""),
+    ("human", "{input}"),
+    ("placeholder", "{agent_scratchpad}"),
+])
 
 # Create Agent
-agent = create_react_agent(llm, tools, prompt)
+agent = create_tool_calling_agent(llm, tools, prompt)
 agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True, max_iterations=10)
 
 async def process_chat(message: str, user_id: str) -> AsyncGenerator[str, None]:

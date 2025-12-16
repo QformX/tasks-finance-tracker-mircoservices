@@ -9,7 +9,7 @@ interface TaskItemProps {
   categoryColor?: string;
   onToggle: (id: string) => void;
   onDelete?: (id: string) => void;
-  onEdit?: (task: Task) => void;
+  onEdit?: (task: Task, initialEditMode?: boolean) => void;
   isOverdue?: boolean;
 }
 
@@ -29,17 +29,21 @@ export function TaskItem({ task, categoryName, categoryColor, onToggle, onDelete
   }, []);
 
   return (
-    <div className={cn(
+    <div 
+      onClick={() => onEdit?.(task, false)}
+      className={cn(
       "group flex items-center gap-4 bg-sidebar-dark border border-white/5 rounded-2xl p-4 transition-all duration-300 cursor-pointer",
       task.is_completed 
         ? "opacity-50 hover:opacity-80" 
-        : "shadow-sm hover:border-primary/30 hover:shadow-md hover:scale-[1.01]"
+        : "shadow-sm hover:border-primary/30 hover:shadow-md hover:scale-[1.01]",
+      isMenuOpen && "relative z-20"
     )}>
       <div className="flex shrink-0 items-center justify-center pl-1">
         <input 
           type="checkbox" 
           checked={task.is_completed} 
           onChange={() => onToggle(task.id)}
+          onClick={(e) => e.stopPropagation()}
           className="size-5 rounded-full border-2 border-text-secondary/50 bg-transparent text-primary checked:bg-primary checked:border-primary focus:ring-0 focus:ring-offset-0 focus:outline-none transition-all cursor-pointer hover:border-text-secondary appearance-none" 
         />
       </div>
@@ -74,12 +78,12 @@ export function TaskItem({ task, categoryName, categoryColor, onToggle, onDelete
           </button>
 
           {isMenuOpen && (
-            <div className="absolute right-0 top-8 z-50 w-36 bg-[#1e1e21] border border-white/10 rounded-xl shadow-xl overflow-hidden flex flex-col py-1">
+            <div className="absolute right-0 top-8 z-[100] w-36 bg-[#1e1e21] border border-white/10 rounded-xl shadow-xl overflow-hidden flex flex-col py-1">
                <button 
                  onClick={(e) => {
                     e.stopPropagation();
                     setIsMenuOpen(false);
-                    onEdit?.(task);
+                    onEdit?.(task, true);
                  }}
                  className="flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:text-white hover:bg-white/5 transition-colors text-left"
                >

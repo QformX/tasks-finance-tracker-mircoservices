@@ -32,7 +32,8 @@ export function PurchaseItem({ purchase, categoryName, categoryColor, onToggle, 
       "group flex items-center gap-4 bg-sidebar-dark border border-white/5 rounded-2xl p-4 transition-all duration-300 cursor-pointer",
       purchase.is_bought 
         ? "opacity-50 hover:opacity-80" 
-        : "shadow-sm hover:border-primary/30 hover:shadow-md hover:scale-[1.01]"
+        : "shadow-sm hover:border-primary/30 hover:shadow-md hover:scale-[1.01]",
+      isMenuOpen && "relative z-20"
     )}>
       <div className="flex shrink-0 items-center justify-center pl-1">
         <input 
@@ -79,7 +80,7 @@ export function PurchaseItem({ purchase, categoryName, categoryColor, onToggle, 
           </button>
 
           {isMenuOpen && (
-            <div className="absolute right-0 top-8 z-50 w-36 bg-[#1e1e21] border border-white/10 rounded-xl shadow-xl overflow-hidden flex flex-col py-1">
+            <div className="absolute right-0 top-8 z-[100] w-36 bg-[#1e1e21] border border-white/10 rounded-xl shadow-xl overflow-hidden flex flex-col py-1">
                <button 
                  onClick={(e) => {
                     e.stopPropagation();

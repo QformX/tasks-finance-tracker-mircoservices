@@ -65,8 +65,9 @@ export function CreatePurchaseModal({ isOpen, onClose, onPurchaseCreated, presel
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="New Purchase">
+    <Modal isOpen={isOpen} onClose={onClose}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <h2 className="text-lg font-bold text-white mb-2">New Purchase</h2>
         {error && <div className="text-red-500 text-sm">{error}</div>}
         
         <div className="flex flex-col gap-1">
