@@ -36,10 +36,10 @@ export function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background-dark p-4">
-      <div className="w-full max-w-md space-y-8 rounded-2xl bg-sidebar-dark p-8 border border-white/5 shadow-xl">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md space-y-8 rounded-2xl bg-surface p-8 border border-text-950/5 shadow-xl">
         <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-white">
+          <h2 className="text-3xl font-bold tracking-tight text-text-950">
             {isLogin ? t("welcome_back") : t("create_account")}
           </h2>
           <p className="mt-2 text-sm text-text-secondary">
@@ -47,12 +47,12 @@ export function AuthPage() {
           </p>
         </div>
 
-        <div className="flex rounded-lg bg-surface-dark p-1">
+        <div className="flex rounded-lg bg-text-950/5 p-1">
           <button
             onClick={() => setIsLogin(true)}
             className={cn(
               "flex-1 rounded-md py-2 text-sm font-medium transition-all",
-              isLogin ? "bg-primary text-white shadow-sm" : "text-text-secondary hover:text-white"
+              isLogin ? "bg-primary text-white shadow-sm" : "text-text-secondary hover:text-text-950"
             )}
           >
             {t("sign_in")}
@@ -61,7 +61,7 @@ export function AuthPage() {
             onClick={() => setIsLogin(false)}
             className={cn(
               "flex-1 rounded-md py-2 text-sm font-medium transition-all",
-              !isLogin ? "bg-primary text-white shadow-sm" : "text-text-secondary hover:text-white"
+              !isLogin ? "bg-primary text-white shadow-sm" : "text-text-secondary hover:text-text-950"
             )}
           >
             {t("sign_up")}
@@ -82,7 +82,7 @@ export function AuthPage() {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="block w-full rounded-lg border border-white/10 bg-surface-dark px-4 py-3 text-white placeholder-text-secondary/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+                  className="block w-full rounded-lg border border-text-950/10 bg-text-950/5 px-4 py-3 text-text-950 placeholder-text-950/40 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
                   placeholder="johndoe"
                 />
               </div>
@@ -99,7 +99,7 @@ export function AuthPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="block w-full rounded-lg border border-white/10 bg-surface-dark px-4 py-3 text-white placeholder-text-secondary/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+                className="block w-full rounded-lg border border-text-950/10 bg-text-950/5 px-4 py-3 text-text-950 placeholder-text-950/40 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
                 placeholder="name@example.com"
               />
             </div>
@@ -115,7 +115,7 @@ export function AuthPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="block w-full rounded-lg border border-white/10 bg-surface-dark px-4 py-3 text-white placeholder-text-secondary/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
+                className="block w-full rounded-lg border border-text-950/10 bg-text-950/5 px-4 py-3 text-text-950 placeholder-text-950/40 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm"
                 placeholder="••••••••"
               />
             </div>
@@ -130,7 +130,7 @@ export function AuthPage() {
           <button
             type="submit"
             disabled={loading}
-            className="flex w-full justify-center rounded-full bg-primary px-4 py-3 text-sm font-bold text-white shadow-lg shadow-purple-900/20 hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="flex w-full justify-center rounded-full bg-primary px-4 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             {loading ? t("loading") : (isLogin ? t("sign_in") : t("create_account"))}
           </button>

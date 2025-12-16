@@ -69,6 +69,14 @@ export interface DashboardStats {
     purchases: number;
     spending: number;
   }>;
+  tasks_created_by_priority: Record<string, number>;
+  tasks_completed_avg_time: number;
+  purchases_pending_count: number;
+  purchases_completed_avg_time: number;
+  spending_by_category: Record<string, number>;
+  roi: number;
+  forecast_needed: number;
+  urgency_breakdown: Record<string, number>;
 }
 
 export interface AnalyticsEvent {

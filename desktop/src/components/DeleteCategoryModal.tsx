@@ -50,7 +50,7 @@ export function DeleteCategoryModal({ isOpen, onClose, onDelete, category, categ
           </p>
 
           <div className="space-y-3">
-            <label className="flex items-start gap-3 p-3 rounded-xl border border-white/5 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+            <label className="flex items-start gap-3 p-3 rounded-xl border border-text-950/5 bg-text-950/5 cursor-pointer hover:bg-text-950/10 transition-colors">
               <input 
                 type="radio" 
                 name="strategy" 
@@ -60,12 +60,12 @@ export function DeleteCategoryModal({ isOpen, onClose, onDelete, category, categ
                 className="mt-1"
               />
               <div>
-                <span className="block text-sm font-medium text-white">Delete everything</span>
+                <span className="block text-sm font-medium text-text-950">Delete everything</span>
                 <span className="block text-xs text-text-secondary mt-1">Permanently delete all tasks and purchases in this category.</span>
               </div>
             </label>
 
-            <label className="flex items-start gap-3 p-3 rounded-xl border border-white/5 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+            <label className="flex items-start gap-3 p-3 rounded-xl border border-text-950/5 bg-text-950/5 cursor-pointer hover:bg-text-950/10 transition-colors">
               <input 
                 type="radio" 
                 name="strategy" 
@@ -76,7 +76,7 @@ export function DeleteCategoryModal({ isOpen, onClose, onDelete, category, categ
                 disabled={otherCategories.length === 0}
               />
               <div>
-                <span className="block text-sm font-medium text-white">Move items to another category</span>
+                <span className="block text-sm font-medium text-text-950">Move items to another category</span>
                 <span className="block text-xs text-text-secondary mt-1">Keep your items but move them to a different category.</span>
               </div>
             </label>
@@ -88,7 +88,7 @@ export function DeleteCategoryModal({ isOpen, onClose, onDelete, category, categ
               <select
                 value={targetCategoryId}
                 onChange={(e) => setTargetCategoryId(e.target.value)}
-                className="w-full bg-[#18181b] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary"
+                className="w-full bg-background-dark border border-text-950/10 rounded-lg px-3 py-2 text-sm text-text-950 focus:outline-none focus:border-primary-500"
                 required
               >
                 <option value="">Select a category...</option>
@@ -110,7 +110,7 @@ export function DeleteCategoryModal({ isOpen, onClose, onDelete, category, categ
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-white transition-colors"
+            className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-950 transition-colors"
             disabled={loading}
           >
             Cancel

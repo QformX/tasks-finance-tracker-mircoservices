@@ -37,11 +37,11 @@ export function TitleBar() {
   const appWindow = getCurrentWindow();
 
   return (
-    <div className="h-[32px] bg-sidebar-dark flex items-center select-none shrink-0 z-50 w-full">
+    <div className="h-[32px] bg-surface flex items-center select-none shrink-0 z-50 w-full">
       <div data-tauri-drag-region className="flex-1 h-full" />
       <div className="flex h-full">
         <button 
-          className="inline-flex justify-center items-center w-[46px] h-full hover:bg-white/10 transition-colors focus:outline-none"
+          className="inline-flex justify-center items-center w-[46px] h-full hover:bg-text-950/10 transition-colors focus:outline-none"
           onClick={async () => {
             try {
               await appWindow.minimize();
@@ -50,10 +50,10 @@ export function TitleBar() {
             }
           }}
         >
-          <span className="material-symbols-outlined text-text-secondary hover:text-white text-[18px]">remove</span>
+          <span className="material-symbols-outlined text-text-secondary hover:text-text-950 text-[18px]">remove</span>
         </button>
         <button 
-          className="inline-flex justify-center items-center w-[46px] h-full hover:bg-white/10 transition-colors focus:outline-none"
+          className="inline-flex justify-center items-center w-[46px] h-full hover:bg-text-950/10 transition-colors focus:outline-none"
           onClick={async () => {
             try {
               if (await appWindow.isMaximized()) {
@@ -66,7 +66,7 @@ export function TitleBar() {
             }
           }}
         >
-          <span className="material-symbols-outlined text-text-secondary hover:text-white text-[16px]">
+          <span className="material-symbols-outlined text-text-secondary hover:text-text-950 text-[16px]">
             {isMaximized ? 'filter_none' : 'crop_square'}
           </span>
         </button>

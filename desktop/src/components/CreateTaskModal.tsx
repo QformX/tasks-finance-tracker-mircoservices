@@ -67,7 +67,7 @@ export function CreateTaskModal({ isOpen, onClose, onTaskCreated, preselectedCat
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <h2 className="text-lg font-bold text-white mb-2">Create New Task</h2>
+        <h2 className="text-lg font-bold text-text-950 mb-2">Create New Task</h2>
         {error && (
           <div className="bg-red-500/10 text-red-500 text-sm p-3 rounded-lg">
             {error}
@@ -81,7 +81,7 @@ export function CreateTaskModal({ isOpen, onClose, onTaskCreated, preselectedCat
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="What needs to be done?"
-            className="bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-text-secondary/50 focus:outline-none focus:border-primary/50 transition-colors"
+            className="bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-2.5 text-text-950 placeholder:text-text-secondary/50 focus:outline-none focus:border-primary-500/50 transition-colors"
             autoFocus
           />
         </div>
@@ -92,7 +92,7 @@ export function CreateTaskModal({ isOpen, onClose, onTaskCreated, preselectedCat
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Add details (Markdown supported)"
-            className="bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-text-secondary/50 focus:outline-none focus:border-primary/50 transition-colors min-h-[100px] resize-y"
+            className="bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-2.5 text-text-950 placeholder:text-text-secondary/50 focus:outline-none focus:border-primary-500/50 transition-colors min-h-[100px] resize-y"
           />
         </div>
 
@@ -113,7 +113,7 @@ export function CreateTaskModal({ isOpen, onClose, onTaskCreated, preselectedCat
             type="datetime-local" 
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-            className="bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-primary/50 transition-colors [color-scheme:dark]"
+            className="bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-2.5 text-text-950 focus:outline-none focus:border-primary-500/50 transition-colors [color-scheme:dark] dark:[color-scheme:dark] light:[color-scheme:light]"
           />
         </div>
 
@@ -121,14 +121,14 @@ export function CreateTaskModal({ isOpen, onClose, onTaskCreated, preselectedCat
           <button 
             type="button" 
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-text-secondary hover:text-white hover:bg-white/5 transition-colors text-sm font-medium"
+            className="px-4 py-2 rounded-xl text-text-secondary hover:text-text-950 hover:bg-text-950/5 transition-colors text-sm font-medium"
           >
             Cancel
           </button>
           <button 
             type="submit" 
             disabled={loading || !title.trim()}
-            className="px-6 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-sm shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="px-6 py-2 rounded-xl bg-primary-500 hover:bg-primary-600 text-white font-bold text-sm shadow-lg shadow-primary-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             {loading ? "Creating..." : "Create Task"}
           </button>

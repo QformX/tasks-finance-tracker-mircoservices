@@ -1,22 +1,218 @@
+@import url('https://fonts.googleapis.com/css2?family=Victor+Mono:wght@400;700&display=swap');
+
 @import "tailwindcss";
 
-:root {
-  background-color: #18181b;
-  color: #f4f4f5;
+@theme {
+  /* Fonts */
+  --font-heading: "Victor Mono", monospace;
+  --font-body: "Victor Mono", monospace;
+
+  /* Font Sizes */
+  --text-sm: 0.707rem;
+  --text-base: 1rem;
+  --text-xl: 1.414rem;
+  --text-2xl: 1.999rem;
+  --text-3xl: 2.827rem;
+  --text-4xl: 3.997rem;
+  --text-5xl: 5.652rem;
+
+  /* Font Weights */
+  --font-weight-normal: 400;
+  --font-weight-bold: 700;
+
+  /* Colors */
+  --color-text-50: hsl(var(--text-50));
+  --color-text-100: hsl(var(--text-100));
+  --color-text-200: hsl(var(--text-200));
+  --color-text-300: hsl(var(--text-300));
+  --color-text-400: hsl(var(--text-400));
+  --color-text-500: hsl(var(--text-500));
+  --color-text-600: hsl(var(--text-600));
+  --color-text-700: hsl(var(--text-700));
+  --color-text-800: hsl(var(--text-800));
+  --color-text-900: hsl(var(--text-900));
+  --color-text-950: hsl(var(--text-950));
+
+  --color-background-50: hsl(var(--background-50));
+  --color-background-100: hsl(var(--background-100));
+  --color-background-200: hsl(var(--background-200));
+  --color-background-300: hsl(var(--background-300));
+  --color-background-400: hsl(var(--background-400));
+  --color-background-500: hsl(var(--background-500));
+  --color-background-600: hsl(var(--background-600));
+  --color-background-700: hsl(var(--background-700));
+  --color-background-800: hsl(var(--background-800));
+  --color-background-900: hsl(var(--background-900));
+  --color-background-950: hsl(var(--background-950));
+
+  --color-primary-50: hsl(var(--primary-50));
+  --color-primary-100: hsl(var(--primary-100));
+  --color-primary-200: hsl(var(--primary-200));
+  --color-primary-300: hsl(var(--primary-300));
+  --color-primary-400: hsl(var(--primary-400));
+  --color-primary-500: hsl(var(--primary-500));
+  --color-primary-600: hsl(var(--primary-600));
+  --color-primary-700: hsl(var(--primary-700));
+  --color-primary-800: hsl(var(--primary-800));
+  --color-primary-900: hsl(var(--primary-900));
+  --color-primary-950: hsl(var(--primary-950));
+
+  --color-secondary-50: hsl(var(--secondary-50));
+  --color-secondary-100: hsl(var(--secondary-100));
+  --color-secondary-200: hsl(var(--secondary-200));
+  --color-secondary-300: hsl(var(--secondary-300));
+  --color-secondary-400: hsl(var(--secondary-400));
+  --color-secondary-500: hsl(var(--secondary-500));
+  --color-secondary-600: hsl(var(--secondary-600));
+  --color-secondary-700: hsl(var(--secondary-700));
+  --color-secondary-800: hsl(var(--secondary-800));
+  --color-secondary-900: hsl(var(--secondary-900));
+  --color-secondary-950: hsl(var(--secondary-950));
+
+  --color-accent-50: hsl(var(--accent-50));
+  --color-accent-100: hsl(var(--accent-100));
+  --color-accent-200: hsl(var(--accent-200));
+  --color-accent-300: hsl(var(--accent-300));
+  --color-accent-400: hsl(var(--accent-400));
+  --color-accent-500: hsl(var(--accent-500));
+  --color-accent-600: hsl(var(--accent-600));
+  --color-accent-700: hsl(var(--accent-700));
+  --color-accent-800: hsl(var(--accent-800));
+  --color-accent-900: hsl(var(--accent-900));
+  --color-accent-950: hsl(var(--accent-950));
+
+  /* Legacy mappings to keep existing UI working until refactor */
+  --color-sidebar-dark: hsl(var(--background-100));
+  --color-background-dark: hsl(var(--background-50));
+  --color-surface-dark: hsl(var(--background-200));
+  --color-text-secondary: hsl(var(--text-500));
 }
 
-@theme {
-  --color-primary: #8B5CF6;
-  --color-primary-dark: #7C3AED;
-  --color-background-dark: #0a0a0a;
-  --color-sidebar-dark: #121212;
-  --color-surface-dark: #18181b;
-  --color-border-dark: #27272a;
-  --color-text-secondary: #71717a;
-  --color-text-primary: #f4f4f5;
+@layer base {
+  :root {
+    /* Light Mode Defaults */
+    --text-50: 240 12% 95%;
+    --text-100: 240 10% 90%;
+    --text-200: 240 10% 80%;
+    --text-300: 240 10% 70%;
+    --text-400: 240 10% 60%;
+    --text-500: 240 10% 50%;
+    --text-600: 240 10% 40%;
+    --text-700: 240 10% 30%;
+    --text-800: 240 10% 20%;
+    --text-900: 240 10% 10%;
+    --text-950: 240 12% 5%;
+    
+    --background-50: 240 12% 95%;
+    --background-100: 240 10% 90%;
+    --background-200: 240 12% 80%;
+    --background-300: 240 11% 70%;
+    --background-400: 240 11% 60%;
+    --background-500: 240 11% 50%;
+    --background-600: 240 11% 40%;
+    --background-700: 240 11% 30%;
+    --background-800: 240 12% 20%;
+    --background-900: 240 10% 10%;
+    --background-950: 240 12% 5%;
+    
+    --primary-50: 240 12% 95%;
+    --primary-100: 252 10% 90%;
+    --primary-200: 250 12% 80%;
+    --primary-300: 251 11% 70%;
+    --primary-400: 248 11% 60%;
+    --primary-500: 250 11% 50%;
+    --primary-600: 248 11% 40%;
+    --primary-700: 251 11% 30%;
+    --primary-800: 250 12% 20%;
+    --primary-900: 252 10% 10%;
+    --primary-950: 260 12% 5%;
+    
+    --secondary-50: 260 12% 95%;
+    --secondary-100: 264 10% 90%;
+    --secondary-200: 265 12% 80%;
+    --secondary-300: 268 11% 70%;
+    --secondary-400: 267 11% 60%;
+    --secondary-500: 267 11% 50%;
+    --secondary-600: 267 11% 40%;
+    --secondary-700: 268 11% 30%;
+    --secondary-800: 265 12% 20%;
+    --secondary-900: 264 10% 10%;
+    --secondary-950: 280 12% 5%;
+    
+    --accent-50: 280 12% 95%;
+    --accent-100: 276 10% 90%;
+    --accent-200: 282 10% 80%;
+    --accent-300: 280 10% 70%;
+    --accent-400: 282 10% 60%;
+    --accent-500: 281 10% 50%;
+    --accent-600: 282 10% 40%;
+    --accent-700: 280 10% 30%;
+    --accent-800: 282 10% 20%;
+    --accent-900: 276 10% 10%;
+    --accent-950: 280 12% 5%;
+  }
 
-  --font-display: "Manrope", sans-serif;
-  --font-body: "Noto Sans", sans-serif;
+  .dark {
+    --text-50: 240 12% 5%;
+    --text-100: 240 10% 10%;
+    --text-200: 240 10% 20%;
+    --text-300: 240 10% 30%;
+    --text-400: 240 10% 40%;
+    --text-500: 240 10% 50%;
+    --text-600: 240 10% 60%;
+    --text-700: 240 10% 70%;
+    --text-800: 240 10% 80%;
+    --text-900: 240 10% 90%;
+    --text-950: 240 12% 95%;
+    
+    --background-50: 240 12% 5%;
+    --background-100: 240 10% 7%;
+    --background-200: 240 12% 20%;
+    --background-300: 240 11% 30%;
+    --background-400: 240 11% 40%;
+    --background-500: 240 11% 50%;
+    --background-600: 240 11% 60%;
+    --background-700: 240 11% 70%;
+    --background-800: 240 12% 80%;
+    --background-900: 240 10% 90%;
+    --background-950: 240 12% 95%;
+    
+    --primary-50: 260 12% 5%;
+    --primary-100: 252 10% 10%;
+    --primary-200: 250 12% 20%;
+    --primary-300: 251 11% 30%;
+    --primary-400: 248 11% 40%;
+    --primary-500: 250 11% 50%;
+    --primary-600: 248 11% 60%;
+    --primary-700: 251 11% 70%;
+    --primary-800: 250 12% 80%;
+    --primary-900: 252 10% 90%;
+    --primary-950: 240 12% 95%;
+    
+    --secondary-50: 280 12% 5%;
+    --secondary-100: 264 10% 10%;
+    --secondary-200: 265 12% 20%;
+    --secondary-300: 268 11% 30%;
+    --secondary-400: 267 11% 40%;
+    --secondary-500: 267 11% 50%;
+    --secondary-600: 267 11% 60%;
+    --secondary-700: 268 11% 70%;
+    --secondary-800: 265 12% 80%;
+    --secondary-900: 264 10% 90%;
+    --secondary-950: 260 12% 95%;
+    
+    --accent-50: 280 12% 5%;
+    --accent-100: 276 10% 10%;
+    --accent-200: 282 10% 20%;
+    --accent-300: 280 10% 30%;
+    --accent-400: 282 10% 40%;
+    --accent-500: 281 10% 50%;
+    --accent-600: 282 10% 60%;
+    --accent-700: 280 10% 70%;
+    --accent-800: 282 10% 80%;
+    --accent-900: 276 10% 90%;
+    --accent-950: 280 12% 95%;
+  }
 }
 
 /* Custom Scrollbar */
@@ -25,14 +221,14 @@
     height: 6px;
 }
 ::-webkit-scrollbar-track {
-    background: #18181b; 
+    background: hsl(var(--background-50)); 
 }
 ::-webkit-scrollbar-thumb {
-    background: #3f3f46; 
+    background: hsl(var(--text-600)); 
     border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: #52525b; 
+    background: hsl(var(--text-500)); 
 }
 
 .material-symbols-outlined {
@@ -40,5 +236,11 @@
 }
 .material-symbols-outlined.filled {
     font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+body {
+  background-color: hsl(var(--background-50));
+  color: hsl(var(--text-950));
+  font-family: var(--font-body);
 }
 

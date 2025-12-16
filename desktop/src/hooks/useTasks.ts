@@ -24,6 +24,7 @@ export function useTasks() {
     try {
       await toggleTaskCompletion(id);
       setTasks(prev => prev.map(t => t.id === id ? { ...t, is_completed: !t.is_completed } : t));
+      window.dispatchEvent(new Event("task-updated"));
     } catch (error) {
       console.error("Failed to toggle task", error);
     }
@@ -34,6 +35,7 @@ export function useTasks() {
     try {
       await apiDeleteTask(id);
       setTasks(prev => prev.filter(t => t.id !== id));
+      window.dispatchEvent(new Event("task-updated"));
     } catch (error) {
       console.error("Failed to delete task", error);
     }
@@ -41,10 +43,12 @@ export function useTasks() {
 
   const addTask = useCallback((task: Task) => {
     setTasks(prev => [task, ...prev]);
+    window.dispatchEvent(new Event("task-updated"));
   }, []);
 
   const updateTask = useCallback((updatedTask: Task) => {
     setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+    window.dispatchEvent(new Event("task-updated"));
   }, []);
 
   // Helper for Categories page where we might need to remove a task if it moved category

@@ -43,16 +43,16 @@ export function SpendingByCategory({ purchases, categories }: SpendingByCategory
     
     const gradient = gradientParts.length > 0 
         ? `conic-gradient(${gradientParts.join(", ")})`
-        : "conic-gradient(#27272a 0% 100%)";
+        : "conic-gradient(var(--color-text-950) 0% 100%)"; // Fallback color needs to be handled carefully or just use a neutral gray
 
     return (
         <>
-            <h3 className="text-base font-bold text-white mb-6 self-start">{t("spending_breakdown") || "Spending Breakdown"}</h3>
+            <h3 className="text-base font-bold text-text-950 mb-6 self-start">{t("spending_breakdown") || "Spending Breakdown"}</h3>
             <div className="flex flex-col items-center justify-center flex-1 w-full">
                 <div className="relative w-48 h-48 rounded-full mb-6" style={{ background: gradient }}>
                     <div className="absolute inset-0 m-8 bg-surface-dark rounded-full flex flex-col items-center justify-center shadow-inner">
                         <span className="text-xs text-text-secondary">{t("total") || "Total"}</span>
-                        <span className="text-xl font-bold text-white">${totalSpending.toLocaleString()}</span>
+                        <span className="text-xl font-bold text-text-950">${totalSpending.toLocaleString()}</span>
                     </div>
                 </div>
                 <div className="w-full space-y-3">
@@ -60,9 +60,9 @@ export function SpendingByCategory({ purchases, categories }: SpendingByCategory
                         <div key={item.id} className="flex items-center justify-between text-sm">
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
-                                <span className="text-gray-300">{item.name}</span>
+                                <span className="text-text-secondary">{item.name}</span>
                             </div>
-                            <span className="font-semibold text-white">{Math.round(item.percentage)}%</span>
+                            <span className="font-semibold text-text-950">{Math.round(item.percentage)}%</span>
                         </div>
                     ))}
                     {spendingData.length > 4 && (

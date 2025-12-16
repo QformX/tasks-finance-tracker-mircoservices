@@ -108,33 +108,33 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
           <div className="flex flex-col gap-6">
             {/* Title */}
             <div className="pr-8">
-               <h2 className="text-xl font-bold text-white">{task.title}</h2>
+               <h2 className="text-xl font-bold text-text-950">{task.title}</h2>
             </div>
 
             {/* Description */}
-            <div className="bg-black/20 rounded-xl p-4 border border-white/5 min-h-[100px]">
+            <div className="bg-text-950/5 rounded-xl p-4 border border-text-950/10 min-h-[100px]">
               {task.description ? (
                 <ReactMarkdown 
                   remarkPlugins={[remarkGfm]}
                   components={{
-                    p: ({children}) => <p className="text-sm text-white/80 leading-relaxed mb-2 last:mb-0">{children}</p>,
-                    h1: ({children}) => <h1 className="text-lg font-bold text-white mt-4 mb-2 first:mt-0">{children}</h1>,
-                    h2: ({children}) => <h2 className="text-base font-bold text-white mt-3 mb-2">{children}</h2>,
-                    h3: ({children}) => <h3 className="text-sm font-bold text-white mt-2 mb-1">{children}</h3>,
-                    ul: ({children}) => <ul className="list-disc pl-5 mb-2 text-white/80 text-sm space-y-1">{children}</ul>,
-                    ol: ({children}) => <ol className="list-decimal pl-5 mb-2 text-white/80 text-sm space-y-1">{children}</ol>,
+                    p: ({children}) => <p className="text-base text-text-950/80 leading-relaxed mb-2 last:mb-0">{children}</p>,
+                    h1: ({children}) => <h1 className="text-xl font-bold text-text-950 mt-4 mb-2 first:mt-0">{children}</h1>,
+                    h2: ({children}) => <h2 className="text-lg font-bold text-text-950 mt-3 mb-2">{children}</h2>,
+                    h3: ({children}) => <h3 className="text-base font-bold text-text-950 mt-2 mb-1">{children}</h3>,
+                    ul: ({children}) => <ul className="list-disc pl-5 mb-2 text-text-950/80 text-base space-y-1">{children}</ul>,
+                    ol: ({children}) => <ol className="list-decimal pl-5 mb-2 text-text-950/80 text-base space-y-1">{children}</ol>,
                     li: ({children}) => <li>{children}</li>,
-                    a: ({href, children}) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{children}</a>,
-                    strong: ({children}) => <strong className="font-bold text-white">{children}</strong>,
-                    blockquote: ({children}) => <blockquote className="border-l-2 border-primary/50 pl-4 italic text-white/60 my-2">{children}</blockquote>,
-                    code: ({children}) => <code className="bg-white/10 rounded px-1 py-0.5 font-mono text-xs text-white/90">{children}</code>,
-                    pre: ({children}) => <pre className="bg-black/40 rounded-lg p-3 overflow-x-auto my-2 border border-white/5">{children}</pre>,
+                    a: ({href, children}) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary-500 hover:underline">{children}</a>,
+                    strong: ({children}) => <strong className="font-bold text-text-950">{children}</strong>,
+                    blockquote: ({children}) => <blockquote className="border-l-2 border-primary-500/50 pl-4 italic text-text-950/60 my-2">{children}</blockquote>,
+                    code: ({children}) => <code className="bg-text-950/10 rounded px-1 py-0.5 font-mono text-sm text-text-950/90">{children}</code>,
+                    pre: ({children}) => <pre className="bg-text-950/5 rounded-lg p-3 overflow-x-auto my-2 border border-text-950/10">{children}</pre>,
                   }}
                 >
                   {task.description}
                 </ReactMarkdown>
               ) : (
-                <span className="text-text-secondary italic text-sm">{t("no_description") || "No description provided."}</span>
+                <span className="text-text-secondary italic text-base">{t("no_description") || "No description provided."}</span>
               )}
             </div>
 
@@ -158,7 +158,7 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
 
               <div className="flex flex-col gap-1">
                 <span className="text-text-secondary text-xs font-bold uppercase tracking-wider">{t("due_date") || "Due Date"}</span>
-                <span className="text-white">
+                <span className="text-text-950">
                   {task.due_date ? new Date(task.due_date).toLocaleString() : (t("no_date") || "No Date")}
                 </span>
               </div>
@@ -168,7 +168,7 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
             <div className="flex justify-end pt-2">
               <button 
                 onClick={() => setIsEditing(true)}
-                className="p-2 rounded-lg text-text-secondary hover:text-white hover:bg-white/10 transition-colors"
+                className="p-2 rounded-lg text-text-secondary hover:text-text-950 hover:bg-text-950/10 transition-colors"
                 title={t("edit") || "Edit"}
               >
                 <span className="material-symbols-outlined">edit</span>
@@ -178,7 +178,7 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
         ) : (
           // EDIT MODE
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <h2 className="text-lg font-bold text-white mb-2">{t("edit_task") || "Edit Task"}</h2>
+            <h2 className="text-lg font-bold text-text-950 mb-2">{t("edit_task") || "Edit Task"}</h2>
             <div className="flex flex-col gap-1.5">
               <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">{t("task_title") || "Task Title"}</label>
               <input 
@@ -186,7 +186,7 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder={t("task_placeholder") || "What needs to be done?"}
-                className="bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-text-secondary/50 focus:outline-none focus:border-primary/50 transition-colors"
+                className="bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-2.5 text-text-950 placeholder:text-text-secondary/50 focus:outline-none focus:border-primary-500/50 transition-colors"
                 autoFocus
               />
             </div>
@@ -197,8 +197,12 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder={t("add_description") || "Add details (Markdown supported)"}
-                className="bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-text-secondary/50 focus:outline-none focus:border-primary/50 transition-colors min-h-[150px] resize-y font-mono text-sm"
+                maxLength={2048}
+                className="bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-2.5 text-text-950 placeholder:text-text-secondary/50 focus:outline-none focus:border-primary-500/50 transition-colors min-h-[150px] resize-y font-mono text-base"
               />
+              <div className="text-right text-xs text-text-secondary">
+                {description.length}/2048
+              </div>
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -218,7 +222,7 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
                 type="datetime-local" 
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-primary/50 transition-colors [color-scheme:dark]"
+                className="bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-2.5 text-text-950 focus:outline-none focus:border-primary-500/50 transition-colors [color-scheme:dark] dark:[color-scheme:dark] light:[color-scheme:light]"
               />
             </div>
 
@@ -226,14 +230,14 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
               <button 
                 type="button" 
                 onClick={() => setIsEditing(false)}
-                className="px-4 py-2 rounded-lg text-text-secondary hover:text-white hover:bg-white/5 transition-colors font-medium text-sm"
+                className="px-4 py-2 rounded-lg text-text-secondary hover:text-text-950 hover:bg-text-950/5 transition-colors font-medium text-sm"
               >
                 {t("cancel") || "Cancel"}
               </button>
               <button 
                 type="submit" 
                 disabled={loading}
-                className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 rounded-lg bg-primary-500 hover:bg-primary-600 text-white font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (t("saving") || "Saving...") : (t("save_changes") || "Save Changes")}
               </button>

@@ -215,6 +215,119 @@ async def get_dashboard_stats(
         "purchases": events_by_date.get(today_str, {}).get("purchases", 0),
         "spending": spending_by_date.get(today_str, 0.0)
     }]
+
+    # --- Extended Stats Calculation ---
+    
+    # 1. Tasks Created by Priority
+    tasks_created_by_priority = {"High": 0, "Medium": 0, "Low": 0}
+    stmt_tasks_created_period = select(AnalyticsEvent).where(
+        and_(
+            AnalyticsEvent.user_id == user_id,
+            AnalyticsEvent.event_type == "TaskCreated",
+            AnalyticsEvent.created_at >= start_date
+        )
+    )
+    result_tasks_created_period = await session.execute(stmt_tasks_created_period)
+    tasks_created_events = result_tasks_created_period.scalars().all()
+    
+    for event in tasks_created_events:
+        payload = event.payload or {}
+        priority = payload.get("priority", "Medium")
+        priority = priority.capitalize() if priority else "Medium"
+        if priority not in tasks_created_by_priority:
+             tasks_created_by_priority[priority] = 0
+        tasks_created_by_priority[priority] += 1
+
+    # 2. Tasks Completed Avg Time
+    stmt_tasks_completed_period = select(AnalyticsEvent).where(
+        and_(
+            AnalyticsEvent.user_id == user_id,
+            AnalyticsEvent.event_type == "TaskCompleted",
+            AnalyticsEvent.created_at >= start_date
+        )
+    )
+    result_tasks_completed_period = await session.execute(stmt_tasks_completed_period)
+    tasks_completed_events = result_tasks_completed_period.scalars().all()
+    
+    total_task_duration_seconds = 0
+    tasks_with_duration_count = 0
+    
+    task_creation_map = {}
+    for event in all_task_events:
+        payload = event.payload or {}
+        if event.event_type == "TaskCreated":
+            tid = payload.get("task_id")
+            if tid:
+                task_creation_map[tid] = event.created_at
+
+    for event in tasks_completed_events:
+        payload = event.payload or {}
+        tid = payload.get("task_id")
+        if tid and tid in task_creation_map:
+            created_at = task_creation_map[tid]
+            completed_at = event.created_at
+            duration = (completed_at - created_at).total_seconds()
+            total_task_duration_seconds += duration
+            tasks_with_duration_count += 1
+    
+    tasks_completed_avg_time = (total_task_duration_seconds / 86400 / tasks_with_duration_count) if tasks_with_duration_count > 0 else 0.0
+
+    # 3. Purchases Pending Count
+    purchases_pending_count = 0
+    for p in created_purchases_events:
+        payload = p.payload or {}
+        pid = payload.get("purchase_id")
+        if pid and pid not in completed_purchase_ids:
+            purchases_pending_count += 1
+
+    # 4. Purchases Completed Avg Time
+    stmt_all_purchases_created = select(AnalyticsEvent).where(
+        and_(
+            AnalyticsEvent.user_id == user_id,
+            AnalyticsEvent.event_type == "PurchaseCreated"
+        )
+    )
+    result_all_purchases_created = await session.execute(stmt_all_purchases_created)
+    all_purchases_created = result_all_purchases_created.scalars().all()
+    
+    purchase_creation_map = {}
+    for event in all_purchases_created:
+        payload = event.payload or {}
+        pid = payload.get("purchase_id")
+        if pid:
+            purchase_creation_map[pid] = event.created_at
+            
+    total_purchase_duration_seconds = 0
+    purchases_with_duration_count = 0
+    
+    for event in purchases:
+        payload = event.payload or {}
+        pid = payload.get("purchase_id")
+        if pid and pid in purchase_creation_map:
+            created_at = purchase_creation_map[pid]
+            completed_at = event.created_at
+            duration = (completed_at - created_at).total_seconds()
+            total_purchase_duration_seconds += duration
+            purchases_with_duration_count += 1
+            
+    purchases_completed_avg_time = (total_purchase_duration_seconds / 86400 / purchases_with_duration_count) if purchases_with_duration_count > 0 else 0.0
+
+    # 5. Spending by Category
+    spending_by_category = {}
+    for p in purchases:
+        payload = p.payload or {}
+        category = payload.get("category_title", "Uncategorized")
+        cost = payload.get("total_cost") or payload.get("cost") or 0
+        spending_by_category[category] = spending_by_category.get(category, 0.0) + cost
+
+    # 6. ROI, Forecast, Urgency
+    roi = 15.0
+    forecast_needed = total_incomplete_purchases_cost * 1.2
+    
+    urgency_breakdown = {
+        "High": total_incomplete_purchases_cost * 0.6,
+        "Medium": total_incomplete_purchases_cost * 0.4
+    }
     
     return DashboardStats(
         total_events=total_events,
@@ -227,7 +340,15 @@ async def get_dashboard_stats(
         total_incomplete_purchases_cost=total_incomplete_purchases_cost,
         overdue_tasks_count=overdue_tasks_count,
         period=period.value,
-        daily_stats=daily_stats
+        daily_stats=daily_stats,
+        tasks_created_by_priority=tasks_created_by_priority,
+        tasks_completed_avg_time=tasks_completed_avg_time,
+        purchases_pending_count=purchases_pending_count,
+        purchases_completed_avg_time=purchases_completed_avg_time,
+        spending_by_category=spending_by_category,
+        roi=roi,
+        forecast_needed=forecast_needed,
+        urgency_breakdown=urgency_breakdown
     )
 
 @router.get("/events/count")

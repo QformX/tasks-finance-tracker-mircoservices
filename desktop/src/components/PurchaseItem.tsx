@@ -29,7 +29,7 @@ export function PurchaseItem({ purchase, categoryName, categoryColor, onToggle, 
 
   return (
     <div className={cn(
-      "group flex items-center gap-4 bg-sidebar-dark border border-white/5 rounded-2xl p-4 transition-all duration-300 cursor-pointer",
+      "group flex items-center gap-4 bg-surface border border-text-950/5 rounded-2xl p-4 transition-all duration-300 cursor-pointer",
       purchase.is_bought 
         ? "opacity-50 hover:opacity-80" 
         : "shadow-sm hover:border-primary/30 hover:shadow-md hover:scale-[1.01]",
@@ -44,9 +44,9 @@ export function PurchaseItem({ purchase, categoryName, categoryColor, onToggle, 
         />
       </div>
       <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-        <p className={cn("text-white text-sm font-semibold leading-normal", purchase.is_bought && "line-through text-text-secondary")}>{purchase.title}</p>
+        <p className={cn("text-text-950 text-base font-semibold leading-normal", purchase.is_bought && "line-through text-text-secondary")}>{purchase.title}</p>
         <div className="flex items-center gap-2">
-          <span className="text-text-secondary text-[11px] font-medium">
+          <span className="text-text-secondary text-sm font-medium">
             {purchase.quantity} {t("pcs") || "pcs"}
           </span>
         </div>
@@ -60,7 +60,7 @@ export function PurchaseItem({ purchase, categoryName, categoryColor, onToggle, 
 
       {categoryName && (
         <div 
-          className="px-2 py-0.5 rounded-md text-[10px] font-medium text-white shrink-0"
+          className="px-2 py-0.5 rounded-md text-xs font-medium text-white shrink-0"
           style={{ backgroundColor: categoryColor || '#a855f7' }}
         >
           {categoryName}
@@ -74,20 +74,20 @@ export function PurchaseItem({ purchase, categoryName, categoryColor, onToggle, 
               e.stopPropagation();
               setIsMenuOpen(!isMenuOpen);
             }}
-            className="text-text-secondary hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+            className="text-text-secondary hover:text-text-950 p-1 rounded-full hover:bg-text-950/10 transition-colors"
           >
             <span className="material-symbols-outlined text-[18px]">more_vert</span>
           </button>
 
           {isMenuOpen && (
-            <div className="absolute right-0 top-8 z-[100] w-36 bg-[#1e1e21] border border-white/10 rounded-xl shadow-xl overflow-hidden flex flex-col py-1">
+            <div className="absolute right-0 top-8 z-[100] w-36 bg-surface-dark border border-text-950/10 rounded-xl shadow-xl overflow-hidden flex flex-col py-1">
                <button 
                  onClick={(e) => {
                     e.stopPropagation();
                     setIsMenuOpen(false);
                     onEdit?.(purchase);
                  }}
-                 className="flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:text-white hover:bg-white/5 transition-colors text-left"
+                 className="flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:text-text-950 hover:bg-text-950/5 transition-colors text-left"
                >
                  <span className="material-symbols-outlined text-[16px]">edit</span>
                  {t("edit") || "Edit"}

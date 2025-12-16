@@ -62,10 +62,10 @@ export function HeatmapGrid({ heatmap, period }: HeatmapGridProps) {
                                 
                                 const intensity = day.activity === 0 ? 0 : Math.ceil((day.activity / maxActivity) * 4);
                                 const bgClass = [
-                                    "bg-[#27272a]", // 0
-                                    "bg-primary/30", // 1
-                                    "bg-primary/50", // 2
-                                    "bg-primary/70", // 3
+                                    "bg-primary/10", // 0
+                                    "bg-primary/40", // 1
+                                    "bg-primary/60", // 2
+                                    "bg-primary/80", // 3
                                     "bg-primary",    // 4
                                 ][Math.min(intensity, 4)];
 
@@ -151,7 +151,7 @@ export function HeatmapGrid({ heatmap, period }: HeatmapGridProps) {
                 {/* Grid Lines */}
                 <div className="absolute inset-0 flex flex-col justify-between pointer-events-none" style={{ padding: `${(padding/height)*100}% 0` }}>
                     {[1, 0.75, 0.5, 0.25, 0].map((ratio) => (
-                        <div key={ratio} className="w-full border-t border-white/5 relative">
+                        <div key={ratio} className="w-full border-t border-text-950/5 relative">
                             <span className="absolute -top-2.5 left-0 text-[10px] text-text-secondary font-medium">
                                 {Math.round(maxActivity * ratio)}
                             </span>
@@ -176,7 +176,7 @@ export function HeatmapGrid({ heatmap, period }: HeatmapGridProps) {
                             cx={p[0]} 
                             cy={p[1]} 
                             r="6" 
-                            fill="#18181b" 
+                            fill="var(--color-surface-dark)" 
                             stroke="#8B5CF6" 
                             strokeWidth="3"
                             className="opacity-0 hover:opacity-100 transition-opacity duration-200 cursor-pointer"
@@ -224,11 +224,11 @@ export function HeatmapGrid({ heatmap, period }: HeatmapGridProps) {
         
         // Use similar logic to year view but for bars
         const bgClass = day.activity === 0 
-            ? "bg-[#27272a] hover:bg-[#3f3f46]" 
+            ? "bg-primary/10 hover:bg-primary/20" 
             : [
-                "bg-primary/30 hover:bg-primary/40", // 1
-                "bg-primary/50 hover:bg-primary/60", // 2
-                "bg-primary/70 hover:bg-primary/80", // 3
+                "bg-primary/40 hover:bg-primary/50", // 1
+                "bg-primary/60 hover:bg-primary/70", // 2
+                "bg-primary/80 hover:bg-primary/90", // 3
                 "bg-primary hover:bg-primary-dark",    // 4
               ][Math.min(intensity, 4) - 1] || "bg-primary";
 
@@ -248,8 +248,8 @@ export function HeatmapGrid({ heatmap, period }: HeatmapGridProps) {
               title={`${day.date}: ${day.activity} events`}
             />
             <div className="flex flex-col items-center gap-0.5">
-                <span className="text-[10px] font-bold text-text-secondary group-hover:text-white transition-colors">{dayName}</span>
-                <span className="text-[9px] text-text-secondary/70 group-hover:text-white/70 transition-colors">{dateStr}</span>
+                <span className="text-[10px] font-bold text-text-secondary group-hover:text-text-950 transition-colors">{dayName}</span>
+                <span className="text-[9px] text-text-secondary/70 group-hover:text-text-950/70 transition-colors">{dateStr}</span>
             </div>
           </div>
         );

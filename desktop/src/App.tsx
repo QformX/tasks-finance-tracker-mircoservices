@@ -10,6 +10,7 @@ import { AuthPage } from "@/pages/Auth";
 import { AiChat } from "@/pages/AiChat";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import { Layout } from "@/components/Layout";
 import { Routes, Route, Navigate } from "react-router-dom";
 
@@ -50,7 +51,9 @@ function App() {
     <ErrorBoundary>
       <LanguageProvider>
         <AuthProvider>
-          <AppContent />
+          <ThemeProvider>
+            <AppContent />
+          </ThemeProvider>
         </AuthProvider>
       </LanguageProvider>
     </ErrorBoundary>

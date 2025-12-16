@@ -45,7 +45,7 @@ export function CreateCategoryModal({ isOpen, onClose, onCategoryCreated }: Crea
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <h2 className="text-lg font-bold text-white mb-2">Create New Category</h2>
+        <h2 className="text-lg font-bold text-text-950 mb-2">Create New Category</h2>
         {error && (
           <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-2 rounded-lg text-sm">
             {error}
@@ -62,7 +62,7 @@ export function CreateCategoryModal({ isOpen, onClose, onCategoryCreated }: Crea
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g., Work, Home, Groceries"
-            className="w-full bg-background-dark border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-white/20 focus:outline-none focus:border-primary transition-colors"
+            className="w-full bg-background-dark border border-text-950/10 rounded-xl px-4 py-2.5 text-text-950 placeholder:text-text-secondary/50 focus:outline-none focus:border-primary-500 transition-colors"
             autoFocus
           />
         </div>
@@ -77,8 +77,8 @@ export function CreateCategoryModal({ isOpen, onClose, onCategoryCreated }: Crea
               onClick={() => setType("tasks")}
               className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
                 type === "tasks" 
-                  ? "bg-primary/20 border-primary text-white" 
-                  : "bg-background-dark border-white/10 text-text-secondary hover:bg-white/5"
+                  ? "bg-primary-500/20 border-primary-500 text-text-950" 
+                  : "bg-background-dark border-text-950/10 text-text-secondary hover:bg-text-950/5"
               }`}
             >
               <span className="material-symbols-outlined">task_alt</span>
@@ -89,8 +89,8 @@ export function CreateCategoryModal({ isOpen, onClose, onCategoryCreated }: Crea
               onClick={() => setType("purchases")}
               className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
                 type === "purchases" 
-                  ? "bg-emerald-500/20 border-emerald-500 text-white" 
-                  : "bg-background-dark border-white/10 text-text-secondary hover:bg-white/5"
+                  ? "bg-emerald-500/20 border-emerald-500 text-text-950" 
+                  : "bg-background-dark border-text-950/10 text-text-secondary hover:bg-text-950/5"
               }`}
             >
               <span className="material-symbols-outlined">shopping_bag</span>
@@ -101,8 +101,8 @@ export function CreateCategoryModal({ isOpen, onClose, onCategoryCreated }: Crea
               onClick={() => setType("mixed")}
               className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
                 type === "mixed" 
-                  ? "bg-blue-500/20 border-blue-500 text-white" 
-                  : "bg-background-dark border-white/10 text-text-secondary hover:bg-white/5"
+                  ? "bg-blue-500/20 border-blue-500 text-text-950" 
+                  : "bg-background-dark border-text-950/10 text-text-secondary hover:bg-text-950/5"
               }`}
             >
               <span className="material-symbols-outlined">layers</span>
@@ -115,14 +115,14 @@ export function CreateCategoryModal({ isOpen, onClose, onCategoryCreated }: Crea
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-lg text-text-secondary hover:text-white hover:bg-white/5 transition-colors text-sm font-medium"
+            className="px-4 py-2 rounded-lg text-text-secondary hover:text-text-950 hover:bg-text-950/5 transition-colors text-sm font-medium"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={!title.trim() || loading}
-            className="px-6 py-2 rounded-lg bg-primary hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold transition-colors shadow-lg shadow-purple-900/20"
+            className="px-6 py-2 rounded-lg bg-primary-500 hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold transition-colors shadow-lg shadow-primary-900/20"
           >
             {loading ? "Creating..." : "Create Category"}
           </button>

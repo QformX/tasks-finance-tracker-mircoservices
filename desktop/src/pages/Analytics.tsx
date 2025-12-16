@@ -4,12 +4,12 @@ import { getDashboardStats, getRecentEvents, getActivityHeatmap, getTasks, getPu
 import type { DashboardStats, AnalyticsEvent, ActivityHeatmap, Task, Purchase, Category } from "@/types";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
-import { StatCard } from "@/components/StatCard";
 import { DistributionBar } from "@/components/DistributionBar";
 import { HeatmapGrid } from "@/components/analytics/HeatmapGrid";
 import { ActivityDirectionChart } from "@/components/analytics/ActivityDirectionChart";
 import { SpendingByCategory } from "@/components/analytics/SpendingByCategory";
 import { TaskEventItem, PurchaseEventItem } from "@/components/analytics/EventItems";
+import { DashboardStatsGrid } from "@/components/analytics/DashboardStatsGrid";
 
 export function Analytics() {
   const { t, language } = useLanguage();
@@ -118,15 +118,15 @@ export function Analytics() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto w-full bg-background-dark">
+    <div className="flex-1 overflow-y-auto w-full">
       <div className="w-full max-w-7xl mx-auto flex flex-col p-8 gap-8">
         {/* Page Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl lg:text-2xl font-bold text-white mb-1 whitespace-nowrap shrink-0">{t("dashboard_overview")}</h2>
+            <h2 className="text-xl lg:text-2xl font-bold text-text-950 mb-1 whitespace-nowrap shrink-0">{t("dashboard_overview")}</h2>
           </div>
           <div className="flex items-center gap-4">
-            <div className="hidden sm:flex bg-surface-dark p-1 rounded-lg border border-border-dark">
+            <div className="hidden sm:flex bg-surface-dark p-1 rounded-lg border border-text-950/10">
               {(["today", "week", "month", "year"] as const).map((p) => (
                 <button
                   key={p}
@@ -134,8 +134,8 @@ export function Analytics() {
                   className={cn(
                     "px-3 py-1.5 text-xs font-bold rounded-md transition-all capitalize",
                     period === p 
-                      ? "bg-border-dark text-white shadow-sm" 
-                      : "text-text-secondary hover:text-white"
+                      ? "bg-text-950/10 text-text-950 shadow-sm" 
+                      : "text-text-secondary hover:text-text-950"
                   )}
                 >
                   {t(p)}
@@ -145,16 +145,16 @@ export function Analytics() {
             <div className="relative" ref={datePopupRef}>
               <button 
                 onClick={() => setIsDatePopupOpen(!isDatePopupOpen)}
-                className="flex items-center gap-2 justify-center h-10 px-3 lg:px-5 bg-surface-dark border border-border-dark rounded-full text-xs font-bold text-gray-300 hover:text-white hover:border-white/20 cursor-pointer transition-all"
+                className="flex items-center gap-2 justify-center h-10 px-3 lg:px-5 bg-surface-dark border border-text-950/10 rounded-full text-xs font-bold text-text-secondary hover:text-text-950 hover:border-text-950/20 cursor-pointer transition-all"
               >
                 <span className="material-symbols-outlined text-[18px]">calendar_today</span>
                 <span className="hidden lg:inline whitespace-nowrap">{getDateRangeLabel()}</span>
               </button>
 
               {isDatePopupOpen && (
-                <div className="absolute right-0 top-full mt-2 z-50 bg-[#1e1e21] border border-white/10 rounded-xl shadow-xl p-3 min-w-[200px] animate-in fade-in zoom-in-95 duration-200">
+                <div className="absolute right-0 top-full mt-2 z-50 bg-surface-dark border border-text-950/10 rounded-xl shadow-xl p-3 min-w-[200px] animate-in fade-in zoom-in-95 duration-200">
                     <div className="text-xs text-text-secondary mb-1 font-medium uppercase tracking-wider text-center">Selected Period</div>
-                    <div className="text-sm font-bold text-white text-center mb-3">{getDateRangeLabel()}</div>
+                    <div className="text-sm font-bold text-text-950 text-center mb-3">{getDateRangeLabel()}</div>
                     
                     <div className="grid grid-cols-2 gap-2 sm:hidden">
                       {(["today", "week", "month", "year"] as const).map((p) => (
@@ -168,7 +168,7 @@ export function Analytics() {
                             "px-2 py-1.5 text-xs font-bold rounded-md transition-all capitalize",
                             period === p 
                               ? "bg-primary text-white shadow-sm" 
-                              : "bg-white/5 text-text-secondary hover:text-white"
+                              : "bg-text-950/5 text-text-secondary hover:text-text-950"
                           )}
                         >
                           {t(p)}
@@ -182,66 +182,7 @@ export function Analytics() {
         </div>
 
         {/* KPI Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          <StatCard 
-            icon="event_note" 
-            label={t("total_events")} 
-            value={stats?.total_events.toString() ?? "0"} 
-            trend="" 
-            color="indigo" 
-          />
-          <StatCard 
-            icon="add_task" 
-            label={t("tasks_created")} 
-            value={stats?.tasks_created.toString() ?? "0"} 
-            trend="" 
-            color="indigo" 
-          />
-          <StatCard 
-            icon="task_alt" 
-            label={t("tasks_completed")} 
-            value={stats?.tasks_completed.toString() ?? "0"} 
-            trend="" 
-            color="indigo" 
-          />
-           <StatCard 
-            icon="warning" 
-            label={t("tasks_overdue")} 
-            value={stats?.overdue_tasks_count.toString() ?? "0"} 
-            trend="" 
-            color="red" 
-          />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard 
-            icon="shopping_cart" 
-            label={t("purchases_created")} 
-            value={stats?.purchases_created.toString() ?? "0"} 
-            trend="" 
-            color="indigo" 
-          />
-          <StatCard 
-            icon="local_mall" 
-            label={t("purchases_completed")} 
-            value={stats?.purchases_completed.toString() ?? "0"} 
-            trend="" 
-            color="indigo" 
-          />
-          <StatCard 
-            icon="attach_money" 
-            label={t("total_spending")} 
-            value={`$${stats?.total_spending.toLocaleString() ?? 0}`} 
-            trend="" 
-            color="indigo" 
-          />
-           <StatCard 
-            icon="savings" 
-            label={t("total_needed")} 
-            value={`$${stats?.total_incomplete_purchases_cost.toLocaleString() ?? 0}`} 
-            trend="" 
-            color="blue" 
-          />
-        </div>
+        <DashboardStatsGrid stats={stats} />
 
         {/* Heatmap & Spending Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
@@ -249,19 +190,19 @@ export function Analytics() {
                 {period === "today" ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
                         {/* Tasks Progress */}
-                        <div className="bg-surface-dark rounded-2xl border border-border-dark p-6 flex flex-col min-h-[200px]">
-                            <h3 className="text-base font-bold text-white mb-6">{t("todays_tasks")}</h3>
+                        <div className="bg-surface-dark rounded-2xl border border-text-950/10 p-6 flex flex-col min-h-[200px]">
+                            <h3 className="text-base font-bold text-text-950 mb-6">{t("todays_tasks")}</h3>
                             <div className="flex-1 flex flex-col items-center justify-center w-full">
                                 {todayTasks.length > 0 ? (
                                     <>
                                         <div 
                                             className="relative w-48 h-48 rounded-full mb-6" 
                                             style={{ 
-                                                background: `conic-gradient(#7e22ce 0% ${Math.round((todayTasks.filter(t => t.is_completed).length / todayTasks.length) * 100)}%, #27272a ${Math.round((todayTasks.filter(t => t.is_completed).length / todayTasks.length) * 100)}% 100%)` 
+                                                background: `conic-gradient(#7e22ce 0% ${Math.round((todayTasks.filter(t => t.is_completed).length / todayTasks.length) * 100)}%, var(--color-text-950-5) ${Math.round((todayTasks.filter(t => t.is_completed).length / todayTasks.length) * 100)}% 100%)` 
                                             }}
                                         >
                                             <div className="absolute inset-0 m-8 bg-surface-dark rounded-full flex flex-col items-center justify-center shadow-inner">
-                                                <span className="text-3xl font-bold text-white">
+                                                <span className="text-3xl font-bold text-text-950">
                                                     {Math.round((todayTasks.filter(t => t.is_completed).length / todayTasks.length) * 100)}%
                                                 </span>
                                             </div>
@@ -270,16 +211,16 @@ export function Analytics() {
                                             <div className="flex items-center justify-between text-sm">
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-3 h-3 rounded-full bg-primary"></div>
-                                                    <span className="text-gray-300">{t("completed")}</span>
+                                                    <span className="text-text-secondary">{t("completed")}</span>
                                                 </div>
-                                                <span className="font-semibold text-white">{todayTasks.filter(t => t.is_completed).length}</span>
+                                                <span className="font-semibold text-text-950">{todayTasks.filter(t => t.is_completed).length}</span>
                                             </div>
                                             <div className="flex items-center justify-between text-sm">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="w-3 h-3 rounded-full bg-[#27272a]"></div>
-                                                    <span className="text-gray-300">{t("remaining")}</span>
+                                                    <div className="w-3 h-3 rounded-full bg-text-950/10"></div>
+                                                    <span className="text-text-secondary">{t("remaining")}</span>
                                                 </div>
-                                                <span className="font-semibold text-white">{todayTasks.length - todayTasks.filter(t => t.is_completed).length}</span>
+                                                <span className="font-semibold text-text-950">{todayTasks.length - todayTasks.filter(t => t.is_completed).length}</span>
                                             </div>
                                         </div>
                                     </>
@@ -290,8 +231,8 @@ export function Analytics() {
                         </div>
 
                         {/* Purchases Progress */}
-                        <div className="bg-surface-dark rounded-2xl border border-border-dark p-6 flex flex-col min-h-[200px]">
-                            <h3 className="text-base font-bold text-white mb-6">{t("shopping_list")}</h3>
+                        <div className="bg-surface-dark rounded-2xl border border-text-950/10 p-6 flex flex-col min-h-[200px]">
+                            <h3 className="text-base font-bold text-text-950 mb-6">{t("shopping_list")}</h3>
                             <div className="flex-1 flex flex-col items-center justify-center">
                                 {(stats?.purchases_created || 0) > 0 || (stats?.purchases_completed || 0) > 0 ? (
                                     <div className="flex flex-col sm:flex-row md:flex-col xl:flex-row items-center gap-6 w-full justify-around">
@@ -300,19 +241,19 @@ export function Analytics() {
                                                 <span className="material-symbols-outlined">add_shopping_cart</span>
                                             </div>
                                             <div className="flex flex-col items-center">
-                                                <span className="text-2xl font-bold text-white">
+                                                <span className="text-2xl font-bold text-text-950">
                                                     ${(stats?.total_created_cost || 0).toLocaleString()}
                                                 </span>
                                                 <span className="text-xs text-text-secondary uppercase tracking-wider font-bold">Created</span>
                                             </div>
                                         </div>
-                                        <div className="w-16 h-px sm:w-px sm:h-16 md:w-16 md:h-px xl:w-px xl:h-16 bg-white/10"></div>
+                                        <div className="w-16 h-px sm:w-px sm:h-16 md:w-16 md:h-px xl:w-px xl:h-16 bg-text-950/10"></div>
                                         <div className="flex flex-col items-center gap-2">
                                             <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
                                                 <span className="material-symbols-outlined">shopping_cart_checkout</span>
                                             </div>
                                             <div className="flex flex-col items-center">
-                                                <span className="text-2xl font-bold text-white">
+                                                <span className="text-2xl font-bold text-text-950">
                                                     ${(stats?.total_spending || 0).toLocaleString()}
                                                 </span>
                                                 <span className="text-xs text-text-secondary uppercase tracking-wider font-bold">Spent</span>
@@ -327,13 +268,13 @@ export function Analytics() {
                     </div>
                 ) : (
                     <>
-                        <div className="bg-surface-dark rounded-2xl border border-border-dark p-6 flex flex-col">
+                        <div className="bg-surface-dark rounded-2xl border border-text-950/10 p-6 flex flex-col">
                             <div className="flex items-center justify-between mb-6 shrink-0">
-                                <h3 className="text-base font-bold text-white">{t("activity_heatmap")}</h3>
+                                <h3 className="text-base font-bold text-text-950">{t("activity_heatmap")}</h3>
                                 <div className="flex items-center gap-2 text-xs text-text-secondary">
                                     <span>{t("less")}</span>
                                     <div className="flex gap-1">
-                                        <div className="w-3 h-3 rounded-sm bg-[#27272a]"></div>
+                                        <div className="w-3 h-3 rounded-sm bg-text-950/10"></div>
                                         <div className="w-3 h-3 rounded-sm bg-primary/30"></div>
                                         <div className="w-3 h-3 rounded-sm bg-primary/60"></div>
                                         <div className="w-3 h-3 rounded-sm bg-primary"></div>
@@ -346,14 +287,14 @@ export function Analytics() {
                             </div>
                         </div>
 
-                        <div className="bg-surface-dark rounded-2xl border border-border-dark p-6 flex flex-col">
+                        <div className="bg-surface-dark rounded-2xl border border-text-950/10 p-6 flex flex-col">
                              <ActivityDirectionChart stats={stats} />
                         </div>
                     </>
                 )}
             </div>
             
-            <div className="lg:col-span-4 bg-surface-dark rounded-2xl border border-border-dark p-6 flex flex-col">
+            <div className="lg:col-span-4 bg-surface-dark rounded-2xl border border-text-950/10 p-6 flex flex-col">
                 <SpendingByCategory purchases={allBoughtPurchases} categories={categories} />
             </div>
         </div>
@@ -364,7 +305,7 @@ export function Analytics() {
           <div className="lg:col-span-2 space-y-8">
             <div>
               <div className="flex items-center justify-between mb-5">
-                <h3 className="text-lg font-bold text-white">{t("recent_tasks")}</h3>
+                <h3 className="text-lg font-bold text-text-950">{t("recent_tasks")}</h3>
                 <Link to="/tasks" className="text-sm text-primary hover:text-primary-dark font-medium cursor-pointer">{t("view_all")}</Link>
               </div>
               <div className="space-y-3">
@@ -372,7 +313,7 @@ export function Analytics() {
                   <TaskEventItem key={event.id} event={event} />
                 ))}
                 {recentEvents.filter(e => e.event_type.includes("Task")).length === 0 && (
-                  <div className="text-text-secondary text-sm text-center py-4 bg-surface-dark rounded-xl border border-border-dark">{t("no_recent_tasks")}</div>
+                  <div className="text-text-secondary text-sm text-center py-4 bg-surface-dark rounded-xl border border-text-950/10">{t("no_recent_tasks")}</div>
                 )}
               </div>
             </div>
@@ -380,7 +321,7 @@ export function Analytics() {
             {/* Created Purchases List (Shopping List) */}
             <div>
               <div className="flex items-center justify-between mb-5">
-                <h3 className="text-lg font-bold text-white">Shopping List (Created)</h3>
+                <h3 className="text-lg font-bold text-text-950">Shopping List (Created)</h3>
                 <Link to="/purchases" className="text-sm text-primary hover:text-primary-dark font-medium cursor-pointer">View All</Link>
               </div>
               <div className="space-y-3">
@@ -388,7 +329,7 @@ export function Analytics() {
                   <PurchaseEventItem key={event.id} event={event} />
                 ))}
                 {createdPurchases.length === 0 && (
-                  <div className="text-text-secondary text-sm text-center py-4 bg-surface-dark rounded-xl border border-border-dark">No items in shopping list</div>
+                  <div className="text-text-secondary text-sm text-center py-4 bg-surface-dark rounded-xl border border-text-950/10">No items in shopping list</div>
                 )}
               </div>
             </div>
@@ -397,8 +338,8 @@ export function Analytics() {
           {/* Right Column: Productivity & Purchases */}
           <div className="space-y-6">
             {/* Event Distribution */}
-            <div className="bg-surface-dark rounded-2xl border border-border-dark p-6">
-              <h3 className="text-base font-bold text-white mb-6">{t("event_distribution")}</h3>
+            <div className="bg-surface-dark rounded-2xl border border-text-950/10 p-6">
+              <h3 className="text-base font-bold text-text-950 mb-6">{t("event_distribution")}</h3>
               <div className="space-y-4">
                   <DistributionBar 
                     label={t("tasks")} 
@@ -416,8 +357,8 @@ export function Analytics() {
             </div>
 
             {/* Recent Purchases (Completed Only) */}
-            <div className="bg-surface-dark rounded-2xl border border-border-dark p-6">
-              <h2 className="text-lg font-bold text-white mb-6">{t("recent_purchases_bought")}</h2>
+            <div className="bg-surface-dark rounded-2xl border border-text-950/10 p-6">
+              <h2 className="text-lg font-bold text-text-950 mb-6">{t("recent_purchases_bought")}</h2>
               <ul className="space-y-5">
                 {completedPurchases.slice(0, 5).map(event => (
                   <PurchaseEventItem key={event.id} event={event} />
@@ -426,7 +367,7 @@ export function Analytics() {
                   <div className="text-text-secondary text-sm text-center">{t("no_recent_purchases")}</div>
                 )}
               </ul>
-              <Link to="/purchases" className="block w-full mt-6 py-2.5 border border-border-dark rounded-lg text-xs font-semibold text-gray-400 hover:bg-border-dark hover:text-white transition-colors text-center">
+              <Link to="/purchases" className="block w-full mt-6 py-2.5 border border-text-950/10 rounded-lg text-xs font-semibold text-text-secondary hover:bg-text-950/10 hover:text-text-950 transition-colors text-center">
                 {t("view_all_history")}
               </Link>
             </div>

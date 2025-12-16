@@ -137,13 +137,13 @@ export function AiChat() {
   };
 
   return (
-    <main className="flex-1 flex flex-col h-full relative bg-background-dark text-text-primary font-sans">
+    <main className="flex-1 flex flex-col h-full relative bg-background-200 dark:bg-background-50 text-text-950 font-sans">
       {/* Header */}
-      <div className="shrink-0 z-20 bg-background-dark sticky top-0 px-8">
+      <div className="shrink-0 z-20 bg-background-200 dark:bg-background-50 sticky top-0 px-8">
         <div className="w-full max-w-7xl mx-auto flex flex-col pt-8 pb-4">
           <div className="flex items-center justify-between gap-4 mb-6">
             <div className="flex flex-col gap-1">
-              <h2 className="text-white text-xl lg:text-2xl font-bold leading-tight tracking-tight whitespace-nowrap shrink-0">AI Agent Chat</h2>
+              <h2 className="text-text-950 text-xl lg:text-2xl font-bold leading-tight tracking-tight whitespace-nowrap shrink-0">AI Agent Chat</h2>
             </div>
             <button 
               onClick={() => setMessages([])}
@@ -163,7 +163,7 @@ export function AiChat() {
             {/* Avatar */}
             <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 flex-shrink-0 ${
                 msg.role === 'user' 
-                ? 'bg-orange-100 border-white/10' 
+                ? 'bg-orange-100 border-text-950/10' 
                 : 'bg-primary/10 border-primary/20'
             }`}>
                 {msg.role === 'user' ? (
@@ -177,12 +177,12 @@ export function AiChat() {
             <div className={`flex flex-col gap-2 ${msg.role === 'user' ? 'items-end' : 'w-full max-w-2xl'}`}>
                 <div className={`flex items-baseline gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                     <span className="font-semibold text-sm">{msg.role === 'user' ? 'You' : 'TaskAI'}</span>
-                    <span className="text-xs text-text-secondary">{msg.timestamp}</span>
+                    <span className="text-xs text-text-950/60">{msg.timestamp}</span>
                 </div>
                 <div className={`p-4 rounded-2xl shadow-sm leading-relaxed whitespace-pre-wrap ${
                     msg.role === 'user'
-                    ? 'bg-white/10 text-white rounded-tr-none'
-                    : 'bg-surface-dark border border-border-dark text-gray-200 rounded-tl-none w-full'
+                    ? 'bg-text-950/5 text-text-950 rounded-tr-none'
+                    : 'bg-surface border border-border text-text-950/80 rounded-tl-none w-full'
                 }`}>
                     {msg.role === 'assistant' ? (
                         <ReactMarkdown
@@ -220,8 +220,8 @@ export function AiChat() {
                 <div className="flex items-baseline gap-2">
                     <span className="font-semibold text-sm">TaskAI</span>
                 </div>
-                <div className="bg-surface-dark border border-border-dark p-4 rounded-2xl rounded-tl-none shadow-sm">
-                   <span className="animate-pulse text-gray-400">Thinking...</span>
+                <div className="bg-surface border border-border p-4 rounded-2xl rounded-tl-none shadow-sm">
+                   <span className="animate-pulse text-text-950/40">Thinking...</span>
                 </div>
              </div>
            </div>
@@ -230,14 +230,14 @@ export function AiChat() {
       </div>
 
       {/* Input Area */}
-      <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-background-dark via-background-dark to-transparent">
+      <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-background via-background to-transparent">
         <div className="max-w-4xl mx-auto relative flex flex-col">
             {/* Floating Start Button (Optional, maybe redundant if header has it, but design has it) */}
             {messages.length > 2 && (
                 <div className="self-center mb-6">
                     <button 
                         onClick={() => setMessages([])}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-surface-dark/90 hover:bg-zinc-900 border border-primary/40 hover:border-primary text-primary hover:text-primary-light rounded-full shadow-lg shadow-black/50 transition-all duration-300 backdrop-blur-md group hover:scale-105 active:scale-95 cursor-pointer"
+                        className="flex items-center gap-2 px-5 py-2.5 bg-surface/90 hover:bg-surface-dark border border-primary/40 hover:border-primary text-primary hover:text-primary-light rounded-full shadow-lg shadow-text-950/10 transition-all duration-300 backdrop-blur-md group hover:scale-105 active:scale-95 cursor-pointer"
                     >
                         <span className="material-symbols-outlined text-lg group-hover:rotate-90 transition-transform duration-500">add_circle</span>
                         <span className="text-sm font-medium">Start New Chat</span>
@@ -245,13 +245,13 @@ export function AiChat() {
                 </div>
             )}
 
-            <div className="relative flex items-end bg-surface-dark rounded-2xl shadow-lg border border-border-dark ring-1 ring-white/5 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary transition-all duration-300">
-                <button className="p-3 ml-1 mb-1 text-gray-400 hover:text-primary transition-colors cursor-pointer">
+            <div className="relative flex items-end bg-surface rounded-2xl shadow-lg border border-border ring-1 ring-text-950/5 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary transition-all duration-300">
+                <button className="p-3 ml-1 mb-1 text-text-950/40 hover:text-primary transition-colors cursor-pointer">
                     <span className="material-symbols-outlined rotate-45">attach_file</span>
                 </button>
                 <textarea 
                     ref={textareaRef}
-                    className="flex-1 bg-transparent border-none focus:ring-0 text-white placeholder-gray-500 py-4 px-2 outline-none resize-none overflow-hidden min-h-[56px]" 
+                    className="flex-1 bg-transparent border-none focus:ring-0 text-text-950 placeholder-text-950/40 py-4 px-2 outline-none resize-none overflow-hidden min-h-[56px]" 
                     placeholder="Type a message to your assistant..." 
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
@@ -260,7 +260,7 @@ export function AiChat() {
                     rows={1}
                 />
                 <div className="flex items-center pr-2 gap-1 mb-1">
-                    <button className="p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-white/10 cursor-pointer">
+                    <button className="p-2 text-text-950/40 hover:text-text-950 transition-colors rounded-full hover:bg-text-950/5 cursor-pointer">
                         <span className="material-symbols-outlined">mic</span>
                     </button>
                     <button 
