@@ -103,7 +103,9 @@ async def get_tasks(
             stmt = stmt.where(Task.due_date >= datetime.combine(today, datetime.min.time()))
             stmt = stmt.where(Task.due_date < datetime.combine(today, datetime.max.time()))
     elif filter == FilterType.overdue:
-        stmt = stmt.where(Task.due_date < datetime.now())
+        # Strict overdue: due date is before today (00:00:00)
+        today = date.today()
+        stmt = stmt.where(Task.due_date < datetime.combine(today, datetime.min.time()))
         stmt = stmt.where(Task.is_completed == False)
     elif filter == FilterType.inbox:
         stmt = stmt.where(Task.category_id.is_(None))
@@ -124,6 +126,7 @@ async def get_tasks(
                     "description": t.description,
                     "is_completed": t.is_completed,
                     "due_date": t.due_date.isoformat() if t.due_date else None,
+                    "priority": t.priority,
                     "created_at": t.created_at.isoformat()
                 }
                 for t in tasks
@@ -226,7 +229,7 @@ async def update_task(
     
     # Send TaskUpdated event if due_date changed or other important fields
     # We check if due_date is in update_data
-    if "due_date" in update_data:
+    if "due_date" in update_data or "priority" in update_data:
         async def send_update_event():
             try:
                 event = {
@@ -235,6 +238,7 @@ async def update_task(
                     "user_id": str(user_id),
                     "title": task.title,
                     "due_date": task.due_date.isoformat() if task.due_date else None,
+                    "priority": task.priority,
                     "updated_at": datetime.utcnow().isoformat()
                 }
                 await mq_client.publish(routing_key="core.task.updated", message=event)

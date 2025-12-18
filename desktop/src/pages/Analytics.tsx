@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { getDashboardStats, getRecentEvents, getActivityHeatmap, getTasks, getPurchases, getCategories, getBoughtPurchaseIds } from "@/lib/api";
+import { getDashboardStats, getRecentEvents, getActivityHeatmap, getTasks, getPurchases, getCategories, getBoughtPurchaseIds, updateTask } from "@/lib/api";
 import type { DashboardStats, AnalyticsEvent, ActivityHeatmap, Task, Purchase, Category } from "@/types";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
@@ -10,6 +10,9 @@ import { ActivityDirectionChart } from "@/components/analytics/ActivityDirection
 import { SpendingByCategory } from "@/components/analytics/SpendingByCategory";
 import { TaskEventItem, PurchaseEventItem } from "@/components/analytics/EventItems";
 import { DashboardStatsGrid } from "@/components/analytics/DashboardStatsGrid";
+import { CriticalOverdueModal } from "@/components/CriticalOverdueModal";
+
+import { ProductivityInsights } from "@/components/analytics/ProductivityInsights";
 
 export function Analytics() {
   const { t, language } = useLanguage();
@@ -17,10 +20,12 @@ export function Analytics() {
   const [recentEvents, setRecentEvents] = useState<AnalyticsEvent[]>([]);
   const [heatmap, setHeatmap] = useState<ActivityHeatmap | null>(null);
   const [todayTasks, setTodayTasks] = useState<Task[]>([]);
+  const [overdueTasks, setOverdueTasks] = useState<Task[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [allBoughtPurchases, setAllBoughtPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<"today" | "week" | "month" | "year">("week");
+  const [isCriticalModalOpen, setIsCriticalModalOpen] = useState(false);
   
   const [isDatePopupOpen, setIsDatePopupOpen] = useState(false);
   const datePopupRef = useRef<HTMLDivElement>(null);
@@ -49,6 +54,7 @@ export function Analytics() {
       ]);
       
       setCategories(categoriesData);
+      setOverdueTasks(overdueTasks);
       
       // Filter bought purchases for the period
       const periodBoughtPurchases = boughtPurchasesList.filter(p => boughtIds.includes(p.id));
@@ -97,6 +103,21 @@ export function Analytics() {
 
   const completedPurchases = recentEvents.filter(e => e.event_type === "PurchaseCompleted");
   const createdPurchases = recentEvents.filter(e => e.event_type === "PurchaseCreated");
+
+  async function handleToggleTask(taskId: string) {
+    const task = overdueTasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    try {
+      await updateTask(taskId, { is_completed: !task.is_completed });
+      loadData();
+    } catch (error) {
+      console.error("Failed to toggle task", error);
+    }
+  }
+
+  const criticalOverdueTasks = overdueTasks.filter(t => t.priority === "high");
+  const criticalCount = criticalOverdueTasks.length;
 
   function getDateRangeLabel() {
     const end = new Date();
@@ -188,8 +209,23 @@ export function Analytics() {
           </div>
         </div>
 
+        <CriticalOverdueModal
+          isOpen={isCriticalModalOpen}
+          onClose={() => setIsCriticalModalOpen(false)}
+          tasks={criticalOverdueTasks}
+          categories={categories}
+          onToggleTask={handleToggleTask}
+        />
+
         {/* KPI Stats Grid */}
-        <DashboardStatsGrid stats={stats} />
+        <DashboardStatsGrid 
+          stats={stats} 
+          overdueTasks={overdueTasks} 
+          onOpenCriticalModal={() => setIsCriticalModalOpen(true)}
+        />
+
+        {/* Productivity Insights */}
+        <ProductivityInsights stats={stats} />
 
         {/* Heatmap & Spending Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
@@ -205,7 +241,7 @@ export function Analytics() {
                                         <div 
                                             className="relative w-48 h-48 rounded-full mb-6" 
                                             style={{ 
-                                                background: `conic-gradient(#7e22ce 0% ${Math.round((todayTasks.filter(t => t.is_completed).length / todayTasks.length) * 100)}%, var(--color-text-950-5) ${Math.round((todayTasks.filter(t => t.is_completed).length / todayTasks.length) * 100)}% 100%)` 
+                                                background: `conic-gradient(#a855f7 0% ${Math.round((todayTasks.filter(t => t.is_completed).length / todayTasks.length) * 100)}%, hsl(var(--text-950) / 0.05) ${Math.round((todayTasks.filter(t => t.is_completed).length / todayTasks.length) * 100)}% 100%)` 
                                             }}
                                         >
                                             <div className="absolute inset-0 m-8 bg-surface-dark rounded-full flex flex-col items-center justify-center shadow-inner">
@@ -217,7 +253,7 @@ export function Analytics() {
                                         <div className="w-full space-y-3">
                                             <div className="flex items-center justify-between text-sm">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="w-3 h-3 rounded-full bg-primary"></div>
+                                                    <div className="w-3 h-3 rounded-full bg-purple-500"></div>
                                                     <span className="text-text-secondary">{t("completed")}</span>
                                                 </div>
                                                 <span className="font-semibold text-text-950">{todayTasks.filter(t => t.is_completed).length}</span>
@@ -282,9 +318,9 @@ export function Analytics() {
                                     <span>{t("less")}</span>
                                     <div className="flex gap-1">
                                         <div className="w-3 h-3 rounded-sm bg-text-950/10"></div>
-                                        <div className="w-3 h-3 rounded-sm bg-primary/30"></div>
-                                        <div className="w-3 h-3 rounded-sm bg-primary/60"></div>
-                                        <div className="w-3 h-3 rounded-sm bg-primary"></div>
+                                        <div className="w-3 h-3 rounded-sm bg-purple-500/30"></div>
+                                        <div className="w-3 h-3 rounded-sm bg-purple-500/60"></div>
+                                        <div className="w-3 h-3 rounded-sm bg-purple-500"></div>
                                     </div>
                                     <span>{t("more")}</span>
                                 </div>

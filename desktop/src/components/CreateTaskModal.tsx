@@ -16,6 +16,7 @@ export function CreateTaskModal({ isOpen, onClose, onTaskCreated, preselectedCat
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -27,6 +28,7 @@ export function CreateTaskModal({ isOpen, onClose, onTaskCreated, preselectedCat
       setDescription("");
       setCategoryId(preselectedCategoryId || "");
       setDueDate("");
+      setPriority("medium");
       setError("");
     }
   }, [isOpen, preselectedCategoryId]);
@@ -52,7 +54,8 @@ export function CreateTaskModal({ isOpen, onClose, onTaskCreated, preselectedCat
         title, 
         categoryId || undefined, 
         dueDate ? new Date(dueDate).toISOString() : undefined,
-        description || undefined
+        description || undefined,
+        priority
       );
       onTaskCreated(task);
       onClose();
@@ -96,15 +99,39 @@ export function CreateTaskModal({ isOpen, onClose, onTaskCreated, preselectedCat
           />
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Category</label>
-          <Dropdown
-            items={[{ id: "", title: "No Category", type: "mixed", user_id: "" } as Category, ...categories]}
-            selectedItem={categories.find(c => c.id === categoryId) || { id: "", title: "No Category", type: "mixed", user_id: "" } as Category}
-            onSelect={(item) => setCategoryId(item.id)}
-            keyExtractor={(item) => item.id}
-            renderItem={(item) => item.title}
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Priority</label>
+            <div className="flex bg-text-950/5 rounded-xl p-1 border border-text-950/10 h-[46px]">
+              {(["low", "medium", "high"] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPriority(p)}
+                  className={`flex-1 h-full rounded-lg text-sm font-medium capitalize transition-all ${
+                    priority === p 
+                      ? p === "high" ? "bg-red-500 text-white shadow-sm" :
+                        p === "medium" ? "bg-yellow-500 text-white shadow-sm" :
+                        "bg-blue-500 text-white shadow-sm"
+                      : "text-text-secondary hover:text-text-950"
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Category</label>
+            <Dropdown
+              items={[{ id: "", title: "No Category", type: "mixed", user_id: "" } as Category, ...categories]}
+              selectedItem={categories.find(c => c.id === categoryId) || { id: "", title: "No Category", type: "mixed", user_id: "" } as Category}
+              onSelect={(item) => setCategoryId(item.id)}
+              keyExtractor={(item) => item.id}
+              renderItem={(item) => item.title}
+            />
+          </div>
         </div>
 
         <div className="flex flex-col gap-1.5">

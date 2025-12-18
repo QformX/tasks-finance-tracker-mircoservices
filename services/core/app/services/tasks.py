@@ -20,6 +20,7 @@ class TaskService:
             description=task_in.description,
             category_id=task_in.category_id,
             due_date=task_in.due_date,
+            priority=task_in.priority,
             is_completed=False
         )
         
@@ -56,6 +57,7 @@ class TaskService:
                     "title": new_task.title,
                     "category_id": str(new_task.category_id) if new_task.category_id else None,
                     "due_date": new_task.due_date.isoformat() if new_task.due_date else None,
+                    "priority": new_task.priority,
                     "created_at": new_task.created_at.isoformat()
                 }
                 await mq_client.publish(routing_key="core.task.created", message=event)

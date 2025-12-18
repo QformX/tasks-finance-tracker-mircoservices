@@ -62,11 +62,11 @@ export function HeatmapGrid({ heatmap, period }: HeatmapGridProps) {
                                 
                                 const intensity = day.activity === 0 ? 0 : Math.ceil((day.activity / maxActivity) * 4);
                                 const bgClass = [
-                                    "bg-primary/10", // 0
-                                    "bg-primary/40", // 1
-                                    "bg-primary/60", // 2
-                                    "bg-primary/80", // 3
-                                    "bg-primary",    // 4
+                                    "bg-purple-500/10", // 0
+                                    "bg-purple-500/40", // 1
+                                    "bg-purple-500/60", // 2
+                                    "bg-purple-500/80", // 3
+                                    "bg-purple-500",    // 4
                                 ][Math.min(intensity, 4)];
 
                                 return (
@@ -224,13 +224,13 @@ export function HeatmapGrid({ heatmap, period }: HeatmapGridProps) {
         
         // Use similar logic to year view but for bars
         const bgClass = day.activity === 0 
-            ? "bg-primary/10 hover:bg-primary/20" 
+            ? "bg-purple-500/10 hover:bg-purple-500/20" 
             : [
-                "bg-primary/40 hover:bg-primary/50", // 1
-                "bg-primary/60 hover:bg-primary/70", // 2
-                "bg-primary/80 hover:bg-primary/90", // 3
-                "bg-primary hover:bg-primary-dark",    // 4
-              ][Math.min(intensity, 4) - 1] || "bg-primary";
+                "bg-purple-500/40 hover:bg-purple-500/50", // 1
+                "bg-purple-500/60 hover:bg-purple-500/70", // 2
+                "bg-purple-500/80 hover:bg-purple-500/90", // 3
+                "bg-purple-500 hover:bg-purple-600",    // 4
+              ][Math.min(intensity, 4) - 1] || "bg-purple-500";
 
         const date = new Date(day.date);
         const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });

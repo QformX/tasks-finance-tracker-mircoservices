@@ -24,6 +24,7 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
@@ -43,6 +44,7 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
     setTitle(task.title);
     setDescription(task.description || "");
     setCategoryId(task.category_id || "");
+    setPriority(task.priority || "medium");
     if (task.due_date) {
       const date = new Date(task.due_date);
       const isoString = date.toISOString().slice(0, 16);
@@ -73,7 +75,8 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
         title,
         description: description || null,
         category_id: categoryId || null,
-        due_date: dueDate ? new Date(dueDate).toISOString() : null
+        due_date: dueDate ? new Date(dueDate).toISOString() : null,
+        priority
       };
 
       const updatedTask = await updateTask(task.id, updates);
@@ -142,6 +145,21 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
             {/* Metadata */}
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1">
+                <span className="text-text-secondary text-xs font-bold uppercase tracking-wider mb-1">{t("priority") || "Priority"}</span>
+                <div className="flex items-center">
+                  <div 
+                    className={`px-2 py-0.5 rounded-md text-[11px] font-medium shrink-0 inline-block capitalize ${
+                      priority === "high" ? "bg-red-500 text-white" :
+                      priority === "medium" ? "bg-yellow-500 text-white" :
+                      "bg-blue-500 text-white"
+                    }`}
+                  >
+                    {priority}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
                 <span className="text-text-secondary text-xs font-bold uppercase tracking-wider mb-1">{t("category") || "Category"}</span>
                 <div className="flex items-center">
                   {category ? (
@@ -156,13 +174,13 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
                   )}
                 </div>
               </div>
+            </div>
 
-              <div className="flex flex-col gap-1">
-                <span className="text-text-secondary text-xs font-bold uppercase tracking-wider">{t("due_date") || "Due Date"}</span>
-                <span className="text-text-950">
-                  {dueDate ? new Date(dueDate).toLocaleString() : (t("no_date") || "No Date")}
-                </span>
-              </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-text-secondary text-xs font-bold uppercase tracking-wider">{t("due_date") || "Due Date"}</span>
+              <span className="text-text-950">
+                {dueDate ? new Date(dueDate).toLocaleString() : (t("no_date") || "No Date")}
+              </span>
             </div>
 
             {/* Actions */}
@@ -206,15 +224,39 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
               </div>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">{t("category") || "Category"}</label>
-              <Dropdown
-                items={[{ id: "", title: t("no_category") || "No Category", type: "mixed", user_id: "" } as Category, ...categories]}
-                selectedItem={categories.find(c => c.id === categoryId) || { id: "", title: t("no_category") || "No Category", type: "mixed", user_id: "" } as Category}
-                onSelect={(item) => setCategoryId(item.id)}
-                keyExtractor={(item) => item.id}
-                renderItem={(item) => item.title}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">{t("priority") || "Priority"}</label>
+                <div className="flex bg-text-950/5 rounded-xl p-1 border border-text-950/10 h-[46px]">
+                  {(["low", "medium", "high"] as const).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPriority(p)}
+                      className={`flex-1 h-full rounded-lg text-sm font-medium capitalize transition-all ${
+                        priority === p 
+                          ? p === "high" ? "bg-red-500 text-white shadow-sm" :
+                            p === "medium" ? "bg-yellow-500 text-white shadow-sm" :
+                            "bg-blue-500 text-white shadow-sm"
+                          : "text-text-secondary hover:text-text-950"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">{t("category") || "Category"}</label>
+                <Dropdown
+                  items={[{ id: "", title: t("no_category") || "No Category", type: "mixed", user_id: "" } as Category, ...categories]}
+                  selectedItem={categories.find(c => c.id === categoryId) || { id: "", title: t("no_category") || "No Category", type: "mixed", user_id: "" } as Category}
+                  onSelect={(item) => setCategoryId(item.id)}
+                  keyExtractor={(item) => item.id}
+                  renderItem={(item) => item.title}
+                />
+              </div>
             </div>
 
             <div className="flex flex-col gap-1.5">

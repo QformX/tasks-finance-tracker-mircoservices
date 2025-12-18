@@ -18,6 +18,9 @@ class DashboardStats(BaseModel):
     total_created_cost: float = 0.0
     total_incomplete_purchases_cost: float = 0.0
     overdue_tasks_count: int = 0
+    tasks_due_period: int = 0
+    completed_overdue_tasks_count: int = 0
+    tasks_completed_due_period: int = 0
     period: str
     daily_stats: List[Dict[str, Any]] = []
     
@@ -30,4 +33,9 @@ class DashboardStats(BaseModel):
     roi: float = 0.0
     forecast_needed: float = 0.0
     urgency_breakdown: Dict[str, float] = {}
+    
+    # Gamification & Productivity
+    peak_productivity_hour: int | None = None
+    current_streak: int = 0
+    burnout_risk: bool = False
 

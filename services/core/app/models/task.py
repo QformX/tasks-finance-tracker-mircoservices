@@ -20,6 +20,7 @@ class Task(Base, SyncMixin):
     title: Mapped[str] = mapped_column(String)
     description: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    priority: Mapped[str] = mapped_column(String, default="medium")
     due_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

@@ -53,6 +53,16 @@ export function TaskItem({ task, categoryName, categoryColor, onToggle, onDelete
           <span className={cn("text-sm font-medium", isOverdue ? "text-red-400" : "text-green-500")}>
             {task.due_date ? new Date(task.due_date).toLocaleDateString() : t("no_date") || "No Date"}
           </span>
+          {task.priority && (
+            <span className={cn(
+              "text-xs px-1.5 py-0.5 rounded-md font-medium capitalize",
+              task.priority === "high" ? "bg-red-500/20 text-red-500" :
+              task.priority === "medium" ? "bg-yellow-500/20 text-yellow-500" :
+              "bg-blue-500/20 text-blue-500"
+            )}>
+              {task.priority}
+            </span>
+          )}
         </div>
       </div>
 

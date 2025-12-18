@@ -7,6 +7,7 @@ export interface Task {
   is_completed: boolean;
   due_date: string | null;
   created_at: string;
+  priority?: "low" | "medium" | "high";
 }
 
 export interface Purchase {
@@ -62,6 +63,9 @@ export interface DashboardStats {
   total_created_cost: number;
   total_incomplete_purchases_cost: number;
   overdue_tasks_count: number;
+  tasks_due_period: number;
+  completed_overdue_tasks_count: number;
+  tasks_completed_due_period: number;
   period: string;
   daily_stats: Array<{
     date: string;
@@ -77,6 +81,9 @@ export interface DashboardStats {
   roi: number;
   forecast_needed: number;
   urgency_breakdown: Record<string, number>;
+  peak_productivity_hour: number | null;
+  current_streak: number;
+  burnout_risk: boolean;
 }
 
 export interface AnalyticsEvent {

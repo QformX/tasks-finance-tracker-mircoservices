@@ -1,56 +1,70 @@
-# 🤖 AI Agent Capabilities
+# 🤖 Возможности AI-агента
 
-## 🟢 Current Capabilities
+## 🟢 Текущие возможности
 
-The AI agent is currently equipped with the following tools to assist users with task and finance management:
+В настоящее время AI-агент оснащен следующими инструментами для помощи пользователям в управлении задачами и финансами:
 
-### 1. Task Management
-- **Create Task**: Can create new tasks with a title, optional category, and due date.
-  - *Tool:* `create_task_rpc`
-  - *Example:* "Remind me to call mom tomorrow."
-- **Delete Task**: Can remove existing tasks.
-  - *Tool:* `delete_item_rpc`
+### 1. Управление задачами
+- **Создать задачу**: Может создавать новые задачи с заголовком, необязательной категорией и сроком выполнения.
+  - *Инструмент:* `create_task_rpc`
+  - *Пример:* "Напомни мне позвонить маме завтра."
+- **Обновить задачу**: Может обновлять существующие задачи (заголовок, категорию, срок, статус выполнения).
+  - *Инструмент:* `update_task_rpc`
+  - *Пример:* "Отметь задачу 'Купить молоко' как выполненную."
+- **Удалить задачу**: Может удалять существующие задачи.
+  - *Инструмент:* `delete_item_rpc`
 
-### 2. Finance Management
-- **Create Purchase**: Can record new purchases with a title, cost, quantity, and category.
-  - *Tool:* `create_purchase_rpc`
-  - *Example:* "I bought a coffee for $5."
-- **Delete Purchase**: Can remove recorded purchases.
-  - *Tool:* `delete_item_rpc`
+### 2. Управление финансами
+- **Создать покупку**: Может записывать новые покупки с заголовком, стоимостью, количеством и категорией.
+  - *Инструмент:* `create_purchase_rpc`
+  - *Пример:* "Я купил кофе за 500 рублей."
+- **Удалить покупку**: Может удалять записанные покупки.
+  - *Инструмент:* `delete_item_rpc`
 
-### 3. Data Retrieval
-- **View Recent Data**: Can fetch the latest 10 tasks and purchases to provide context or summaries.
-  - *Tool:* `get_my_data`
-  - *Example:* "What was the last thing I bought?"
-- **List Categories**: Can retrieve the user's available categories to ensure items are categorized correctly.
-  - *Tool:* `get_user_categories`
+### 3. Управление категориями
+- **Создать категорию**: Может создавать новые категории для задач или покупок.
+  - *Инструмент:* `create_category_rpc`
+  - *Пример:* "Создай категорию 'Продукты' для покупок."
+- **Удалить категорию**: Может удалять существующие категории.
+  - *Инструмент:* `delete_item_rpc`
+- **Список категорий**: Может получать список доступных категорий пользователя.
+  - *Инструмент:* `get_user_categories`
 
-### 4. External Search
-- **Web Search**: Can search the internet for product information or prices using the Tavily API.
-  - *Tool:* `search_product`
-  - *Example:* "Find the price of the new iPad."
+### 4. Получение данных
+- **Просмотр данных**: Может получать список задач и покупок пользователя (с фильтрацией по статусу и лимитом).
+  - *Инструмент:* `get_user_data`
+  - *Пример:* "Что я купил в последнее время?" или "Покажи мои активные задачи."
+
+### 5. Внешний поиск
+- **Веб-поиск**: Может искать информацию о продуктах или ценах в интернете, используя Tavily API.
+  - *Инструмент:* `search_product`
+  - *Пример:* "Найди цену на новый iPad."
+
+### 6. Работа с текстом
+- **Суммаризация**: Может сокращать длинные тексты или списки текстов для удобного восприятия.
+  - *Инструменты:* `summarize_text`, `batch_summarize_text`
 
 ---
 
-## 🟡 Potential Future Capabilities
+## 🟡 Потенциальные будущие возможности
 
-The following features could be implemented to expand the agent's utility:
+Следующие функции могут быть реализованы для расширения полезности агента:
 
-### 1. Analytics & Insights
-- **Spending Analysis**: Connect to the Analytics Service to answer questions like "How much did I spend on food last week?" or "Show me my spending trend."
-- **Productivity Stats**: Provide insights on task completion rates and most productive days.
+### 1. Аналитика и инсайты
+- **Анализ расходов**: Подключение к сервису аналитики для ответов на вопросы типа "Сколько я потратил на еду на прошлой неделе?" или "Покажи тренд моих расходов."
+- **Статистика продуктивности**: Предоставление инсайтов о скорости выполнения задач и наиболее продуктивных днях.
 
-### 2. Advanced Management
-- **Category Management**: Allow the agent to create, rename, or delete categories directly.
-- **Smart Views**: Enable the agent to create custom filters or "Smart Views" for the user (e.g., "High priority work tasks").
-- **Bulk Actions**: Support for creating multiple items at once or clearing completed tasks.
+### 2. Расширенное управление
+- **Переименование категорий**: Возможность изменять названия существующих категорий.
+- **Умные виды (Smart Views)**: Возможность создавать пользовательские фильтры (например, "Рабочие задачи с высоким приоритетом").
+- **Массовые действия**: Поддержка создания нескольких элементов сразу или очистки выполненных задач.
 
-### 3. Planning & Budgeting
-- **Budget Tracking**: Set and monitor spending limits for specific categories.
-- **Schedule Planning**: Suggest optimal times for tasks based on existing schedule and due dates.
+### 3. Планирование и бюджет
+- **Отслеживание бюджета**: Установка и мониторинг лимитов расходов для конкретных категорий.
+- **Планирование расписания**: Предложение оптимального времени для задач на основе существующего расписания и сроков.
 
-### 4. User Settings
-- **Profile Management**: Update user preferences, language settings, or notification preferences.
+### 4. Настройки пользователя
+- **Управление профилем**: Обновление предпочтений пользователя, настроек языка или уведомлений.
 
-### 5. Context Awareness
-- **Conversation History**: Improve memory of past interactions to provide more personalized context (currently limited to the immediate session context).
+### 5. Контекстная осведомленность
+- **История диалога**: Улучшение памяти о прошлых взаимодействиях для предоставления более персонализированного контекста (в настоящее время ограничено контекстом текущей сессии).
