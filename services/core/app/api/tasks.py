@@ -224,6 +224,24 @@ async def update_task(
     
     background_tasks.add_task(_invalidate_tasks_cache, user_id)
     
+    # Send TaskUpdated event if due_date changed or other important fields
+    # We check if due_date is in update_data
+    if "due_date" in update_data:
+        async def send_update_event():
+            try:
+                event = {
+                    "event_type": "TaskUpdated",
+                    "task_id": str(task.id),
+                    "user_id": str(user_id),
+                    "title": task.title,
+                    "due_date": task.due_date.isoformat() if task.due_date else None,
+                    "updated_at": datetime.utcnow().isoformat()
+                }
+                await mq_client.publish(routing_key="core.task.updated", message=event)
+            except Exception as e:
+                print(f"Failed to publish TaskUpdated event: {e}")
+        background_tasks.add_task(send_update_event)
+
     if was_completed_now:
         async def send_event():
             try:

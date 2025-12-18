@@ -24,9 +24,10 @@ export function AiChat() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isFirstLoad = useRef(true);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
   };
 
   useEffect(() => {
@@ -37,7 +38,14 @@ export function AiChat() {
   }, [input]);
 
   useEffect(() => {
-    scrollToBottom();
+    if (messages.length > 0) {
+      if (isFirstLoad.current) {
+        scrollToBottom("auto");
+        isFirstLoad.current = false;
+      } else {
+        scrollToBottom("smooth");
+      }
+    }
   }, [messages]);
 
   useEffect(() => {
@@ -182,7 +190,7 @@ export function AiChat() {
                 <div className={`p-4 rounded-2xl shadow-sm leading-relaxed whitespace-pre-wrap ${
                     msg.role === 'user'
                     ? 'bg-text-950/5 text-text-950 rounded-tr-none'
-                    : 'bg-surface border border-border text-text-950/80 rounded-tl-none w-full'
+                    : 'bg-surface-dark border border-border text-text-950/80 rounded-tl-none w-full'
                 }`}>
                     {msg.role === 'assistant' ? (
                         <ReactMarkdown
@@ -220,7 +228,7 @@ export function AiChat() {
                 <div className="flex items-baseline gap-2">
                     <span className="font-semibold text-sm">TaskAI</span>
                 </div>
-                <div className="bg-surface border border-border p-4 rounded-2xl rounded-tl-none shadow-sm">
+                <div className="bg-surface-dark border border-border p-4 rounded-2xl rounded-tl-none shadow-sm">
                    <span className="animate-pulse text-text-950/40">Thinking...</span>
                 </div>
              </div>
@@ -237,7 +245,7 @@ export function AiChat() {
                 <div className="self-center mb-6">
                     <button 
                         onClick={() => setMessages([])}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-surface/90 hover:bg-surface-dark border border-primary/40 hover:border-primary text-primary hover:text-primary-light rounded-full shadow-lg shadow-text-950/10 transition-all duration-300 backdrop-blur-md group hover:scale-105 active:scale-95 cursor-pointer"
+                        className="flex items-center gap-2 px-5 py-2.5 bg-surface-dark/90 hover:bg-surface-dark border border-primary/40 hover:border-primary text-primary hover:text-primary-light rounded-full shadow-lg shadow-text-950/10 transition-all duration-300 backdrop-blur-md group hover:scale-105 active:scale-95 cursor-pointer"
                     >
                         <span className="material-symbols-outlined text-lg group-hover:rotate-90 transition-transform duration-500">add_circle</span>
                         <span className="text-sm font-medium">Start New Chat</span>
@@ -245,7 +253,7 @@ export function AiChat() {
                 </div>
             )}
 
-            <div className="relative flex items-end bg-surface rounded-2xl shadow-lg border border-border ring-1 ring-text-950/5 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary transition-all duration-300">
+            <div className="relative flex items-end bg-surface-dark rounded-2xl shadow-lg border border-border ring-1 ring-text-950/5 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary transition-all duration-300">
                 <button className="p-3 ml-1 mb-1 text-text-950/40 hover:text-primary transition-colors cursor-pointer">
                     <span className="material-symbols-outlined rotate-45">attach_file</span>
                 </button>

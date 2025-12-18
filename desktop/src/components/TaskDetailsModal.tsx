@@ -78,6 +78,7 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
 
       const updatedTask = await updateTask(task.id, updates);
       onTaskUpdated(updatedTask);
+      resetForm(updatedTask);
       setIsEditing(false);
     } catch (err) {
       console.error(err);
@@ -89,7 +90,7 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
 
   if (!task) return null;
 
-  const category = categories.find(c => c.id === (isEditing ? categoryId : task.category_id));
+  const category = categories.find(c => c.id === categoryId);
 
   return (
     <Modal 
@@ -108,12 +109,12 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
           <div className="flex flex-col gap-6">
             {/* Title */}
             <div className="pr-8">
-               <h2 className="text-xl font-bold text-text-950">{task.title}</h2>
+               <h2 className="text-xl font-bold text-text-950">{title}</h2>
             </div>
 
             {/* Description */}
             <div className="bg-text-950/5 rounded-xl p-4 border border-text-950/10 min-h-[100px]">
-              {task.description ? (
+              {description ? (
                 <ReactMarkdown 
                   remarkPlugins={[remarkGfm]}
                   components={{
@@ -131,7 +132,7 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
                     pre: ({children}) => <pre className="bg-text-950/5 rounded-lg p-3 overflow-x-auto my-2 border border-text-950/10">{children}</pre>,
                   }}
                 >
-                  {task.description}
+                  {description}
                 </ReactMarkdown>
               ) : (
                 <span className="text-text-secondary italic text-base">{t("no_description") || "No description provided."}</span>
@@ -159,7 +160,7 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
               <div className="flex flex-col gap-1">
                 <span className="text-text-secondary text-xs font-bold uppercase tracking-wider">{t("due_date") || "Due Date"}</span>
                 <span className="text-text-950">
-                  {task.due_date ? new Date(task.due_date).toLocaleString() : (t("no_date") || "No Date")}
+                  {dueDate ? new Date(dueDate).toLocaleString() : (t("no_date") || "No Date")}
                 </span>
               </div>
             </div>

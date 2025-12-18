@@ -1,6 +1,7 @@
 import uuid
 import asyncio
 import json
+from datetime import datetime
 import redis.asyncio as redis
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Task
@@ -80,6 +81,18 @@ class TaskService:
                         await redis_client.delete(key)
                 except Exception as e:
                     print(f"Failed to invalidate cache: {e}")
+
+                # Send TaskDeleted event
+                try:
+                    event = {
+                        "event_type": "TaskDeleted",
+                        "task_id": str(task_id),
+                        "user_id": str(user_id),
+                        "deleted_at": datetime.utcnow().isoformat()
+                    }
+                    await mq_client.publish(routing_key="core.task.deleted", message=event)
+                except Exception as e:
+                    print(f"Failed to publish TaskDeleted event: {e}")
             
             asyncio.create_task(side_effects())
             return True

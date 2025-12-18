@@ -159,9 +159,8 @@ async def get_dashboard_stats(
                 if due_date.tzinfo is None:
                     due_date = due_date.replace(tzinfo=timezone.utc)
                 
-                # Сравниваем с start_date (началом периода)
-                # "висит невыполненными за пределами этого времени" -> due_date < start_date
-                if due_date < start_date:
+                # Сравниваем с текущим временем (utc_now)
+                if due_date < utc_now:
                     overdue_tasks_count += 1
             except (ValueError, TypeError):
                 pass

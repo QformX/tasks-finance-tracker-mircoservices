@@ -38,13 +38,14 @@ export function Analytics() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [statsData, eventsData, heatmapData, categoriesData, boughtPurchasesList, boughtIds] = await Promise.all([
+      const [statsData, eventsData, heatmapData, categoriesData, boughtPurchasesList, boughtIds, overdueTasks] = await Promise.all([
         getDashboardStats(period),
         getRecentEvents(20),
         getActivityHeatmap(period === "week" || period === "today" ? 7 : period === "month" ? 30 : 365),
         getCategories(),
         getPurchases(true),
-        getBoughtPurchaseIds(period)
+        getBoughtPurchaseIds(period),
+        getTasks("overdue")
       ]);
       
       setCategories(categoriesData);
@@ -58,7 +59,13 @@ export function Analytics() {
           setTodayTasks(tasks);
       }
 
-      setStats(statsData);
+      // Override overdue count: show actual overdue tasks only for "today" view, otherwise 0
+      const modifiedStats = {
+        ...statsData,
+        overdue_tasks_count: period === "today" ? overdueTasks.length : 0
+      };
+
+      setStats(modifiedStats);
       setRecentEvents(eventsData.events);
       setHeatmap(heatmapData);
     } catch (error) {
