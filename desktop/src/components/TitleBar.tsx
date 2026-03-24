@@ -94,42 +94,7 @@ export function TitleBar() {
 
   // macOS Layout
   if (isMacOS) {
-    return (
-      <div className="h-[32px] bg-surface flex items-center select-none shrink-0 z-50 w-full px-3">
-         {/* Traffic Lights (Left mapped) - NO DRAG REGION HERE */}
-         <div className="flex gap-[8px] items-center z-50 mr-4">
-            <button 
-              onClick={handleClose}
-              className="w-[12px] h-[12px] rounded-full bg-[#FF5F57] hover:bg-[#BF4942] border-[0.5px] border-[#E0443E] flex items-center justify-center group focus:outline-none transition-colors"
-              title="Close"
-            >
-               <span className="opacity-0 group-hover:opacity-100 text-[8px] font-bold text-black/60 leading-none">✕</span>
-            </button>
-            <button 
-              onClick={handleMinimize}
-              className="w-[12px] h-[12px] rounded-full bg-[#FEBC2E] hover:bg-[#DFA026] border-[0.5px] border-[#D89E24] flex items-center justify-center group focus:outline-none transition-colors"
-               title="Minimize"
-            >
-               <span className="opacity-0 group-hover:opacity-100 text-[8px] font-bold text-black/60 leading-none">−</span>
-            </button>
-            <button 
-              onClick={handleMaximize}
-              className="w-[12px] h-[12px] rounded-full bg-[#28C840] hover:bg-[#1D9930] border-[0.5px] border-[#1AAB29] flex items-center justify-center group focus:outline-none transition-colors"
-               title="Maximize"
-            >
-               <span className="opacity-0 group-hover:opacity-100 text-[8px] font-bold text-black/60 leading-none">＋</span>
-            </button>
-         </div>
-         
-         {/* Drag Region covering the rest of the bar */}
-         <div className="flex-1 h-full flex items-center justify-center" data-tauri-drag-region>
-           {/* Optional Title can go here */}
-         </div>
-         
-         {/* Spacer to balance the layout */}
-         <div className="w-[52px]" data-tauri-drag-region /> 
-      </div>
-    );
+    return null; // Use native title bar
   }
 
   // Windows / Linux Layout
