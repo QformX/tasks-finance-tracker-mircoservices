@@ -87,8 +87,8 @@ export function TitleBar() {
   // macOS Layout
   if (isMacOS) {
     return (
-      <div className="h-[32px] bg-surface flex items-center select-none shrink-0 z-50 w-full px-3" data-tauri-drag-region>
-         {/* Traffic Lights (Left mapped) */}
+      <div className="h-[32px] bg-surface flex items-center select-none shrink-0 z-50 w-full px-3">
+         {/* Traffic Lights (Left mapped) - NO DRAG REGION HERE */}
          <div className="flex gap-[8px] items-center z-50 mr-4">
             <button 
               onClick={handleClose}
@@ -113,13 +113,13 @@ export function TitleBar() {
             </button>
          </div>
          
-         {/* Drag Region */}
+         {/* Drag Region covering the rest of the bar */}
          <div className="flex-1 h-full flex items-center justify-center" data-tauri-drag-region>
            {/* Optional Title can go here */}
          </div>
          
-         {/* Spacer to balance the layout if title is centered, or just empty */}
-         <div className="w-[52px]" /> 
+         {/* Spacer to balance the layout */}
+         <div className="w-[52px]" data-tauri-drag-region /> 
       </div>
     );
   }
