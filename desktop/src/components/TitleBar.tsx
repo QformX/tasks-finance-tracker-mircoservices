@@ -9,11 +9,10 @@ export function TitleBar() {
   // Safe window access helper
   const getAppWindow = () => {
     try {
-      if (typeof window !== 'undefined' && '__TAURI__' in window) {
-        return getCurrentWindow();
-      }
-      return null;
-    } catch {
+      // Direct call to getCurrentWindow, let it handle environment checks or throw
+      return getCurrentWindow();
+    } catch (e) {
+      console.warn('Could not get current window instance:', e);
       return null;
     }
   };
