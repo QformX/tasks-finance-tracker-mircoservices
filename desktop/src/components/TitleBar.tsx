@@ -71,10 +71,19 @@ export function TitleBar() {
 
   const handleMaximize = async () => {
     if (appWindow) {
-      if (await appWindow.isMaximized()) {
-        await appWindow.unmaximize();
+      if (isMacOS) {
+        try {
+          const isFullscreen = await appWindow.isFullscreen();
+          await appWindow.setFullscreen(!isFullscreen);
+        } catch (e) {
+          console.error(e);
+        }
       } else {
-        await appWindow.maximize();
+        if (await appWindow.isMaximized()) {
+          await appWindow.unmaximize();
+        } else {
+          await appWindow.maximize();
+        }
       }
     }
   };
