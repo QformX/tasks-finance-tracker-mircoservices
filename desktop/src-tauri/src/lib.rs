@@ -2,6 +2,13 @@
 pub fn run() {
   tauri::Builder::default()
     .setup(|app| {
+      #[cfg(target_os = "macos")]
+      {
+        use tauri::menu::Menu;
+        let menu = Menu::default(app.handle())?;
+        app.set_menu(menu)?;
+      }
+
       if cfg!(debug_assertions) {
         app.handle().plugin(
           tauri_plugin_log::Builder::default()
