@@ -65,8 +65,9 @@ export function CreatePurchaseModal({ isOpen, onClose, onPurchaseCreated, presel
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="New Purchase">
+    <Modal isOpen={isOpen} onClose={onClose}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <h2 className="text-lg font-bold text-text-950 mb-2">New Purchase</h2>
         {error && <div className="text-red-500 text-sm">{error}</div>}
         
         <div className="flex flex-col gap-1">
@@ -76,7 +77,7 @@ export function CreatePurchaseModal({ isOpen, onClose, onPurchaseCreated, presel
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="What do you need to buy?"
-            className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-text-secondary/50"
+            className="bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-2.5 text-text-950 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-text-secondary/50"
             autoFocus
           />
         </div>
@@ -91,7 +92,7 @@ export function CreatePurchaseModal({ isOpen, onClose, onPurchaseCreated, presel
               placeholder="0.00"
               step="0.01"
               min="0"
-              className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-text-secondary/50"
+              className="bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-2.5 text-text-950 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-text-secondary/50"
             />
           </div>
 
@@ -103,7 +104,7 @@ export function CreatePurchaseModal({ isOpen, onClose, onPurchaseCreated, presel
               onChange={(e) => setQuantity(e.target.value)}
               placeholder="1"
               min="1"
-              className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-text-secondary/50"
+              className="bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-2.5 text-text-950 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-text-secondary/50"
             />
           </div>
         </div>
@@ -123,7 +124,7 @@ export function CreatePurchaseModal({ isOpen, onClose, onPurchaseCreated, presel
           <button 
             type="button" 
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-sm font-medium text-text-secondary hover:text-white hover:bg-white/5 transition-colors"
+            className="px-4 py-2 rounded-xl text-sm font-medium text-text-secondary hover:text-text-950 hover:bg-text-950/5 transition-colors"
           >
             Cancel
           </button>

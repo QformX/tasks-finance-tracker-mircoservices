@@ -4,9 +4,10 @@ from sqlalchemy import String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
+from app.models.mixins import SyncMixin
 
 
-class Category(Base):
+class Category(Base, SyncMixin):
     """
     Модель категории для группировки задач и покупок
     """
@@ -16,6 +17,8 @@ class Category(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
     title: Mapped[str] = mapped_column(String, index=True)
     type: Mapped[str] = mapped_column(String)  # 'tasks', 'purchases', 'mixed'
+    color: Mapped[str] = mapped_column(String, nullable=True)
+    icon: Mapped[str] = mapped_column(String, nullable=True)
 
     # Relationships
     tasks: Mapped[List["Task"]] = relationship("Task", back_populates="category")

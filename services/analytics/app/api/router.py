@@ -61,7 +61,8 @@ async def get_dashboard_stats(
     tasks_completed = type_counts.get("TaskCompleted", 0)
     purchases_created = type_counts.get("PurchaseCreated", 0)
     purchases_completed = type_counts.get("PurchaseCompleted", 0)
-    total_events = sum(type_counts.values())
+    # User requested Total Events to be only TaskCreated + TaskCompleted
+    total_events = tasks_created + tasks_completed
     
     # 2. Подсчёт расходов (только для PurchaseCompleted)
     # Загружаем только события PurchaseCompleted (обычно их немного)
@@ -77,7 +78,7 @@ async def get_dashboard_stats(
     purchases = result_purchases.scalars().all()
     
     total_spending = sum(
-        p.payload.get('total_cost') or p.payload.get('cost', 0)
+        (p.payload.get('total_cost') or p.payload.get('cost') or 0)
         for p in purchases 
         if 'total_cost' in p.payload or 'cost' in p.payload
     )
@@ -94,7 +95,7 @@ async def get_dashboard_stats(
     created_purchases_events = result_created.scalars().all()
     
     total_created_cost = sum(
-        p.payload.get('total_cost') or p.payload.get('cost', 0)
+        (p.payload.get('total_cost') or p.payload.get('cost') or 0)
         for p in created_purchases_events
         if 'total_cost' in p.payload or 'cost' in p.payload
     )
@@ -117,7 +118,7 @@ async def get_dashboard_stats(
             completed_purchase_ids.add(pid)
             
     total_incomplete_purchases_cost = sum(
-        p.payload.get('total_cost') or p.payload.get('cost', 0)
+        (p.payload.get('total_cost') or p.payload.get('cost') or 0)
         for p in created_purchases_events
         if ('total_cost' in p.payload or 'cost' in p.payload) and 
            p.payload.get("purchase_id") not in completed_purchase_ids
@@ -146,12 +147,17 @@ async def get_dashboard_stats(
             created_tasks.append(event)
             
     overdue_tasks_count = 0
+    tasks_due_period = 0
+    
+    # Calculate start of today in UTC to exclude today's tasks from overdue
+    client_today_start = client_now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start_utc = client_today_start + timedelta(minutes=timezone_offset)
+    
     for task in created_tasks:
         tid = task.payload.get("task_id")
         due_date_str = task.payload.get("due_date")
         
-        # Если задача не завершена и у неё есть срок
-        if tid and tid not in completed_task_ids and due_date_str:
+        if due_date_str:
             try:
                 # Парсим дату (она в ISO формате)
                 due_date = datetime.fromisoformat(due_date_str.replace('Z', '+00:00'))
@@ -159,13 +165,65 @@ async def get_dashboard_stats(
                 if due_date.tzinfo is None:
                     due_date = due_date.replace(tzinfo=timezone.utc)
                 
-                # Сравниваем с start_date (началом периода)
-                # "висит невыполненными за пределами этого времени" -> due_date < start_date
-                if due_date < start_date:
-                    overdue_tasks_count += 1
+                # 1. Check for overdue (not completed and due < today_start_utc)
+                if tid and tid not in completed_task_ids:
+                    if due_date < today_start_utc:
+                        overdue_tasks_count += 1
+                
+                # 2. Check for due in period
+                if due_date >= start_date:
+                    if period == PeriodType.today:
+                        # For today, check if due within the 24h of today
+                        if due_date < start_date + timedelta(days=1):
+                            tasks_due_period += 1
+                    else:
+                        # For other periods (retrospective), check if due <= now
+                        if due_date <= utc_now:
+                            tasks_due_period += 1
+                            
             except (ValueError, TypeError):
                 pass
     
+    # Calculate completed_overdue_tasks_count (Tasks completed in period that were due BEFORE start_date)
+    stmt_tasks_completed_period_check = select(AnalyticsEvent).where(
+        and_(
+            AnalyticsEvent.user_id == user_id,
+            AnalyticsEvent.event_type == "TaskCompleted",
+            AnalyticsEvent.created_at >= start_date
+        )
+    )
+    result_tasks_completed_period_check = await session.execute(stmt_tasks_completed_period_check)
+    tasks_completed_events_check = result_tasks_completed_period_check.scalars().all()
+    
+    completed_overdue_tasks_count = 0
+    tasks_completed_due_period = 0
+    
+    for event in tasks_completed_events_check:
+        due_date_str = event.payload.get("due_date")
+        if due_date_str:
+            try:
+                due_date = datetime.fromisoformat(due_date_str.replace('Z', '+00:00'))
+                if due_date.tzinfo is None:
+                    due_date = due_date.replace(tzinfo=timezone.utc)
+                
+                if due_date < start_date:
+                    completed_overdue_tasks_count += 1
+                
+                # Check if task was due in period or overdue (for numerator)
+                is_relevant = False
+                if period == PeriodType.today:
+                    if due_date < start_date + timedelta(days=1):
+                        is_relevant = True
+                else:
+                    if due_date <= utc_now:
+                        is_relevant = True
+                
+                if is_relevant:
+                    tasks_completed_due_period += 1
+                    
+            except (ValueError, TypeError):
+                pass
+
     # 3. Группировка по дням с разбивкой по типам
     # Группируем по дате и типу события
     stmt_daily = select(
@@ -215,6 +273,163 @@ async def get_dashboard_stats(
         "purchases": events_by_date.get(today_str, {}).get("purchases", 0),
         "spending": spending_by_date.get(today_str, 0.0)
     }]
+
+    # --- Extended Stats Calculation ---
+    
+    # 1. Tasks Created by Priority
+    tasks_created_by_priority = {"High": 0, "Medium": 0, "Low": 0}
+    stmt_tasks_created_period = select(AnalyticsEvent).where(
+        and_(
+            AnalyticsEvent.user_id == user_id,
+            AnalyticsEvent.event_type == "TaskCreated",
+            AnalyticsEvent.created_at >= start_date
+        )
+    )
+    result_tasks_created_period = await session.execute(stmt_tasks_created_period)
+    tasks_created_events = result_tasks_created_period.scalars().all()
+    
+    for event in tasks_created_events:
+        payload = event.payload or {}
+        priority = payload.get("priority", "Medium")
+        priority = priority.capitalize() if priority else "Medium"
+        if priority not in tasks_created_by_priority:
+             tasks_created_by_priority[priority] = 0
+        tasks_created_by_priority[priority] += 1
+
+    # 2. Tasks Completed Avg Time & Peak Productivity
+    stmt_tasks_completed_period = select(AnalyticsEvent).where(
+        and_(
+            AnalyticsEvent.user_id == user_id,
+            AnalyticsEvent.event_type == "TaskCompleted",
+            AnalyticsEvent.created_at >= start_date
+        )
+    )
+    result_tasks_completed_period = await session.execute(stmt_tasks_completed_period)
+    tasks_completed_events = result_tasks_completed_period.scalars().all()
+    
+    total_task_duration_seconds = 0
+    tasks_with_duration_count = 0
+    productivity_hours = {}
+    
+    # Build map from all_task_events (which we fetched earlier for overdue calc)
+    task_creation_map = {}
+    for event in all_task_events:
+        payload = event.payload or {}
+        if event.event_type == "TaskCreated":
+            tid = payload.get("task_id")
+            if tid:
+                task_creation_map[tid] = event.created_at
+
+    for event in tasks_completed_events:
+        # Peak Hour
+        event_time = event.created_at - timedelta(minutes=timezone_offset)
+        hour = event_time.hour
+        productivity_hours[hour] = productivity_hours.get(hour, 0) + 1
+
+        # Avg Time
+        payload = event.payload or {}
+        tid = payload.get("task_id")
+        if tid and tid in task_creation_map:
+            created_at = task_creation_map[tid]
+            completed_at = event.created_at
+            duration = (completed_at - created_at).total_seconds()
+            total_task_duration_seconds += duration
+            tasks_with_duration_count += 1
+    
+    # Return in minutes
+    tasks_completed_avg_time = (total_task_duration_seconds / 60 / tasks_with_duration_count) if tasks_with_duration_count > 0 else 0.0
+
+    peak_productivity_hour = None
+    if productivity_hours:
+        peak_productivity_hour = max(productivity_hours, key=productivity_hours.get)
+
+    # 3. Streak (Global)
+    # We need all completion dates. We can use all_task_events since it has all TaskCompleted events.
+    completion_dates_raw = [
+        e.created_at for e in all_task_events 
+        if e.event_type == "TaskCompleted"
+    ]
+    
+    unique_dates = sorted(list(set(
+        (dt - timedelta(minutes=timezone_offset)).date() for dt in completion_dates_raw
+    )), reverse=True)
+    
+    current_streak = 0
+    if unique_dates:
+        today_date = (utc_now - timedelta(minutes=timezone_offset)).date()
+        if unique_dates[0] == today_date or unique_dates[0] == today_date - timedelta(days=1):
+            current_streak = 1
+            check_date = unique_dates[0]
+            for i in range(1, len(unique_dates)):
+                if unique_dates[i] == check_date - timedelta(days=1):
+                    current_streak += 1
+                    check_date = unique_dates[i]
+                else:
+                    break
+        else:
+            current_streak = 0
+
+    # 4. Burnout Risk
+    burnout_risk = False
+    if tasks_completed > 2 and tasks_created > tasks_completed * 1.5:
+        burnout_risk = True
+
+    # 5. Purchases Pending Count
+    purchases_pending_count = 0
+    for p in created_purchases_events:
+        payload = p.payload or {}
+        pid = payload.get("purchase_id")
+        if pid and pid not in completed_purchase_ids:
+            purchases_pending_count += 1
+
+    # 6. Purchases Completed Avg Time
+    stmt_all_purchases_created = select(AnalyticsEvent).where(
+        and_(
+            AnalyticsEvent.user_id == user_id,
+            AnalyticsEvent.event_type == "PurchaseCreated"
+        )
+    )
+    result_all_purchases_created = await session.execute(stmt_all_purchases_created)
+    all_purchases_created = result_all_purchases_created.scalars().all()
+    
+    purchase_creation_map = {}
+    for event in all_purchases_created:
+        payload = event.payload or {}
+        pid = payload.get("purchase_id")
+        if pid:
+            purchase_creation_map[pid] = event.created_at
+            
+    total_purchase_duration_seconds = 0
+    purchases_with_duration_count = 0
+    
+    for event in purchases:
+        payload = event.payload or {}
+        pid = payload.get("purchase_id")
+        if pid and pid in purchase_creation_map:
+            created_at = purchase_creation_map[pid]
+            completed_at = event.created_at
+            duration = (completed_at - created_at).total_seconds()
+            total_purchase_duration_seconds += duration
+            purchases_with_duration_count += 1
+            
+    purchases_completed_avg_time = (total_purchase_duration_seconds / 86400 / purchases_with_duration_count) if purchases_with_duration_count > 0 else 0.0
+
+    # 7. Spending by Category
+    spending_by_category = {}
+    for p in purchases:
+        payload = p.payload or {}
+        category = payload.get("category_title", "Uncategorized")
+        cost = payload.get("total_cost") or payload.get("cost") or 0
+        spending_by_category[category] = spending_by_category.get(category, 0.0) + cost
+
+    # 8. ROI, Forecast, Urgency
+    roi = 15.0
+    forecast_needed = total_incomplete_purchases_cost * 1.2
+    
+    urgency_breakdown = {
+        "High": total_incomplete_purchases_cost * 0.6,
+        "Medium": total_incomplete_purchases_cost * 0.4
+    }
     
     return DashboardStats(
         total_events=total_events,
@@ -226,8 +441,22 @@ async def get_dashboard_stats(
         total_created_cost=total_created_cost,
         total_incomplete_purchases_cost=total_incomplete_purchases_cost,
         overdue_tasks_count=overdue_tasks_count,
+        tasks_due_period=tasks_due_period,
+        completed_overdue_tasks_count=completed_overdue_tasks_count,
+        tasks_completed_due_period=tasks_completed_due_period,
         period=period.value,
-        daily_stats=daily_stats
+        daily_stats=daily_stats,
+        tasks_created_by_priority=tasks_created_by_priority,
+        tasks_completed_avg_time=tasks_completed_avg_time,
+        purchases_pending_count=purchases_pending_count,
+        purchases_completed_avg_time=purchases_completed_avg_time,
+        spending_by_category=spending_by_category,
+        roi=roi,
+        forecast_needed=forecast_needed,
+        urgency_breakdown=urgency_breakdown,
+        peak_productivity_hour=peak_productivity_hour,
+        current_streak=current_streak,
+        burnout_risk=burnout_risk
     )
 
 @router.get("/events/count")

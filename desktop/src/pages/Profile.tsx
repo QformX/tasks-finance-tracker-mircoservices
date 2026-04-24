@@ -46,24 +46,24 @@ export function Profile() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto w-full bg-background-dark">
+    <div className="flex-1 overflow-y-auto w-full">
       <div className="max-w-4xl mx-auto p-6 md:p-10 lg:p-12 pb-24">
         <header className="mb-10">
-          <h1 className="text-2xl lg:text-3xl font-bold text-white mb-2">{t("profile")}</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold text-text-950 mb-2">{t("profile")}</h1>
           <p className="text-text-secondary">{t("profile_desc")}</p>
         </header>
 
         <div className="space-y-8">
           {/* Personal Information */}
-          <section className="bg-surface-dark border border-white/5 rounded-3xl p-6 md:p-8">
-            <h2 className="text-xl font-bold text-white mb-8">{t("personal_info")}</h2>
+          <section className="bg-surface-dark border border-text-950/5 rounded-3xl p-6 md:p-8">
+            <h2 className="text-xl font-bold text-text-950 mb-8">{t("personal_info")}</h2>
             <div className="flex flex-col md:flex-row gap-8">
               <div className="shrink-0 flex flex-col items-center md:items-start gap-4">
                 <div className="relative group size-32">
-                  <div className="w-full h-full rounded-full bg-cover bg-center border-4 border-surface-highlight bg-gray-700 flex items-center justify-center text-4xl font-bold text-white">
+                  <div className="w-full h-full rounded-full bg-cover bg-center border-4 border-primary bg-text-950/20 flex items-center justify-center text-4xl font-bold text-text-950">
                     {user?.username?.substring(0, 2).toUpperCase() || "ME"}
                   </div>
-                  <button className="absolute bottom-0 right-0 bg-white text-black p-2 rounded-full hover:bg-gray-200 transition-colors shadow-lg">
+                  <button className="absolute bottom-0 right-0 bg-text-950 text-background-50 p-2 rounded-full hover:bg-text-950/80 transition-colors shadow-lg">
                     <span className="material-symbols-outlined text-[18px] block">edit</span>
                   </button>
                 </div>
@@ -74,7 +74,7 @@ export function Profile() {
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">{t("display_name")}</label>
                     <input 
-                      className="w-full bg-background-dark border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-gray-600" 
+                      className="w-full bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-3 text-sm text-text-950 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-text-secondary/50" 
                       type="text" 
                       defaultValue={user?.username || ""}
                     />
@@ -82,7 +82,7 @@ export function Profile() {
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">{t("username")}</label>
                     <input 
-                      className="w-full bg-background-dark border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-gray-600" 
+                      className="w-full bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-3 text-sm text-text-950 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-text-secondary/50" 
                       type="text" 
                       defaultValue={user?.username || ""}
                     />
@@ -92,7 +92,7 @@ export function Profile() {
                     <div className="relative">
                       <span className="absolute left-4 top-3 text-text-secondary material-symbols-outlined text-[20px]">mail</span>
                       <input 
-                        className="w-full bg-background-dark border border-white/10 rounded-xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-gray-600" 
+                        className="w-full bg-text-950/5 border border-text-950/10 rounded-xl pl-11 pr-4 py-3 text-sm text-text-950 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-text-secondary/50" 
                         type="email" 
                         defaultValue={user?.email || ""}
                       />
@@ -101,24 +101,24 @@ export function Profile() {
                   <div className="space-y-1.5 md:col-span-2">
                     <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">{t("bio")}</label>
                     <textarea 
-                      className="w-full bg-background-dark border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none placeholder:text-gray-600" 
+                      className="w-full bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-3 text-sm text-text-950 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none placeholder:text-text-secondary/50" 
                       rows={3}
                       defaultValue="Product Manager based in San Francisco. Love building things."
                     ></textarea>
                   </div>
                 </div>
                 <div className="pt-4 flex justify-end">
-                  <button className="px-6 py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 transition-colors shadow-lg shadow-white/5 text-sm">{t("save_changes")}</button>
+                  <button className="px-6 py-3 bg-text-950 text-background-50 font-bold rounded-xl hover:bg-text-950/80 transition-colors shadow-lg shadow-text-950/5 text-sm">{t("save_changes")}</button>
                 </div>
               </div>
             </div>
           </section>
 
           {/* Active Sessions */}
-          <section className="bg-surface-dark border border-white/5 rounded-3xl overflow-hidden">
-            <div className="p-6 md:p-8 border-b border-white/5 flex flex-wrap gap-4 justify-between items-center bg-white/[0.02]">
+          <section className="bg-surface-dark border border-text-950/5 rounded-3xl overflow-hidden">
+            <div className="p-6 md:p-8 border-b border-text-950/5 flex flex-wrap gap-4 justify-between items-center bg-text-950/[0.02]">
               <div>
-                <h2 className="text-xl font-bold text-white">{t("active_sessions")}</h2>
+                <h2 className="text-xl font-bold text-text-950">{t("active_sessions")}</h2>
                 <p className="text-text-secondary text-sm mt-1">{t("active_sessions_desc")}</p>
               </div>
               <button 
@@ -128,22 +128,22 @@ export function Profile() {
                 {t("sign_out_all")}
               </button>
             </div>
-            <div className="divide-y divide-white/5">
+            <div className="divide-y divide-text-950/5">
               {loadingSessions ? (
                 <div className="p-6 text-center text-text-secondary text-sm">{t("loading_sessions")}</div>
               ) : sessions.length === 0 ? (
                 <div className="p-6 text-center text-text-secondary text-sm">{t("no_sessions")}</div>
               ) : (
                 sessions.map(session => (
-                  <div key={session.id} className="p-6 flex items-center gap-4 hover:bg-white/[0.02] transition-colors group">
-                    <div className="size-12 rounded-2xl bg-background-dark border border-white/10 flex items-center justify-center shrink-0 group-hover:border-white/20 transition-colors">
+                  <div key={session.id} className="p-6 flex items-center gap-4 hover:bg-text-950/[0.02] transition-colors group">
+                    <div className="size-12 rounded-2xl bg-text-950/5 border border-text-950/10 flex items-center justify-center shrink-0 group-hover:border-text-950/20 transition-colors">
                       <span className="material-symbols-outlined text-text-secondary">
                         {session.user_agent?.toLowerCase().includes("mobile") ? "smartphone" : "desktop_windows"}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-bold text-white text-sm">
+                        <span className="font-bold text-text-950 text-sm">
                           {session.user_agent ? (session.user_agent.length > 30 ? session.user_agent.substring(0, 30) + "..." : session.user_agent) : t("unknown_device")}
                         </span>
                         {session.is_current && (
@@ -157,7 +157,7 @@ export function Profile() {
                     {!session.is_current && (
                       <button 
                         onClick={() => handleRevokeSession(session.id)}
-                        className="px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-white rounded-lg border border-transparent hover:border-white/10 hover:bg-background-dark transition-all"
+                        className="px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-text-950 rounded-lg border border-transparent hover:border-text-950/10 hover:bg-text-950/5 transition-all"
                       >
                         {t("revoke")}
                       </button>
@@ -169,43 +169,43 @@ export function Profile() {
           </section>
 
           {/* Preferences */}
-          <section className="bg-surface-dark border border-white/5 rounded-3xl p-6 md:p-8">
-            <h2 className="text-xl font-bold text-white mb-8">{t("preferences")}</h2>
+          <section className="bg-surface-dark border border-text-950/5 rounded-3xl p-6 md:p-8">
+            <h2 className="text-xl font-bold text-text-950 mb-8">{t("preferences")}</h2>
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="pr-8">
-                  <p className="text-sm font-bold text-white">{t("email_notifications")}</p>
+                  <p className="text-sm font-bold text-text-950">{t("email_notifications")}</p>
                   <p className="text-xs text-text-secondary mt-1">{t("email_notifications_desc")}</p>
                 </div>
                 <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary transition-colors focus:outline-none">
-                  <span className="translate-x-6 inline-block h-4 w-4 transform rounded-full bg-white transition-transform"></span>
+                  <span className="translate-x-6 inline-block h-4 w-4 transform rounded-full bg-background-50 transition-transform"></span>
                 </button>
               </div>
-              <div className="h-px bg-white/5 w-full"></div>
+              <div className="h-px bg-text-950/5 w-full"></div>
               <div className="flex items-center justify-between">
                 <div className="pr-8">
-                  <p className="text-sm font-bold text-white">{t("desktop_push")}</p>
+                  <p className="text-sm font-bold text-text-950">{t("desktop_push")}</p>
                   <p className="text-xs text-text-secondary mt-1">{t("desktop_push_desc")}</p>
                 </div>
-                <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-white/10 transition-colors focus:outline-none">
-                  <span className="translate-x-1 inline-block h-4 w-4 transform rounded-full bg-white transition-transform"></span>
+                <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-text-950/10 transition-colors focus:outline-none">
+                  <span className="translate-x-1 inline-block h-4 w-4 transform rounded-full bg-background-50 transition-transform"></span>
                 </button>
               </div>
-              <div className="h-px bg-white/5 w-full"></div>
+              <div className="h-px bg-text-950/5 w-full"></div>
               <div className="flex items-center justify-between">
                 <div className="pr-8">
-                  <p className="text-sm font-bold text-white">{t("theme_sync")}</p>
+                  <p className="text-sm font-bold text-text-950">{t("theme_sync")}</p>
                   <p className="text-xs text-text-secondary mt-1">{t("theme_sync_desc")}</p>
                 </div>
                 <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary transition-colors focus:outline-none">
-                  <span className="translate-x-6 inline-block h-4 w-4 transform rounded-full bg-white transition-transform"></span>
+                  <span className="translate-x-6 inline-block h-4 w-4 transform rounded-full bg-background-50 transition-transform"></span>
                 </button>
               </div>
             </div>
           </section>
 
           {/* Delete Account */}
-          <section className="rounded-3xl p-6 md:p-8 border border-red-500/20 bg-gradient-to-br from-red-950/10 to-transparent relative overflow-hidden">
+          <section className="rounded-3xl p-6 md:p-8 border border-red-500/20 bg-gradient-to-br from-red-500/10 to-transparent relative overflow-hidden">
             <div className="relative z-10">
               <h2 className="text-xl font-bold text-red-500 mb-2">{t("delete_account")}</h2>
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">

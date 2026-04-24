@@ -22,6 +22,10 @@ export function useCategories() {
     setCategories(prev => [...prev, category]);
   }, []);
 
+  const updateCategoryInList = useCallback((updatedCategory: Category) => {
+    setCategories(prev => prev.map(c => c.id === updatedCategory.id ? updatedCategory : c));
+  }, []);
+
   const removeCategory = useCallback(async (id: string, strategy: "delete_all" | "move_to_category", targetCategoryId?: string) => {
     try {
       await apiDeleteCategory(id, strategy, targetCategoryId);
@@ -38,12 +42,19 @@ export function useCategories() {
     return categories.find(c => c.id === categoryId)?.title;
   }, [categories]);
 
+  const getCategoryColor = useCallback((categoryId: string | null) => {
+    if (!categoryId) return undefined;
+    return categories.find(c => c.id === categoryId)?.color;
+  }, [categories]);
+
   return {
     categories,
     loading,
     loadCategories,
     addCategory,
+    updateCategoryInList,
     removeCategory,
-    getCategoryName
+    getCategoryName,
+    getCategoryColor
   };
 }

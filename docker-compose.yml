@@ -42,6 +42,20 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres-ai:
+    image: postgres:15-alpine
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ai_db
+    volumes:
+      - ai_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d ai_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   # --- Broker & Cache ---
   rabbitmq:
     image: rabbitmq:3-management-alpine
@@ -50,6 +64,19 @@ services:
     ports:
       - "15672:15672" # Management UI
       - "5672:5672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq-ai:
+    image: rabbitmq:3-management-alpine
+    env_file:
+      - .env
+    ports:
+      - "15673:15672" # Management UI
+      - "5673:5672"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
@@ -77,6 +104,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    restart: unless-stopped
   
   core-service:
     build:
@@ -92,6 +120,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    restart: unless-stopped
 
   analytics-service:
     build:
@@ -105,6 +134,28 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    restart: unless-stopped
+
+  ai-service:
+    build:
+      context: ./services/ai_service
+    env_file:
+      - .env
+    environment:
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      RABBITMQ_URL: amqp://user:password@rabbitmq-ai:5672/
+      DATABASE_URL: postgresql+asyncpg://user:password@postgres-ai:5432/ai_db
+      CORE_SERVICE_URL: http://core-service:8000
+    ports:
+      - "8003:8000"
+    depends_on:
+      rabbitmq-ai:
+        condition: service_healthy
+      postgres-ai:
+        condition: service_healthy
+    restart: unless-stopped
 
   # --- Workers ---
   core-worker:
@@ -117,6 +168,24 @@ services:
     command: ["python", "-m", "app.workers.events_consumer"]
     depends_on:
       postgres-core:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  core-rpc-worker:
+    build:
+      context: ./services/core
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${CORE_DATABASE_URL}
+      AI_RABBITMQ_URL: amqp://user:password@rabbitmq-ai:5672/
+    command: ["faststream", "run", "app.rpc_worker:app"]
+    depends_on:
+      postgres-core:
+        condition: service_healthy
+      rabbitmq-ai:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
@@ -148,9 +217,11 @@ services:
       - users-service
       - core-service
       - analytics-service
+      - ai-service
 
 volumes:
   users_pg_data:
   core_pg_data:
   analytics_pg_data:
+  ai_pg_data:
 

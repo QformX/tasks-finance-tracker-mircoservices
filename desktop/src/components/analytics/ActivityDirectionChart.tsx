@@ -44,8 +44,8 @@ export function ActivityDirectionChart({ stats }: { stats: DashboardStats | null
              <h4 className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-4">Activity Direction</h4>
              <div className="relative w-48 h-48">
                 {/* Axis Lines */}
-                <div className="absolute top-0 bottom-0 left-1/2 w-px bg-white/10 -translate-x-1/2"></div>
-                <div className="absolute left-0 right-0 top-1/2 h-px bg-white/10 -translate-y-1/2"></div>
+                <div className="absolute top-0 bottom-0 left-1/2 w-px bg-text-950/10 -translate-x-1/2"></div>
+                <div className="absolute left-0 right-0 top-1/2 h-px bg-text-950/10 -translate-y-1/2"></div>
                 
                 {/* Labels */}
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 text-[10px] text-text-secondary font-medium">

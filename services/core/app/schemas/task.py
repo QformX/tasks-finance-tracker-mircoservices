@@ -10,6 +10,7 @@ class TaskCreate(BaseModel):
     category_id: Optional[uuid.UUID] = None
     due_date: Optional[datetime] = None
     description: Optional[str] = None
+    priority: str = "medium"
 
 
 class TaskUpdate(BaseModel):
@@ -19,6 +20,7 @@ class TaskUpdate(BaseModel):
     is_completed: Optional[bool] = None
     due_date: Optional[datetime] = None
     description: Optional[str] = None
+    priority: Optional[str] = None
 
 
 class TaskResponse(BaseModel):
@@ -27,6 +29,8 @@ class TaskResponse(BaseModel):
     user_id: uuid.UUID
     category_id: Optional[uuid.UUID]
     title: str
+    description: Optional[str] = None
+    priority: str = "medium"
     is_completed: bool
     due_date: Optional[datetime]
     created_at: datetime

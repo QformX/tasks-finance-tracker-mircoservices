@@ -1,13 +1,16 @@
 import { TaskItem } from "@/components/TaskItem";
 import { PurchaseItem } from "@/components/PurchaseItem";
+import { DateHeader } from "@/components/DateHeader";
 import { useLanguage } from "@/context/LanguageContext";
 import type { Task, Purchase } from "@/types";
+import { groupItemsByDate } from "@/lib/utils";
 
 interface CategoryContentProps {
   loading: boolean;
   tasks: Task[];
   purchases: Purchase[];
   categoryName: string;
+  categoryColor?: string;
   onTaskToggle: (id: string) => void;
   onTaskDelete: (id: string) => void;
   onTaskEdit: (task: Task) => void;
@@ -21,6 +24,7 @@ export function CategoryContent({
   tasks,
   purchases,
   categoryName,
+  categoryColor,
   onTaskToggle,
   onTaskDelete,
   onTaskEdit,
@@ -29,6 +33,8 @@ export function CategoryContent({
   onPurchaseEdit,
 }: CategoryContentProps) {
   const { t } = useLanguage();
+
+  const groupedTasks = groupItemsByDate(tasks, 'due_date');
 
   return (
       <div className="flex-1 overflow-y-auto w-full px-8 pb-20">
@@ -44,16 +50,27 @@ export function CategoryContent({
                     <span className="material-symbols-outlined text-[14px]">task_alt</span>
                     {t("tasks")}
                   </h3>
-                  {tasks.map(task => (
-                    <TaskItem 
-                      key={task.id} 
-                      task={task} 
-                      categoryName={categoryName}
-                      onToggle={() => onTaskToggle(task.id)} 
-                      onDelete={() => onTaskDelete(task.id)} 
-                      onEdit={() => onTaskEdit(task)}
-                    />
-                  ))}
+                  {groupedTasks.map(group => {
+                    const isPast = group.label !== "No Date" && new Date(group.date) < new Date(new Date().toLocaleDateString('en-CA'));
+                    return (
+                    <div key={group.date} className="flex flex-col gap-1">
+                      <DateHeader isOverdue={isPast}>
+                        {group.label}
+                      </DateHeader>
+                      {group.items.map(task => (
+                        <TaskItem 
+                          key={task.id} 
+                          task={task} 
+                          categoryName={categoryName}
+                          categoryColor={categoryColor}
+                          onToggle={() => onTaskToggle(task.id)} 
+                          onDelete={() => onTaskDelete(task.id)} 
+                          onEdit={() => onTaskEdit(task)}
+                          isOverdue={isPast}
+                        />
+                      ))}
+                    </div>
+                  )})}
                 </div>
               )}
 
@@ -69,6 +86,7 @@ export function CategoryContent({
                       key={purchase.id} 
                       purchase={purchase} 
                       categoryName={categoryName}
+                      categoryColor={categoryColor}
                       onToggle={() => onPurchaseToggle(purchase.id)} 
                       onDelete={() => onPurchaseDelete(purchase.id)} 
                       onEdit={() => onPurchaseEdit(purchase)}

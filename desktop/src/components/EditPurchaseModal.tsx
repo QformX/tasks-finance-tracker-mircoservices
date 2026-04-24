@@ -61,6 +61,7 @@ export function EditPurchaseModal({ isOpen, onClose, purchase, onPurchaseUpdated
       onPurchaseUpdated(updatedPurchase);
       onClose();
     } catch (err) {
+      console.error(err);
       setError("Failed to update purchase");
     } finally {
       setLoading(false);
@@ -85,7 +86,7 @@ export function EditPurchaseModal({ isOpen, onClose, purchase, onPurchaseUpdated
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={t("purchase_placeholder") || "What needs to be bought?"}
-            className="bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-text-secondary/50 focus:outline-none focus:border-primary/50 transition-colors"
+            className="bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-2.5 text-text-950 placeholder:text-text-secondary/50 focus:outline-none focus:border-primary-500/50 transition-colors"
             autoFocus
           />
         </div>
@@ -110,7 +111,7 @@ export function EditPurchaseModal({ isOpen, onClose, purchase, onPurchaseUpdated
               value={cost}
               onChange={(e) => setCost(e.target.value)}
               placeholder="0.00"
-              className="bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-text-secondary/50 focus:outline-none focus:border-primary/50 transition-colors"
+              className="bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-2.5 text-text-950 placeholder:text-text-secondary/50 focus:outline-none focus:border-primary-500/50 transition-colors"
             />
           </div>
 
@@ -121,7 +122,7 @@ export function EditPurchaseModal({ isOpen, onClose, purchase, onPurchaseUpdated
               min="1"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              className="bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-text-secondary/50 focus:outline-none focus:border-primary/50 transition-colors"
+              className="bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-2.5 text-text-950 placeholder:text-text-secondary/50 focus:outline-none focus:border-primary-500/50 transition-colors"
             />
           </div>
         </div>
@@ -130,14 +131,14 @@ export function EditPurchaseModal({ isOpen, onClose, purchase, onPurchaseUpdated
           <button 
             type="button" 
             onClick={onClose}
-            className="px-4 py-2 rounded-lg text-text-secondary hover:text-white hover:bg-white/5 transition-colors font-medium text-sm"
+            className="px-4 py-2 rounded-lg text-text-secondary hover:text-text-950 hover:bg-text-950/5 transition-colors font-medium text-sm"
           >
             {t("cancel") || "Cancel"}
           </button>
           <button 
             type="submit" 
             disabled={loading}
-            className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 rounded-lg bg-primary-500 hover:bg-primary-600 text-white font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (t("saving") || "Saving...") : (t("save_changes") || "Save Changes")}
           </button>

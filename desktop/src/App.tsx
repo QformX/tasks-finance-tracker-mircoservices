@@ -7,8 +7,10 @@ import { Analytics } from "@/pages/Analytics";
 import { Settings } from "@/pages/Settings";
 import { Profile } from "@/pages/Profile";
 import { AuthPage } from "@/pages/Auth";
+import { AiChat } from "@/pages/AiChat";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import { Layout } from "@/components/Layout";
 import { Routes, Route, Navigate } from "react-router-dom";
 
@@ -31,6 +33,7 @@ function AppContent() {
     <Layout>
       <Routes>
         <Route path="/" element={<ApiTester />} />
+        <Route path="/chat" element={<AiChat />} />
         <Route path="/tasks" element={<MyTasks />} />
         <Route path="/purchases" element={<Purchases />} />
         <Route path="/categories" element={<Categories />} />
@@ -48,7 +51,9 @@ function App() {
     <ErrorBoundary>
       <LanguageProvider>
         <AuthProvider>
-          <AppContent />
+          <ThemeProvider>
+            <AppContent />
+          </ThemeProvider>
         </AuthProvider>
       </LanguageProvider>
     </ErrorBoundary>

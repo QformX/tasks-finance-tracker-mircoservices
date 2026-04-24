@@ -11,11 +11,11 @@ export function DistributionBar({ label, value, total, color }: DistributionBarP
     const percentage = Math.round((value / total) * 100);
     return (
         <div>
-            <div className="flex justify-between text-xs mb-1">
-                <span className="text-gray-300">{label}</span>
+            <div className="flex justify-between text-sm mb-1">
+                <span className="text-text-secondary">{label}</span>
                 <span className="text-text-secondary">{value} ({percentage}%)</span>
             </div>
-            <div className="w-full h-2 bg-[#27272a] rounded-full overflow-hidden">
+            <div className="w-full h-2 bg-text-950/10 rounded-full overflow-hidden">
                 <div className={cn("h-full rounded-full", color)} style={{ width: `${percentage}%` }}></div>
             </div>
         </div>

@@ -36,20 +36,29 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
       <div 
         ref={modalRef}
         className={cn(
-          "bg-[#1e1e21] border border-white/10 rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200",
+          "bg-surface border border-text-950/10 rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200",
           className
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-4 border-b border-white/5">
-          <h2 className="text-white font-bold text-lg">{title}</h2>
+        {title ? (
+          <div className="flex items-center justify-between p-4 border-b border-text-950/5">
+            <h2 className="text-text-950 font-bold text-lg">{title}</h2>
+            <button 
+              onClick={onClose}
+              className="text-text-secondary hover:text-text-950 p-1 rounded-full hover:bg-text-950/10 transition-colors"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+          </div>
+        ) : (
           <button 
             onClick={onClose}
-            className="text-text-secondary hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+            className="absolute top-2 right-2 text-text-secondary hover:text-text-950 p-1 rounded-full hover:bg-text-950/10 transition-colors z-10"
           >
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
-        </div>
+        )}
         <div className="p-4 overflow-y-auto">
           {children}
         </div>

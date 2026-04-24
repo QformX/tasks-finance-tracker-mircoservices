@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import type { Task, Purchase } from "@/types";
 import { CreateTaskModal } from "@/components/CreateTaskModal";
-import { EditTaskModal } from "@/components/EditTaskModal";
+import { TaskDetailsModal } from "@/components/TaskDetailsModal";
 import { CreatePurchaseModal } from "@/components/CreatePurchaseModal";
 import { EditPurchaseModal } from "@/components/EditPurchaseModal";
 import { CreateCategoryModal } from "@/components/CreateCategoryModal";
+import { EditCategoryModal } from "@/components/EditCategoryModal";
 import { DeleteCategoryModal } from "@/components/DeleteCategoryModal";
 import { useLanguage } from "@/context/LanguageContext";
 import { CategoryHeader } from "@/components/categories/CategoryHeader";
@@ -20,6 +21,7 @@ export function Categories() {
     categories, 
     loadCategories, 
     addCategory, 
+    updateCategoryInList,
     removeCategory 
   } = useCategories();
 
@@ -49,6 +51,7 @@ export function Categories() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [isEditCategoryModalOpen, setIsEditCategoryModalOpen] = useState(false);
   const [isDeleteCategoryModalOpen, setIsDeleteCategoryModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
@@ -59,18 +62,7 @@ export function Categories() {
     loadCategories();
   }, [loadCategories]);
 
-  useEffect(() => {
-    if (categories.length > 0) {
-      // Ensure index is valid
-      if (currentIndex >= categories.length) {
-        setCurrentIndex(0);
-      } else {
-        loadCategoryItems(categories[currentIndex].id);
-      }
-    }
-  }, [currentIndex, categories]);
-
-  async function loadCategoryItems(categoryId: string) {
+  const loadCategoryItems = useCallback(async (categoryId: string) => {
     setLoading(true);
     try {
       const category = categories.find(c => c.id === categoryId);
@@ -96,7 +88,18 @@ export function Categories() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [categories, fetchTasks, fetchPurchases, setTasksList, setPurchasesList]);
+
+  useEffect(() => {
+    if (categories.length > 0) {
+      // Ensure index is valid
+      if (currentIndex >= categories.length) {
+        setCurrentIndex(0);
+      } else {
+        loadCategoryItems(categories[currentIndex].id);
+      }
+    }
+  }, [currentIndex, categories, loadCategoryItems]);
 
   function handleNext() {
     setCurrentIndex((prev) => (prev + 1) % categories.length);
@@ -154,6 +157,7 @@ export function Categories() {
           const idx = categories.findIndex(c => c.id === cat.id);
           setCurrentIndex(idx);
         }}
+        onEditClick={() => setIsEditCategoryModalOpen(true)}
         onDeleteClick={() => setIsDeleteCategoryModalOpen(true)}
         onAddTaskClick={() => setIsTaskModalOpen(true)}
         onAddPurchaseClick={() => setIsPurchaseModalOpen(true)}
@@ -164,6 +168,7 @@ export function Categories() {
         tasks={tasks}
         purchases={purchases}
         categoryName={currentCategory.title}
+        categoryColor={currentCategory.color}
         onTaskToggle={toggleTask}
         onTaskDelete={deleteTask}
         onTaskEdit={handleEditTask}
@@ -199,6 +204,13 @@ export function Categories() {
         onClose={() => setIsCategoryModalOpen(false)} 
         onCategoryCreated={handleCategoryCreated} 
       />
+
+      <EditCategoryModal
+        isOpen={isEditCategoryModalOpen}
+        onClose={() => setIsEditCategoryModalOpen(false)}
+        category={currentCategory}
+        onCategoryUpdated={(updatedCategory) => updateCategoryInList(updatedCategory)}
+      />
       
       <DeleteCategoryModal
         isOpen={isDeleteCategoryModalOpen}
@@ -208,7 +220,7 @@ export function Categories() {
         categories={categories}
       />
 
-      <EditTaskModal 
+      <TaskDetailsModal 
         isOpen={isEditTaskModalOpen} 
         onClose={() => setIsEditTaskModalOpen(false)} 
         task={editingTask}
