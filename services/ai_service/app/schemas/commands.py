@@ -35,3 +35,13 @@ class DeleteItemCMD(BaseModel):
     user_id: UUID
     item_id: UUID
     item_type: Literal["task", "purchase", "category"]
+
+class UpdatePurchaseCMD(BaseModel):
+    user_id: UUID
+    purchase_id: UUID
+    title: Optional[str] = None
+    category_id: Optional[UUID] = None
+    cost: Optional[float] = None
+    quantity: Optional[int] = None
+    is_bought: Optional[bool] = None
+

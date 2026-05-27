@@ -5,7 +5,7 @@ from datetime import datetime
 import redis.asyncio as redis
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Task
-from app.schemas import TaskCreate
+from app.schemas import TaskCreate, TaskUpdate
 from app.core.events import mq_client
 from app.core.config import settings
 
@@ -68,6 +68,65 @@ class TaskService:
         asyncio.create_task(side_effects())
         
         return new_task
+
+    @staticmethod
+    async def update(session: AsyncSession, user_id: uuid.UUID, task_id: uuid.UUID, task_update: TaskUpdate) -> Optional[Task]:
+        task = await session.get(Task, task_id)
+        if not task or task.user_id != user_id:
+            return None
+        
+        update_data = task_update.model_dump(exclude_unset=True)
+        was_completed_now = False
+        
+        if update_data:
+            for field, value in update_data.items():
+                if field == "is_completed" and value is True and not task.is_completed:
+                    was_completed_now = True
+                setattr(task, field, value)
+            
+            await session.commit()
+            await session.refresh(task)
+            
+        async def side_effects():
+            # Invalidate cache
+            try:
+                pattern = f"user:{user_id}:tasks:*"
+                async for key in redis_client.scan_iter(match=pattern):
+                    await redis_client.delete(key)
+            except Exception as e:
+                print(f"Failed to invalidate cache: {e}")
+                
+            # Send TaskUpdated event
+            if "due_date" in update_data or "priority" in update_data:
+                try:
+                    event = {
+                        "event_type": "TaskUpdated",
+                        "task_id": str(task.id),
+                        "user_id": str(user_id),
+                        "title": task.title,
+                        "due_date": task.due_date.isoformat() if task.due_date else None,
+                        "priority": task.priority,
+                        "updated_at": datetime.utcnow().isoformat()
+                    }
+                    await mq_client.publish(routing_key="core.task.updated", message=event)
+                except Exception as e:
+                    print(f"Failed to publish TaskUpdated event: {e}")
+                    
+            if was_completed_now:
+                try:
+                    event = {
+                        "event_type": "TaskCompleted",
+                        "task_id": str(task.id),
+                        "user_id": str(user_id),
+                        "title": task.title,
+                        "completed_at": datetime.utcnow().isoformat()
+                    }
+                    await mq_client.publish(routing_key="core.task.completed", message=event)
+                except Exception as e:
+                    print(f"Failed to publish event: {e}")
+
+        asyncio.create_task(side_effects())
+        return task
 
     @staticmethod
     async def delete(session: AsyncSession, user_id: uuid.UUID, task_id: uuid.UUID):

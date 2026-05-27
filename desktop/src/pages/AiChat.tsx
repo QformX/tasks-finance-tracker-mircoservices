@@ -17,6 +17,8 @@ const MarkdownLink = (props: any) => (
   <a {...props} target="_blank" rel="noopener noreferrer">{props.children}</a>
 );
 
+
+
 export function AiChat() {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -84,7 +86,7 @@ export function AiChat() {
     if (user) {
         fetchHistory();
     }
-  }, [user]);
+  }, [user?.id]);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -198,7 +200,7 @@ export function AiChat() {
                             remarkPlugins={[remarkGfm]}
                             rehypePlugins={[rehypeHighlight]}
                             components={{
-                              a: MarkdownLink
+                               a: MarkdownLink
                             }}
                         />
                     ) : (

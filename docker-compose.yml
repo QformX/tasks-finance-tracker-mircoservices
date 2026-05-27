@@ -111,6 +111,8 @@ services:
       context: ./services/core
     env_file:
       - .env
+    volumes:
+      - ./services/core:/app
     environment:
       DATABASE_URL: ${CORE_DATABASE_URL}
     depends_on:
@@ -141,13 +143,20 @@ services:
       context: ./services/ai_service
     env_file:
       - .env
+    volumes:
+      - ./services/ai_service:/app
     environment:
       GOOGLE_API_KEY: ${GOOGLE_API_KEY}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       GROQ_API_KEY: ${GROQ_API_KEY}
+      USE_LOCAL_LLM: ${USE_LOCAL_LLM}
+      LOCAL_LLM_URL: ${LOCAL_LLM_URL}
+      LOCAL_LLM_MODEL: ${LOCAL_LLM_MODEL}
       RABBITMQ_URL: amqp://user:password@rabbitmq-ai:5672/
       DATABASE_URL: postgresql+asyncpg://user:password@postgres-ai:5432/ai_db
       CORE_SERVICE_URL: http://core-service:8000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8003:8000"
     depends_on:
@@ -163,6 +172,8 @@ services:
       context: ./services/core
     env_file:
       - .env
+    volumes:
+      - ./services/core:/app
     environment:
       DATABASE_URL: ${CORE_DATABASE_URL}
     command: ["python", "-m", "app.workers.events_consumer"]
@@ -178,6 +189,8 @@ services:
       context: ./services/core
     env_file:
       - .env
+    volumes:
+      - ./services/core:/app
     environment:
       DATABASE_URL: ${CORE_DATABASE_URL}
       AI_RABBITMQ_URL: amqp://user:password@rabbitmq-ai:5672/
@@ -218,6 +231,7 @@ services:
       - core-service
       - analytics-service
       - ai-service
+    restart: unless-stopped
 
 volumes:
   users_pg_data:

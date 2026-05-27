@@ -2,12 +2,12 @@ import os
 from faststream import FastStream
 from faststream.rabbit import RabbitBroker
 from app.core.config import settings
-from app.schemas.commands import CreateTaskCMD, CreatePurchaseCMD, DeleteItemCMD, CreateCategoryCMD, UpdateTaskCMD
+from app.schemas.commands import CreateTaskCMD, CreatePurchaseCMD, DeleteItemCMD, CreateCategoryCMD, UpdateTaskCMD, UpdatePurchaseCMD
 from app.services.tasks import TaskService
 from app.services.purchases import PurchaseService
 from app.services.categories import CategoryService
 from app.core.database import SessionLocal
-from app.schemas import TaskCreate, PurchaseCreate, CategoryCreate, TaskUpdate
+from app.schemas import TaskCreate, PurchaseCreate, CategoryCreate, TaskUpdate, PurchaseUpdate
 from app.core.events import mq_client
 import logging
 
@@ -90,6 +90,27 @@ async def handle_rpc_command(msg: dict):
                 )
                 result = await PurchaseService.create(session, cmd.user_id, purchase_in)
                 return {"status": "success", "id": str(result.id)}
+
+            elif command == "update_purchase":
+                cmd = UpdatePurchaseCMD(**data)
+                purchase_in = PurchaseUpdate(
+                    title=cmd.title,
+                    category_id=cmd.category_id,
+                    cost=cmd.cost,
+                    quantity=cmd.quantity,
+                    is_bought=cmd.is_bought
+                )
+                update_data = {k: v for k, v in purchase_in.model_dump().items() if v is not None}
+                if not update_data:
+                     return {"status": "success", "message": "No changes detected"}
+                     
+                purchase_in_filtered = PurchaseUpdate(**update_data)
+                
+                result = await PurchaseService.update(session, cmd.user_id, cmd.purchase_id, purchase_in_filtered)
+                if result:
+                    return {"status": "success", "id": str(result.id)}
+                else:
+                    return {"status": "error", "message": "Purchase not found"}
 
             elif command == "create_category":
                 cmd = CreateCategoryCMD(**data)
