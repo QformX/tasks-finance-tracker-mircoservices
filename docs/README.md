@@ -9,7 +9,9 @@
 | Документ | Описание |
 |----------|----------|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | **Архитектура системы** - подробное описание компонентов, потоков данных, паттернов проектирования |
+| [FRONTEND_ARCHITECTURE.md](FRONTEND_ARCHITECTURE.md) | **Архитектура фронтенда** - React, TypeScript, Vite, Tauri, структура компонентов |
 | [API_DOCUMENTATION.md](API_DOCUMENTATION.md) | **API документация** - полное описание всех endpoint'ов с примерами запросов |
+| [AI_AGENT_CAPABILITIES.md](AI_AGENT_CAPABILITIES.md) | **Возможности AI агента** - инструменты и примеры использования |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | **Развёртывание** - инструкции по установке, конфигурации и эксплуатации |
 
 ---
@@ -72,8 +74,9 @@
   - Users Service - аутентификация и пользователи
   - Core Service - основная бизнес-логика
   - Analytics Service - события и статистика
+  - AI Service - conversational AI с инструментами
 - **Инфраструктура:**
-  - PostgreSQL (4 инстанса)
+  - PostgreSQL (5 инстансов)
   - Redis кэширование
   - RabbitMQ очереди
 - **Паттерны:**
@@ -83,6 +86,20 @@
 - **Потоки данных**
 - **Масштабирование**
 - **Безопасность**
+
+### [FRONTEND_ARCHITECTURE.md](FRONTEND_ARCHITECTURE.md)
+
+Полное описание фронтенда:
+
+- **Tech Stack:** React 19, TypeScript, Vite, Tauri
+- **Архитектурные решения:**
+  - Context API для управления состоянием
+  - Custom hooks для бизнес-логики
+  - Feature-based организация компонентов
+- **Структура проекта**
+- **API интеграция**
+- **Безопасность** (JWT, Bearer tokens)
+- **Рекомендации по улучшениям**
 
 ### [API_DOCUMENTATION.md](API_DOCUMENTATION.md)
 

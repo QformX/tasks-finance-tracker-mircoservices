@@ -27,7 +27,6 @@
 ### 🏗️ Архитектурные паттерны
 
 - **Микросервисная архитектура** - независимые, масштабируемые сервисы
-- **CQRS** - разделение чтения и записи для оптимизации производительности
 - **Event-Driven** - асинхронная коммуникация через RabbitMQ
 - **API Gateway** - единая точка входа через Nginx
 - **Healthchecks** - мониторинг состояния и оркестрация запуска сервисов
@@ -42,7 +41,6 @@
 ### ⚡ Производительность
 
 - **Redis кэширование** с автоматической инвалидацией
-- **Database Replication** - Master/Replica для CQRS
 - **Асинхронные операции** - FastAPI + asyncpg
 - **Connection Pooling** - оптимизация подключений к БД
 
@@ -52,6 +50,13 @@
 - Append-only хранилище событий
 - OLAP запросы для агрегации статистики
 - Дашборд с метриками
+
+### 🤖 AI Assistant
+
+- Conversational AI для управления задачами и финансами
+- LLM интеграция (OpenAI/Claude)
+- Инструменты на основе RPC
+- Поиск информации и суммаризация текста
 
 ---
 
@@ -63,33 +68,33 @@
                     │   Port: 80      │
                     └────────┬────────┘
                              │
-        ┌────────────────────┼────────────────────┐
-        │                    │                    │
-   /auth/*              /api/*              /stats/*
-        │                    │                    │
-┌───────▼───────┐    ┌───────▼───────┐    ┌───────▼───────┐
-│ Users Service │    │ Core Service  │    │   Analytics   │
-│               │    │               │    │    Service    │
-│  - Auth       │    │  - Tasks      │    │               │
-│  - JWT        │    │  - Purchases  │    │  - Stats      │
-│  - Users      │    │  - Categories │    │  - Events     │
-└───────┬───────┘    └───────┬───────┘    └───────┬───────┘
-        │                    │                    │
-        │            ┌───────▼───────┐            │
-        │            │   RabbitMQ    │◄───────────┘
-        │            │  (Events)     │            │
-        │            └───────────────┘            │
-        │                    │                    │
-        │            ┌───────▼───────┐    ┌───────▼───────┐    ┌───────▼───────┐
-        │            │     Redis     │    │  Core Worker  │    │Analytics Wrkr │
-        │            │   (Cache)     │    │  (Consumer)   │    │  (Consumer)   │
-        │            └───────────────┘    └───────────────┘    └───────────────┘
+        ┌────────────────────┼────────────────┬───────────────┐
+        │                    │                │               │
+   /auth/*              /api/*          /stats/*         /chat/*
+        │                    │                │               │
+┌───────▼───────┐    ┌───────▼───────┐    ┌──▼────────┐    ┌──▼─────────┐
+│ Users Service │    │ Core Service  │    │ Analytics │    │    AI      │
+│               │    │               │    │  Service  │    │  Service   │
+│  - Auth       │    │  - Tasks      │    │           │    │            │
+│  - JWT        │    │  - Purchases  │    │ - Stats   │    │ - Chat     │
+│  - Users      │    │  - Categories │    │ - Events  │    │ - Tools    │
+└───────┬───────┘    └───────┬───────┘    └──┬────────┘    └──┬─────────┘
+        │                    │                │               │
+        │            ┌───────▼───────┐        │               │
+        │            │   RabbitMQ    │◄───────┴───────────────┘
+        │            │  (Events)     │        │
+        │            └───────────────┘        │
+        │                    │                │
+        │            ┌───────▼───────┐    ┌──▼────────┐    ┌──▼─────────┐    ┌──▼─────────┐
+        │            │     Redis     │    │Core Wrkr  │    │Analytics   │    │  AI Worker │
+        │            │   (Cache)     │    │(Consumer) │    │Wrk(Cons.)  │    │ (Consumer) │
+        │            └───────────────┘    └───────────┘    └────────────┘    └────────────┘
         │                                         │
-┌───────▼───────┐    ┌───────────────┐    ┌─────▼─────────┐
-│  PostgreSQL   │    │  PostgreSQL   │    │  PostgreSQL   │
-│   Users DB    │    │   Core DB     │    │ Analytics DB  │
-│               │    │  (M + R)      │    │               │
-└───────────────┘    └───────────────┘    └───────────────┘
+┌───────▼───────┐    ┌───────────────┐    ┌─────▼──────────┐    ┌──────────┐
+│  PostgreSQL   │    │  PostgreSQL   │    │  PostgreSQL    │    │PostgreSQL│
+│   Users DB    │    │   Core DB     │    │ Analytics DB   │    │  AI DB   │
+│               │    │  (M + R)      │    │                │    │          │
+└───────────────┘    └───────────────┘    └────────────────┘    └──────────┘
 ```
 
 **Подробнее:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
@@ -208,7 +213,11 @@
 - `GET /events/count` - Количество событий
 - `GET /events/recent` - Последние события
 
-**Подробнее:** [docs/API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md)
+#### AI Service (`/chat`)
+
+- `POST /messages` - Отправить сообщение AI ассистенту
+- `GET /messages` - Получить историю чата
+- `POST /messages/{id}/regenerate` - Переделать ответ
 
 ---
 
@@ -224,6 +233,17 @@
 | Database Driver | asyncpg | 0.29+ |
 | Migrations | Alembic | 1.13+ |
 | Dependency Management | Poetry | 1.7+ |
+
+### Frontend
+
+| Компонент | Технология | Версия |
+|-----------|-----------|--------|
+| Framework | React | 19.2+ |
+| Language | TypeScript | 5.9+ |
+| Build Tool | Vite | 7.2+ |
+| Desktop | Tauri | 2.1+ |
+| Styling | Tailwind CSS | 4.0+ |
+| Routing | React Router | 7.10+ |
 
 ### Infrastructure
 
@@ -242,6 +262,7 @@
 - **Validation:** Pydantic, email-validator
 - **Async:** aio-pika, asyncpg
 - **HTTP:** uvicorn, python-multipart
+- **AI:** LLM API (OpenAI/Claude), Tavily Search
 
 ---
 
@@ -251,8 +272,10 @@
 
 | Файл | Описание |
 |------|----------|
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Подробное описание архитектуры системы |
-| [API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md) | Полная документация API с примерами |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Подробное описание архитектуры системы и всех компонентов |
+| [FRONTEND_ARCHITECTURE.md](docs/FRONTEND_ARCHITECTURE.md) | Описание фронтенда (React, TypeScript, Vite, Tauri) |
+| [API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md) | Полная документация API с примерами запросов |
+| [AI_AGENT_CAPABILITIES.md](docs/AI_AGENT_CAPABILITIES.md) | Возможности AI агента и примеры использования |
 | [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Инструкции по развёртыванию и эксплуатации |
 
 ---
@@ -264,26 +287,43 @@
 ```
 tasks-finance-tracker-mircoservices/
 ├── services/
-│   ├── users/              # Users Service
+│   ├── users/              # Users Service (Аутентификация)
 │   │   ├── alembic/        # Миграции БД
 │   │   ├── app/            # Исходный код (api, core, models, schemas)
 │   │   ├── pyproject.toml  # Зависимости Poetry
 │   │   └── Dockerfile      # Docker образ
-│   ├── core/               # Core Service
+│   ├── core/               # Core Service (Основная логика)
 │   │   ├── alembic/
 │   │   ├── app/            # Исходный код
 │   │   ├── pyproject.toml
 │   │   └── Dockerfile
-│   └── analytics/          # Analytics Service
+│   ├── analytics/          # Analytics Service (Статистика)
+│   │   ├── alembic/
+│   │   ├── app/            # Исходный код
+│   │   ├── pyproject.toml
+│   │   └── Dockerfile
+│   └── ai_service/         # AI Service (Chat & Tools)
 │       ├── alembic/
 │       ├── app/            # Исходный код
 │       ├── pyproject.toml
 │       └── Dockerfile
+├── desktop/                # Frontend (React + Tauri)
+│   ├── src/                # React компоненты
+│   │   ├── components/     # UI компоненты
+│   │   ├── pages/          # Страницы приложения
+│   │   ├── hooks/          # Custom hooks
+│   │   ├── context/        # Context providers
+│   │   ├── lib/            # Утилиты и API клиент
+│   │   └── types.ts        # TypeScript типы
+│   ├── src-tauri/          # Tauri конфигурация
+│   ├── package.json        # npm зависимости
+│   ├── vite.config.ts      # Vite конфигурация
+│   └── Dockerfile          # Docker образ (опционально)
 ├── deploy/
 │   └── nginx/
-│       └── nginx.conf      # Конфигурация Nginx
-├── docs/                   # Документация
-├── docker-compose.yml      # Оркестрация сервисов
+│       └── nginx.conf      # Конфигурация Nginx Gateway
+├── docs/                   # Документация проекта
+├── docker-compose.yml      # Оркестрация всех сервисов
 └── README.md
 ```
 

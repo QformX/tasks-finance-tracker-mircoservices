@@ -2,7 +2,7 @@
 
 ## 📋 Обзор
 
-**Core Service** - критически важный микросервис для управления **задачами** 📝 и **покупками** 💰, построенный с использованием современных паттернов архитектуры: CQRS, Event-Driven и асинхронная обработка.
+**Core Service** - критически важный микросервис для управления **задачами** 📝 и **покупками** 💰, построенный с использованием современных паттернов архитектуры: Event-Driven, асинхронная обработка и кэширование.
 
 **Стек технологий:**
 - `FastAPI` 0.109+ (асинхронный веб-фреймворк)
@@ -329,48 +329,19 @@ docker-compose up -d core-worker
 │  • Alembic (migrations)          │
 └───────┬──────────────────────────┘
         │
-        │ CQRS Pattern:
-    ┌───┴─────┬─────────┐
-    │          │         │
-┌───▼──┐  ┌───▼──┐  ┌───▼──┐
-│MASTER│  │MASTER│  │REPLICA│
-│DB    │  │DB    │  │DB     │
-│WRITE │  │WRITE │  │READ   │
-└──────┘  └──────┘  └───────┘
+        ▼
+    ┌───────────────────────────┐
+    │   PostgreSQL (core_db)    │
+    │  • Read & Write           │
+    │  • Connection pooling     │
+    └───────────────────────────┘
 ```
 
 ---
 
 ### Паттерны архитектуры:
 
-#### 1. CQRS (Command Query Responsibility Segregation)
-
-**Идея:** Разделение операций чтения и записи
-
-```python
-# WRITE операции используют Master DB
-@router.post("/")
-async def create_task(..., session: AsyncSession = Depends(get_db_master)):
-    # Запись в master
-    session.add(new_task)
-    await session.commit()
-
-# READ операции используют Replica DB
-@router.get("/")
-async def get_tasks(..., session: AsyncSession = Depends(get_db_replica)):
-    # Чтение из replica (может отставать на несколько миллисекунд)
-    stmt = select(Task).where(...)
-    result = await session.execute(stmt)
-```
-
-**Преимущества:**
-- ✅ Масштабируемость - можно использовать несколько read-replicas
-- ✅ Производительность - read не блокирует write
-- ✅ Отказоустойчивость - если replica упадёт, приложение всё ещё работает
-
----
-
-#### 2. Event-Driven Architecture
+#### 1. Event-Driven Architecture
 
 **Идея:** События публикуются в RabbitMQ, другие сервисы их слушают
 
@@ -399,7 +370,7 @@ core.purchase.bought   → Analytics рассчитывает расходы
 
 ---
 
-#### 3. Асинхронная обработка
+#### 2. Асинхронная обработка
 
 **Идея:** Длительные операции выполняются в фоне, не блокируя ответ
 
@@ -421,7 +392,7 @@ async def create_task(..., background_tasks: BackgroundTasks):
 
 ---
 
-#### 4. Кэширование с Redis
+#### 3. Кэширование с Redis
 
 **Идея:** Часто запрашиваемые данные хранятся в памяти
 
@@ -452,7 +423,7 @@ async def get_tasks(...):
 
 ---
 
-#### 5. Dependency Injection
+#### 4. Dependency Injection
 
 **Идея:** FastAPI автоматически внедряет зависимости
 
@@ -676,7 +647,6 @@ http://localhost:8000/api/docs
 
 - [x] CRUD операции для Tasks/Purchases/Categories
 - [x] JWT аутентификация и изоляция данных
-- [x] CQRS паттерн (Master/Replica разделение)
 - [x] Event-Driven архитектура с RabbitMQ
 - [x] Redis кэширование
 - [x] Асинхронная обработка

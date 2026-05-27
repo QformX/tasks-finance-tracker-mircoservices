@@ -24,6 +24,11 @@
 - Агрегация статистики по периодам
 - Графики для дашборда
 
+### 4. **AI Service** (`/chat/*`)
+- Conversational AI для управления задачами
+- Обработка естественного языка
+- Интеграция с внешними API (поиск, суммаризация)
+
 ---
 
 ## Использование API
@@ -191,6 +196,64 @@ curl -X GET "http://localhost/stats/dashboard?period=week" \
   ]
 }
 ```
+
+### Шаг 5: AI Chat
+
+**Отправить сообщение AI ассистенту:**
+```bash
+curl -X POST http://localhost/chat/messages \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Создай задачу позвонить маме завтра"
+  }'
+```
+
+Ответ:
+```json
+{
+  "id": "msg-uuid",
+  "role": "assistant",
+  "content": "Я создам задачу 'Позвонить маме' на завтра.",
+  "tools_used": ["create_task_rpc"],
+  "created_at": "2025-11-27T10:30:00Z"
+}
+```
+
+**Получить историю чата:**
+```bash
+curl -X GET http://localhost/chat/messages?limit=20 \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+Ответ:
+```json
+{
+  "messages": [
+    {
+      "id": "msg-1",
+      "role": "user",
+      "content": "Сколько я потратил на покупки за неделю?",
+      "created_at": "2025-11-27T09:00:00Z"
+    },
+    {
+      "id": "msg-2",
+      "role": "assistant",
+      "content": "Вы потратили 5,432 рубля на покупки за эту неделю.",
+      "tools_used": ["get_user_data"],
+      "created_at": "2025-11-27T09:01:00Z"
+    }
+  ],
+  "total": 2
+}
+```
+
+**Примеры команд для AI:**
+- "Создай задачу купить молоко"
+- "Отметь задачу 'Работа' как выполненную"
+- "Сколько я денег потратил на еду?"
+- "Найди информацию об iPhone 15"
+- "Суммаризируй текст: [длинный текст]"
 
 ---
 

@@ -5,37 +5,37 @@
 Микросервисная система для управления задачами и покупками с поддержкой аналитики и высокой нагрузки.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                         Nginx Gateway                        │
-│                      (Single Entry Point)                    │
-└──────────┬────────────────┬────────────────┬─────────────────┘
-           │                │                │
-    /auth/*│         /api/* │         /stats/*│
-           │                │                │
-    ┌──────▼──────┐  ┌──────▼──────┐  ┌──────▼──────┐
-    │   Users     │  │    Core     │  │  Analytics  │
-    │   Service   │  │   Service   │  │   Service   │
-    │             │  │             │  │             │
-    │  - Auth     │  │  - Tasks    │  │  - Stats    │
-    │  - JWT      │  │  - Purchases│  │  - Events   │
-    │  - Users    │  │  - CQRS     │  │  - OLAP     │
-    └──────┬──────┘  └──────┬──────┘  └──────┬──────┘
-           │                │                │
-           │         ┌──────▼──────┐         │
-           │         │   RabbitMQ  │◄────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│                         Nginx Gateway                                     │
+│                      (Single Entry Point)                                 │
+└──────────┬────────────────┬────────────────┬──────────────┬──────────────┘
+           │                │                │              │
+    /auth/*│         /api/* │         /stats/*│    /chat/*   │
+           │                │                │              │
+    ┌──────▼──────┐  ┌──────▼──────┐  ┌──────▼──────┐  ┌──────▼──────┐
+    │   Users     │  │    Core     │  │  Analytics  │  │      AI     │
+    │   Service   │  │   Service   │  │   Service   │  │   Service   │
+    │             │  │             │  │             │  │             │
+    │  - Auth     │  │  - Tasks    │  │  - Stats    │  │  - LLM      │
+    │  - JWT      │  │  - Purchases│  │  - Events   │  │  - Tools    │
+    │  - Users    │  │  - Categories│ │  - OLAP     │  │  - Chat     │
+    └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘
+           │                │                │               │
+           │         ┌──────▼──────┐         │               │
+           │         │   RabbitMQ  │◄────────┴───────────────┘
            │         │   (Events)  │         │
            │         └─────────────┘         │
            │                │                │
-           │         ┌──────▼──────┐  ┌──────▼──────┐  ┌──────▼──────┐
-           │         │    Redis    │  │ Core Worker │  │Analytics Wrk│
-           │         │   (Cache)   │  │  (Consumer) │  │  (Consumer) │
-           │         └─────────────┘  └─────────────┘  └─────────────┘
+           │         ┌──────▼──────┐  ┌──────▼──────┐  ┌──────▼──────┐  ┌──────▼──────┐
+           │         │    Redis    │  │ Core Worker │  │Analytics Wrk│  │  AI Worker  │
+           │         │   (Cache)   │  │  (Consumer) │  │  (Consumer) │  │  (Consumer) │
+           │         └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘
            │                                  │
-    ┌──────▼──────┐  ┌─────────────┐  ┌──────▼──────┐
-    │ PostgreSQL  │  │ PostgreSQL  │  │ PostgreSQL  │
-    │  Users DB   │  │  Core DB    │  │ Analytics   │
-    │             │  │ (M+R)       │  │     DB      │
-    └─────────────┘  └─────────────┘  └─────────────┘
+    ┌──────▼──────┐  ┌─────────────┐  ┌──────▼──────┐  ┌──────▼──────┐
+    │ PostgreSQL  │  │ PostgreSQL  │  │ PostgreSQL  │  │ PostgreSQL  │
+    │  Users DB   │  │  Core DB    │  │ Analytics   │  │   AI DB     │
+    │             │  │             │  │     DB      │  │             │
+    └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘
 ```
 
 ---
@@ -99,10 +99,9 @@ CREATE TABLE users (
 
 **Стек:**
 - FastAPI (async)
-- PostgreSQL (core_master + core_replica)
+- PostgreSQL (core_db)
 - Redis (кэширование)
 - RabbitMQ (события)
-- CQRS паттерн
 - Core Worker (обработка фоновых задач)
 
 **Архитектурные паттерны:**
@@ -111,16 +110,6 @@ CREATE TABLE users (
 - Слушает очередь `core_events`
 - Обрабатывает событие `UserDeleted`
 - Удаляет все данные пользователя (GDPR compliance)
-
-#### CQRS (Command Query Responsibility Segregation)
-- **Чтение (Query):** Replica DB
-  - `GET /tasks/`
-  - `GET /purchases/`
-  - `GET /categories/`
-- **Запись (Command):** Master DB
-  - `POST`, `PUT`, `PATCH`, `DELETE`
-  - Инвалидация кэша
-  - Публикация событий
 
 #### Кэширование (Redis)
 ```python
@@ -251,28 +240,98 @@ CREATE TABLE analytics_events (
 
 ---
 
+### 5. AI Service
+
+**Назначение:** Conversational AI для помощи в управлении задачами и финансами
+
+**Стек:**
+- FastAPI (async)
+- PostgreSQL (ai_db)
+- LLM Integration (OpenAI/Claude API)
+- RPC для взаимодействия с Core Service
+- aio_pika (RabbitMQ конкурент)
+
+**Основные возможности:**
+- Чат с AI агентом (`POST /chat/messages`)
+- Управление задачами через естественный язык
+- Управление покупками и финансами
+- Поиск информации о товарах (Tavily API)
+- Суммаризация текста
+
+**Модели AI:**
+```
+User Query
+    ↓
+LLM Agent
+    ├→ Analyze intent
+    ├→ Extract entities
+    └→ Call appropriate tool
+            ↓
+        Tools (RPC)
+        ├─ create_task_rpc
+        ├─ update_task_rpc
+        ├─ delete_item_rpc
+        ├─ create_purchase_rpc
+        ├─ create_category_rpc
+        ├─ get_user_data
+        ├─ search_product
+        └─ summarize_text
+            ↓
+        Response
+            ↓
+        Return to Chat
+```
+
+**Database Schema:**
+```sql
+CREATE TABLE chat_messages (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    role VARCHAR CHECK (role IN ('user', 'assistant')),
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    INDEX idx_user_id (user_id)
+);
+
+CREATE TABLE ai_config (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    model_name VARCHAR,
+    settings JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id)
+);
+```
+
+**Интеграции:**
+- OpenAI/Claude API для LLM
+- Tavily Search API для веб-поиска
+- Core Service RPC для операций с данными
+- RabbitMQ для асинхронных задач
+
+---
+
 ## Инфраструктура
 
 ### PostgreSQL
 
-**3 инстанса:**
+**5 инстансов:**
 
 1. **users_db** (Users Service)
    - Порт: 5432 (внутренний)
    - Хранит пользователей
 
-2. **core_master** (Core Service - запись)
+2. **core_db** (Core Service)
    - Порт: 5433 (внутренний)
-   - Master для записи
+   - Основная БД для задач и покупок
 
-3. **core_replica** (Core Service - чтение)
+3. **analytics_db** (Analytics Service)
    - Порт: 5434 (внутренний)
-   - Replica для чтения
-   - ⚠️ В production: настроить репликацию
+   - Append-only хранилище событий
 
-4. **analytics_db** (Analytics Service)
+4. **ai_db** (AI Service)
    - Порт: 5435 (внутренний)
-   - Append-only хранилище
+   - История чатов и конфигурация
 
 ### Redis
 
@@ -316,8 +375,8 @@ Client → Nginx → Users Service → PostgreSQL (users_db)
 ```
 Client → Nginx → Core Service
                       ↓
-            [Master DB Transaction]
-                      ├─→ PostgreSQL (core_master)
+             [DB Transaction]
+                      ├→ PostgreSQL (core_db)
                       ├─→ Redis (invalidate cache)
                       ├─→ Redis Sorted Set (deadline)
                       └─→ RabbitMQ (event)
@@ -336,7 +395,7 @@ Client → Nginx → Core Service
                  ↓          ↓
             Hit (return)   Miss
                              ↓
-                  PostgreSQL (core_replica)
+                  PostgreSQL (core_db)
                              ↓
                        Save to Redis
                              ↓
@@ -369,7 +428,7 @@ Client → Nginx → Analytics Service
 **Core Service:**
 - Stateless
 - Redis для кэша (общий)
-- Read replicas для чтения
+- Асинхронная обработка через RabbitMQ
 
 **Analytics Service:**
 - API: N инстансов
