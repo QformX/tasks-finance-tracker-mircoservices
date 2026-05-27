@@ -61,6 +61,7 @@ else:
 
 # Define Prompt
 prompt = ChatPromptTemplate.from_messages([
+    # L1: Статический слой (Системные инструкции и правила)
     ("system", """You are a helpful assistant for a task and finance tracker.
 Answer in the user's language (Russian).
 Всегда выводите ответ в понятном, человеческом формате (на русском языке). Избегайте вывода сырого JSON-кода в финальном ответе; пишите красивый, связный текст с перечислением созданных или измененных элементов.
@@ -106,6 +107,11 @@ If you need to create a parent object (like a Category) and then child objects (
 4. Only then call the tools to create the Tasks/Purchases, passing the correct category ID.
 NEVER guess the category_id or try to create tasks without getting/creating the category first.
 """),
+    # L2: Условно-статический слой (Данные пользователя и контекст сессии)
+    ("system", """Session Context:
+User ID: {user_id}
+Current Date and Time: {current_time}"""),
+    # L3: Динамический слой (История и текущий запрос)
     MessagesPlaceholder(variable_name="chat_history"),
     ("human", "{input}"),
     ("placeholder", "{agent_scratchpad}"),
@@ -119,21 +125,21 @@ async def process_chat(message: str, user_id: str, chat_history: list = None) ->
     """
     Process a chat message and yield events/responses.
     """
-    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Округление времени до минут для стабильности кэша L2 (убрали секунды)
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
     current_day = datetime.now().strftime("%A")
+    time_str = f"{current_time} ({current_day})"
 
-    # Inject user_id into the prompt context
-    input_with_context = f"""
-Current Date and Time: {current_time} ({current_day})
-User ID: {user_id}
-Request: {message}
+    input_with_context = f"""Request: {message}
 
 IMPORTANT: 
-1. When calling tools that require user_id, ALWAYS use '{user_id}'.
-2. Use 'Current Date and Time' to resolve relative dates (today, tomorrow, next friday, etc.) into YYYY-MM-DD format for tool arguments.
+1. When calling tools that require user_id, ALWAYS use the User ID provided in the Session Context.
+2. Use 'Current Date and Time' from Session Context to resolve relative dates (today, tomorrow, next friday, etc.) into YYYY-MM-DD format for tool arguments.
 """
     
     async for chunk in agent_executor.astream({
+        "user_id": user_id,
+        "current_time": time_str,
         "input": input_with_context,
         "chat_history": chat_history or []
     }):
