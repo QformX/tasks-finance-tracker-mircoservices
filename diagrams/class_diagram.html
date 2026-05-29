@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Class Diagram</title>
+  <style>
+    body {
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      padding: 40px;
+      background: #fcfcfc;
+      color: #1a1a1a;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .d-caption { font-size: 17px; color: #555; font-style: italic; margin-top: 20px; text-align: center; }
+    /* ---- CLASS DIAGRAM ---- */
+    .cl-row { display: flex; gap: 12px; margin-bottom: 12px; }
+    .cl-row > div { flex: 1; }
+    .cl-box {
+      border: 2px solid #333; border-radius: 8px; overflow: hidden;
+      font-size: 14px; background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+    .cl-name {
+      background: #1a1a1a; color: #fff; padding: 6px 12px;
+      font-weight: 700; font-size: 15px; text-align: center;
+    }
+    .cl-fields { padding: 8px 12px; font-family: monospace; font-size: 13px; line-height: 1.6; }
+    .cl-rel {
+      font-size: 14px; line-height: 1.8; margin-top: 10px;
+      padding: 8px 16px; background: #f5f5f5; border-radius: 8px; border-left: 4px solid #1a1a1a;
+    }
+  </style>
+</head>
+<body>
+<div class="cl-row">
+  <div class="cl-box">
+    <div class="cl-name">User</div>
+    <div class="cl-fields">
+      +id: UUID<br>
+      +username: str<br>
+      +email: str
+    </div>
+  </div>
+  <div class="cl-box">
+    <div class="cl-name">Category</div>
+    <div class="cl-fields">
+      +id: UUID<br>
+      +title: str<br>
+      +type: str
+    </div>
+  </div>
+  <div class="cl-box">
+    <div class="cl-name">Task</div>
+    <div class="cl-fields">
+      +id: UUID<br>
+      +title: str<br>
+      +due_date: Date<br>
+      +is_completed: bool
+    </div>
+  </div>
+  <div class="cl-box">
+    <div class="cl-name">Purchase</div>
+    <div class="cl-fields">
+      +id: UUID<br>
+      +title: str<br>
+      +cost: float<br>
+      +is_bought: bool
+    </div>
+  </div>
+</div>
+
+<div class="cl-rel" style="margin-bottom: 16px;">
+  <b>Связи сущностей (ORM):</b> 
+  <code>User</code> 1 ➔ * <code>Category</code>, <code>Task</code>, <code>Purchase</code> | 
+  <code>Category</code> 1 ➔ * <code>Task</code>, <code>Purchase</code>
+</div>
+
+<div class="cl-row">
+  <div class="cl-box">
+    <div class="cl-name">AIAgent (LangChain)</div>
+    <div class="cl-fields">
+      +process_chat(msg, user_id)<br>
+      -prompt: ChatPromptTemplate<br>
+      -executor: max_iterations=10<br>
+      -tools: 11 инструментов
+    </div>
+  </div>
+  <div class="cl-box">
+    <div class="cl-name">RPCWorker (FastStream)</div>
+    <div class="cl-fields">
+      +handle_rpc_command(msg)<br>
+      -create_task()<br>
+      -update_task()<br>
+      -create_purchase()
+    </div>
+  </div>
+  <div class="cl-box">
+    <div class="cl-name">CoreService</div>
+    <div class="cl-fields">
+      +TaskService<br>
+      +PurchaseService<br>
+      +CategoryService
+    </div>
+  </div>
+</div>
+
+<div class="cl-rel">
+  <b>Взаимодействие:</b>
+  <code>AIAgent</code> ➔ <i>(AMQP RPC)</i> ➔ <code>RPCWorker</code> ➔ <i>(Internal Call)</i> ➔ <code>CoreService</code>
+  <br>
+  <b>Ввод пользователя:</b>
+  через NLU-интерфейс <i>(AI Agent)</i> или напрямую через REST API / GUI
+</div>
+
+<div class="d-caption">Рис. 3. Диаграмма классов гибридного управления данными (GUI и NLU-агент)</div>
+</body>
+</html>

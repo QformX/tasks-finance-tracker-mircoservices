@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Component Diagram</title>
+  <style>
+    body {
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      padding: 40px;
+      background: #fcfcfc;
+      color: #1a1a1a;
+    }
+    .d-center { text-align: center; margin-bottom: 6px; }
+    .d-arrow { text-align: center; font-size: 24px; color: #555; line-height: 1; margin: 8px 0; }
+    .d-caption { font-size: 17px; color: #555; font-style: italic; margin-top: 16px; }
+    .d-row { display: flex; gap: 12px; justify-content: center; margin-bottom: 10px; }
+    .d-row-stretch { display: flex; gap: 12px; margin-bottom: 10px; }
+    .d-row-stretch > div { flex: 1; }
+    .d-box {
+      border: 2px solid #333; border-radius: 8px;
+      padding: 12px 20px; text-align: center; font-size: 16px;
+      font-weight: 600; background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+    .d-box-sm {
+      border: 2px solid #333; border-radius: 6px;
+      padding: 8px 12px; text-align: center; font-size: 14px;
+      font-weight: 600; background: #fff;
+    }
+    .d-box-fill {
+      border: 2px solid #333; border-radius: 8px;
+      padding: 12px 16px; text-align: center; font-size: 15px;
+      font-weight: 600; background: #f0f0f0;
+    }
+    .d-box-dark {
+      border: 2px solid #1a1a1a; border-radius: 6px;
+      padding: 10px 18px; text-align: center; font-size: 14px;
+      font-weight: 600; background: #1a1a1a; color: #fff;
+    }
+    .d-sub { font-weight: 400; font-size: 12px; color: #666; display: block; margin-top: 4px; }
+    .d-group {
+      border: 2px dashed #aaa; border-radius: 10px;
+      padding: 12px 16px; background: #fff;
+    }
+    .d-group-title {
+      font-size: 14px; font-weight: 600; color: #555;
+      margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .d-group-row { display: flex; gap: 10px; }
+    .d-group-row > div { flex: 1; }
+  </style>
+</head>
+<body>
+<div class="d-center">
+  <!-- Client -->
+  <div class="d-row">
+    <div class="d-box" style="width: 500px; margin: 0 auto;">
+      Tauri Desktop Client <span class="d-sub">React 19 + TypeScript 5 + Tauri 2</span>
+    </div>
+  </div>
+  
+  <div class="d-arrow">↓</div>
+  
+  <!-- Gateway -->
+  <div class="d-group" style="max-width: 960px; margin: 0 auto 12px auto;">
+    <div class="d-group-title">API Gateway (Nginx :80)</div>
+    <div class="d-group-row">
+      <div class="d-box-dark">/auth/*</div>
+      <div class="d-box-dark">/api/*</div>
+      <div class="d-box-dark">/stats/*</div>
+      <div class="d-box-dark">/ai/*</div>
+    </div>
+  </div>
+  
+  <div class="d-arrow">↓</div>
+  
+  <!-- Services and Databases -->
+  <div class="d-row-stretch" style="max-width: 960px; margin: 0 auto;">
+    <!-- Service 1 -->
+    <div class="d-group">
+      <div class="d-box-fill">Users Service<span class="d-sub">FastAPI (JWT, bcrypt)</span></div>
+      <div class="d-arrow">↓</div>
+      <div class="d-box-sm">PG users_db</div>
+    </div>
+    
+    <!-- Service 2 -->
+    <div class="d-group">
+      <div class="d-box-fill">Core Service<span class="d-sub">FastAPI (Tasks, Purchases)</span></div>
+      <div class="d-arrow">↓</div>
+      <div class="d-box-sm">PG core_db</div>
+      <div class="d-arrow" style="margin-top: 4px;">↗ ↙</div>
+      <div class="d-box-sm" style="background: #fff5f5; border-color: #c0392b; color: #c0392b;">Redis <span class="d-sub" style="color: #c0392b;">Cache (TTL 60s)</span></div>
+    </div>
+    
+    <!-- Service 3 -->
+    <div class="d-group">
+      <div class="d-box-fill">Analytics Service<span class="d-sub">FastAPI (Event Sourcing)</span></div>
+      <div class="d-arrow">↓</div>
+      <div class="d-box-sm">PG analytics_db</div>
+    </div>
+    
+    <!-- Service 4 -->
+    <div class="d-group">
+      <div class="d-box-fill">AI Service<span class="d-sub">FastAPI (LLM Agent, ReAct)</span></div>
+      <div class="d-arrow">↓</div>
+      <div class="d-box-sm">PG ai_db</div>
+    </div>
+  </div>
+
+  <!-- Brokers -->
+  <div class="d-group" style="max-width: 960px; margin: 12px auto 0 auto; background: #fafafa;">
+    <div class="d-group-title">Брокеры сообщений (RabbitMQ)</div>
+    <div class="d-group-row">
+      <div class="d-box-sm" style="border-style: dashed;">
+        <b>RabbitMQ #1 (EDA Broker)</b>
+        <span class="d-sub">Асинхронные доменные события (Core → Analytics)</span>
+      </div>
+      <div class="d-box-sm" style="border-style: dashed; border-color: #2980b9; color: #2980b9;">
+        <b style="color: #2980b9;">RabbitMQ #2 (RPC Broker)</b>
+        <span class="d-sub" style="color: #2980b9;">Быстрые запросы (AI Service ↔ Core Service)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-caption">Рис. 1. Компонентная структура и изоляция данных (Database-per-Service)</div>
+</div>
+</body>
+</html>

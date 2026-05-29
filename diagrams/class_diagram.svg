@@ -1,0 +1,84 @@
+<svg viewBox="0 0 1060 440" xmlns="http://www.w3.org/2000/svg" font-family="Inter, Segoe UI, sans-serif">
+  <defs><marker id="ca" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#333"/></marker>
+  <marker id="cd" markerWidth="12" markerHeight="8" refX="12" refY="4" orient="auto"><polygon points="0 0,12 4,0 8" fill="none" stroke="#333" stroke-width="1"/></marker></defs>
+  <!-- User -->
+  <rect x="10" y="5" width="230" height="22" rx="4" fill="#1a1a1a"/><text x="125" y="20" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">User</text>
+  <rect x="10" y="27" width="230" height="55" rx="0 0 4 4" fill="#fff" stroke="#333" stroke-width="1.5"/>
+  <text x="20" y="44" font-size="12" font-family="monospace">+id: UUID</text>
+  <text x="20" y="58" font-size="12" font-family="monospace">+username: str</text>
+  <text x="20" y="72" font-size="12" font-family="monospace">+email: str</text>
+  <!-- Category -->
+  <rect x="270" y="5" width="230" height="22" rx="4" fill="#1a1a1a"/><text x="385" y="20" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">Category</text>
+  <rect x="270" y="27" width="230" height="55" rx="0 0 4 4" fill="#fff" stroke="#333" stroke-width="1.5"/>
+  <text x="280" y="44" font-size="12" font-family="monospace">+id: UUID</text>
+  <text x="280" y="58" font-size="12" font-family="monospace">+title: str</text>
+  <text x="280" y="72" font-size="12" font-family="monospace">+type: str</text>
+  <!-- Task -->
+  <rect x="530" y="5" width="240" height="22" rx="4" fill="#1a1a1a"/><text x="650" y="20" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">Task</text>
+  <rect x="530" y="27" width="240" height="68" rx="0 0 4 4" fill="#fff" stroke="#333" stroke-width="1.5"/>
+  <text x="540" y="44" font-size="12" font-family="monospace">+id: UUID</text>
+  <text x="540" y="58" font-size="12" font-family="monospace">+title: str</text>
+  <text x="540" y="72" font-size="12" font-family="monospace">+due_date: Date</text>
+  <text x="540" y="86" font-size="12" font-family="monospace">+is_completed: bool</text>
+  <!-- Purchase -->
+  <rect x="800" y="5" width="240" height="22" rx="4" fill="#1a1a1a"/><text x="920" y="20" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">Purchase</text>
+  <rect x="800" y="27" width="240" height="68" rx="0 0 4 4" fill="#fff" stroke="#333" stroke-width="1.5"/>
+  <text x="810" y="44" font-size="12" font-family="monospace">+id: UUID</text>
+  <text x="810" y="58" font-size="12" font-family="monospace">+title: str</text>
+  <text x="810" y="72" font-size="12" font-family="monospace">+cost: float</text>
+  <text x="810" y="86" font-size="12" font-family="monospace">+is_bought: bool</text>
+  <!-- Relationship: User 1→* Category, Task, Purchase -->
+  <line x1="240" y1="50" x2="268" y2="50" stroke="#333" stroke-width="1.5" marker-end="url(#ca)"/>
+  <text x="254" y="44" text-anchor="middle" font-size="9" fill="#555">1..*</text>
+  <line x1="125" y1="82" x2="125" y2="105" stroke="#333" stroke-width="1"/>
+  <line x1="125" y1="105" x2="650" y2="105" stroke="#333" stroke-width="1"/>
+  <line x1="650" y1="105" x2="650" y2="95" stroke="#333" stroke-width="1.5" marker-end="url(#ca)"/>
+  <text x="400" y="101" text-anchor="middle" font-size="9" fill="#555">1..*</text>
+  <line x1="125" y1="105" x2="920" y2="105" stroke="#333" stroke-width="1"/>
+  <line x1="920" y1="105" x2="920" y2="95" stroke="#333" stroke-width="1.5" marker-end="url(#ca)"/>
+  <!-- Category → Task, Purchase -->
+  <line x1="500" y1="50" x2="528" y2="50" stroke="#333" stroke-width="1.5" marker-end="url(#ca)"/>
+  <text x="514" y="44" text-anchor="middle" font-size="9" fill="#555">1..*</text>
+  <line x1="385" y1="82" x2="385" y2="112" stroke="#333" stroke-width="1"/>
+  <line x1="385" y1="112" x2="920" y2="112" stroke="#333" stroke-width="1"/>
+  <line x1="920" y1="112" x2="920" y2="95" stroke="#333" stroke-width="0"/>
+  <!-- Separator -->
+  <line x1="0" y1="130" x2="1060" y2="130" stroke="#eee" stroke-width="1"/>
+  <!-- AIAgent -->
+  <rect x="10" y="145" width="300" height="22" rx="4" fill="#1a1a1a"/><text x="160" y="160" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">AIAgent</text>
+  <rect x="10" y="167" width="300" height="68" rx="0 0 4 4" fill="#fff" stroke="#333" stroke-width="1.5"/>
+  <text x="20" y="184" font-size="12" font-family="monospace">+process_chat(msg, user_id)</text>
+  <text x="20" y="198" font-size="12" font-family="monospace">-prompt: ChatPromptTemplate</text>
+  <text x="20" y="212" font-size="12" font-family="monospace">-executor: max_iterations=10</text>
+  <text x="20" y="226" font-size="12" font-family="monospace">-tools: 11 инструментов</text>
+  <!-- RPCWorker -->
+  <rect x="380" y="145" width="300" height="22" rx="4" fill="#1a1a1a"/><text x="530" y="160" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">RPCWorker (FastStream)</text>
+  <rect x="380" y="167" width="300" height="68" rx="0 0 4 4" fill="#fff" stroke="#333" stroke-width="1.5"/>
+  <text x="390" y="184" font-size="12" font-family="monospace">+handle_rpc_command(msg)</text>
+  <text x="390" y="198" font-size="12" font-family="monospace">-create_task()</text>
+  <text x="390" y="212" font-size="12" font-family="monospace">-update_task()</text>
+  <text x="390" y="226" font-size="12" font-family="monospace">-create_purchase()</text>
+  <!-- CoreService -->
+  <rect x="750" y="145" width="290" height="22" rx="4" fill="#1a1a1a"/><text x="895" y="160" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">CoreService</text>
+  <rect x="750" y="167" width="290" height="55" rx="0 0 4 4" fill="#fff" stroke="#333" stroke-width="1.5"/>
+  <text x="760" y="184" font-size="12" font-family="monospace">+TaskService</text>
+  <text x="760" y="198" font-size="12" font-family="monospace">+PurchaseService</text>
+  <text x="760" y="212" font-size="12" font-family="monospace">+CategoryService</text>
+  <!-- AI → RPCWorker -->
+  <line x1="310" y1="190" x2="378" y2="190" stroke="#333" stroke-width="1.5" marker-end="url(#ca)"/>
+  <text x="344" y="184" text-anchor="middle" font-size="10" fill="#555">AMQP RPC</text>
+  <!-- RPCWorker → CoreService -->
+  <line x1="680" y1="190" x2="748" y2="190" stroke="#333" stroke-width="1.5" marker-end="url(#ca)"/>
+  <text x="714" y="184" text-anchor="middle" font-size="10" fill="#555">вызов</text>
+  <!-- User connections -->
+  <rect x="320" y="280" width="120" height="30" rx="6" fill="#f0f0f0" stroke="#333" stroke-width="2"/>
+  <text x="380" y="300" text-anchor="middle" font-size="14" font-weight="700">User</text>
+  <!-- User → CoreService (REST) -->
+  <line x1="440" y1="295" x2="895" y2="222" stroke="#333" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#ca)"/>
+  <text x="700" y="262" font-size="11" fill="#555">REST API / GUI</text>
+  <!-- User → AIAgent (NLU) -->
+  <line x1="320" y1="295" x2="160" y2="235" stroke="#333" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#ca)"/>
+  <text x="210" y="272" font-size="11" fill="#555">NLU-интерфейс</text>
+  <!-- Caption -->
+  <text x="530" y="430" text-anchor="middle" font-size="14" fill="#555" font-style="italic">Рис. 7. Пользователь управляет данными напрямую (GUI) или через AI Agent (NLU)</text>
+</svg>

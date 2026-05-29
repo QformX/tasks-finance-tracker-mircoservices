@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Sequence Diagram</title>
+  <style>
+    body {
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      padding: 40px;
+      background: #fcfcfc;
+      color: #1a1a1a;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .d-caption { font-size: 17px; color: #555; font-style: italic; margin-top: 20px; text-align: center; }
+    /* ---- SEQUENCE DIAGRAM ---- */
+    .seq-heads { display: flex; gap: 8px; margin-bottom: 16px; }
+    .seq-head {
+      flex: 1; background: #1a1a1a; color: #fff; text-align: center;
+      padding: 8px 4px; border-radius: 6px; font-size: 13px; font-weight: 600;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .seq-step {
+      display: flex; align-items: center; margin-bottom: 8px;
+      font-size: 15px; line-height: 1.5;
+      background: #fff; border: 1px solid #eee; padding: 6px 12px; border-radius: 6px;
+    }
+    .seq-num {
+      width: 30px; flex-shrink: 0;
+      font-weight: 700; font-size: 14px; color: #1a1a1a;
+    }
+    .seq-from {
+      font-weight: 600; font-size: 14px; color: #333;
+      min-width: 140px; flex-shrink: 0;
+    }
+    .seq-to { font-size: 14px; color: #333; }
+    .seq-arr { margin: 0 10px; color: #1a1a1a; font-size: 16px; font-weight: bold; }
+    .seq-msg {
+      background: #f0f0f0; border-radius: 4px; padding: 2px 8px;
+      font-family: monospace; font-size: 13px; font-weight: bold;
+    }
+    .seq-note {
+      background: #f7f9fa; border-left: 4px solid #3498db;
+      padding: 6px 12px; font-size: 13px; font-style: italic;
+      margin: 6px 0 6px 30px; display: block; color: #444;
+      border-radius: 0 6px 6px 0;
+    }
+  </style>
+</head>
+<body>
+<div class="seq-heads">
+  <div class="seq-head">Пользователь</div>
+  <div class="seq-head">Tauri Client</div>
+  <div class="seq-head">Nginx</div>
+  <div class="seq-head">AI Service</div>
+  <div class="seq-head">RabbitMQ #2</div>
+  <div class="seq-head">Core RPC</div>
+  <div class="seq-head">PostgreSQL</div>
+</div>
+
+<div class="seq-step">
+  <div class="seq-num">1</div>
+  <div class="seq-from">Пользователь</div>
+  <div class="seq-arr">→</div>
+  <div class="seq-to">Tauri Client: <span class="seq-msg">«Добавь молоко»</span></div>
+</div>
+
+<div class="seq-step">
+  <div class="seq-num">2</div>
+  <div class="seq-from">Tauri Client</div>
+  <div class="seq-arr">→</div>
+  <div class="seq-to">Nginx Gateway: <span class="seq-msg">POST /ai/chat (SSE Stream)</span></div>
+</div>
+
+<div class="seq-step">
+  <div class="seq-num">3</div>
+  <div class="seq-from">Nginx Gateway</div>
+  <div class="seq-arr">→</div>
+  <div class="seq-to">AI Service: <span class="seq-msg">proxy forward</span></div>
+</div>
+
+<div class="seq-note">
+  ReAct Loop: AI Service анализирует запрос и выбирает инструмент <b>create_purchase_rpc</b>
+</div>
+
+<div class="seq-step">
+  <div class="seq-num">4</div>
+  <div class="seq-from">AI Service</div>
+  <div class="seq-arr">→</div>
+  <div class="seq-to">RabbitMQ #2: <span class="seq-msg">publish(cmd, correlation_id, rpc=True)</span></div>
+</div>
+
+<div class="seq-note">
+  Асинхронность: поток AI Service НЕ блокируется, ждёт ответа по correlation_id
+</div>
+
+<div class="seq-step">
+  <div class="seq-num">5</div>
+  <div class="seq-from">RabbitMQ #2</div>
+  <div class="seq-arr">→</div>
+  <div class="seq-to">Core RPC: <span class="seq-msg">consume(msg)</span></div>
+</div>
+
+<div class="seq-step">
+  <div class="seq-num">6</div>
+  <div class="seq-from">Core RPC</div>
+  <div class="seq-arr">→</div>
+  <div class="seq-to">PostgreSQL: <span class="seq-msg">INSERT INTO purchases</span></div>
+</div>
+
+<div class="seq-step">
+  <div class="seq-num">7</div>
+  <div class="seq-from">PostgreSQL</div>
+  <div class="seq-arr">┄→</div>
+  <div class="seq-to">Core RPC: <span class="seq-msg">OK (id=...)</span></div>
+</div>
+
+<div class="seq-step">
+  <div class="seq-num">8</div>
+  <div class="seq-from">Core RPC</div>
+  <div class="seq-arr">┄→</div>
+  <div class="seq-to">RabbitMQ #2: <span class="seq-msg">return {status: success}</span></div>
+</div>
+
+<div class="seq-step">
+  <div class="seq-num">9</div>
+  <div class="seq-from">RabbitMQ #2</div>
+  <div class="seq-arr">┄→</div>
+  <div class="seq-to">AI Service: <span class="seq-msg">reply by correlation_id</span></div>
+</div>
+
+<div class="seq-note">
+  Наблюдение → формирует ответ в NLU формате
+</div>
+
+<div class="seq-step">
+  <div class="seq-num">10</div>
+  <div class="seq-from">AI Service</div>
+  <div class="seq-arr">┄→</div>
+  <div class="seq-to">Tauri Client: <span class="seq-msg">SSE chunk: «Молоко добавлено ✓»</span></div>
+</div>
+
+<div class="seq-step">
+  <div class="seq-num">11</div>
+  <div class="seq-from">Tauri Client</div>
+  <div class="seq-arr">┄→</div>
+  <div class="seq-to">Пользователь: <span class="seq-msg">Отображение в чате</span></div>
+</div>
+
+<div class="d-caption">Рис. 2. Временная диаграмма неблокирующего RPC-вызова с correlation_id при работе LLM (5–15 сек)</div>
+</body>
+</html>

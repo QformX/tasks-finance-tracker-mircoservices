@@ -1,6 +1,7 @@
 import uuid
 import asyncio
 import json
+from typing import Optional
 import redis.asyncio as redis
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
