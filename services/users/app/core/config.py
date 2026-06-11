@@ -19,6 +19,16 @@ class Settings(BaseSettings):
         default="amqp://guest:guest@localhost:5672/",
         alias="RABBITMQ_URL"
     )
+
+    yandex_client_id: str = Field(
+        default="mock_yandex_client_id",
+        alias="YANDEX_CLIENT_ID"
+    )
+    
+    yandex_client_secret: str = Field(
+        default="mock_yandex_client_secret",
+        alias="YANDEX_CLIENT_SECRET"
+    )
     
     model_config = SettingsConfigDict(
         env_file=".env",

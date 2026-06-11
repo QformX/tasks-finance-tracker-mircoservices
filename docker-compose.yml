@@ -97,6 +97,8 @@ services:
       context: ./services/users
     env_file:
       - .env
+    volumes:
+      - ./services/users:/app
     environment:
       DATABASE_URL: ${USERS_DATABASE_URL}
     depends_on:

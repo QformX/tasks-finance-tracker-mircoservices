@@ -32,6 +32,8 @@ const translations: Translations = {
     "no_account": "Don't have an account?",
     "has_account": "Already have an account?",
     "auth_failed": "Authentication failed",
+    "sign_in_with_yandex": "Sign in with Yandex",
+    "or": "Or",
 
     // Settings
     "settings_title": "Settings",
@@ -240,6 +242,8 @@ const translations: Translations = {
     "no_account": "Нет аккаунта?",
     "has_account": "Уже есть аккаунт?",
     "auth_failed": "Ошибка аутентификации",
+    "sign_in_with_yandex": "Войти через Яндекс",
+    "or": "Или",
 
     // Settings
     "settings_title": "Настройки",

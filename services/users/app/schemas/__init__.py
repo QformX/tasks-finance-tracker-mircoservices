@@ -3,7 +3,9 @@ from app.schemas.user import (
     UserLogin,
     UserResponse,
     Token,
-    UserSessionResponse
+    UserSessionResponse,
+    YandexLoginRequest,
+    UserUpdate
 )
 
 __all__ = [
@@ -11,5 +13,7 @@ __all__ = [
     "UserLogin",
     "UserResponse",
     "Token",
-    "UserSessionResponse"
+    "UserSessionResponse",
+    "YandexLoginRequest",
+    "UserUpdate"
 ]

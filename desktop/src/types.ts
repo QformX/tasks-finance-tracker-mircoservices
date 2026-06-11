@@ -35,6 +35,9 @@ export interface User {
   id: string;
   username: string;
   email: string;
+  display_name?: string | null;
+  avatar_url?: string | null;
+  bio?: string | null;
 }
 
 export interface AuthResponse {

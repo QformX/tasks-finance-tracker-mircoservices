@@ -126,6 +126,15 @@ export async function getMe(): Promise<User> {
   return response.json();
 }
 
+export async function updateProfile(updates: { display_name?: string | null; avatar_url?: string | null; bio?: string | null }): Promise<User> {
+  const response = await fetchWithAuth(`${AUTH_BASE_URL}/users/me`, {
+    method: "PATCH",
+    body: JSON.stringify(updates),
+  });
+  if (!response.ok) throw new Error("Failed to update profile");
+  return response.json();
+}
+
 export async function getSessions(): Promise<UserSession[]> {
   const response = await fetchWithAuth(`${AUTH_BASE_URL}/sessions`);
   if (!response.ok) throw new Error("Failed to fetch sessions");

@@ -1,18 +1,33 @@
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
-import { getSessions, revokeSession, revokeAllSessionsExceptCurrent } from "@/lib/api";
+import { getSessions, revokeSession, revokeAllSessionsExceptCurrent, updateProfile } from "@/lib/api";
 import type { UserSession } from "@/types";
 import { useLanguage } from "@/context/LanguageContext";
 
 export function Profile() {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const { t } = useLanguage();
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
 
+  const [displayName, setDisplayName] = useState("");
+  const [bio, setBio] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+
   useEffect(() => {
     loadSessions();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      setDisplayName(user.display_name || user.username || "");
+      setBio(user.bio || "");
+      setAvatarUrl(user.avatar_url || "");
+    }
+  }, [user]);
 
   async function loadSessions() {
     try {
@@ -45,6 +60,27 @@ export function Profile() {
     }
   }
 
+  async function handleSaveChanges() {
+    setSaving(true);
+    setSuccessMsg("");
+    setErrorMsg("");
+    try {
+      const updatedUser = await updateProfile({
+        display_name: displayName,
+        bio: bio,
+        avatar_url: avatarUrl,
+      });
+      setUser(updatedUser);
+      setSuccessMsg("Profile updated successfully!");
+      setTimeout(() => setSuccessMsg(""), 3000);
+    } catch (err) {
+      setErrorMsg("Failed to save changes. Please try again.");
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <div className="flex-1 overflow-y-auto w-full">
       <div className="max-w-4xl mx-auto p-6 md:p-10 lg:p-12 pb-24">
@@ -57,13 +93,34 @@ export function Profile() {
           {/* Personal Information */}
           <section className="bg-surface-dark border border-text-950/5 rounded-3xl p-6 md:p-8">
             <h2 className="text-xl font-bold text-text-950 mb-8">{t("personal_info")}</h2>
+            
+            {successMsg && (
+              <div className="mb-6 p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm font-semibold animate-fade-in">
+                {successMsg}
+              </div>
+            )}
+            {errorMsg && (
+              <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-semibold animate-fade-in">
+                {errorMsg}
+              </div>
+            )}
+
             <div className="flex flex-col md:flex-row gap-8">
               <div className="shrink-0 flex flex-col items-center md:items-start gap-4">
                 <div className="relative group size-32">
-                  <div className="w-full h-full rounded-full bg-cover bg-center border-4 border-primary bg-text-950/20 flex items-center justify-center text-4xl font-bold text-text-950">
-                    {user?.username?.substring(0, 2).toUpperCase() || "ME"}
+                  <div 
+                    className="w-full h-full rounded-full bg-cover bg-center border-4 border-primary bg-text-950/20 flex items-center justify-center text-4xl font-bold text-text-950 overflow-hidden"
+                    style={avatarUrl ? { backgroundImage: `url(${avatarUrl})` } : undefined}
+                  >
+                    {!avatarUrl && (user?.username?.substring(0, 2).toUpperCase() || "ME")}
                   </div>
-                  <button className="absolute bottom-0 right-0 bg-text-950 text-background-50 p-2 rounded-full hover:bg-text-950/80 transition-colors shadow-lg">
+                  <button 
+                    onClick={() => {
+                      const newUrl = prompt("Enter Image URL for avatar:", avatarUrl || "");
+                      if (newUrl !== null) setAvatarUrl(newUrl);
+                    }}
+                    className="absolute bottom-0 right-0 bg-text-950 text-background-50 p-2 rounded-full hover:bg-text-950/80 transition-colors shadow-lg"
+                  >
                     <span className="material-symbols-outlined text-[18px] block">edit</span>
                   </button>
                 </div>
@@ -76,15 +133,17 @@ export function Profile() {
                     <input 
                       className="w-full bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-3 text-sm text-text-950 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-text-secondary/50" 
                       type="text" 
-                      defaultValue={user?.username || ""}
+                      value={displayName}
+                      onChange={e => setDisplayName(e.target.value)}
                     />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">{t("username")}</label>
                     <input 
-                      className="w-full bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-3 text-sm text-text-950 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-text-secondary/50" 
+                      className="w-full bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-3 text-sm text-text-950/50 focus:outline-none transition-all cursor-not-allowed" 
                       type="text" 
-                      defaultValue={user?.username || ""}
+                      value={user?.username || ""}
+                      disabled
                     />
                   </div>
                   <div className="space-y-1.5 md:col-span-2">
@@ -92,9 +151,10 @@ export function Profile() {
                     <div className="relative">
                       <span className="absolute left-4 top-3 text-text-secondary material-symbols-outlined text-[20px]">mail</span>
                       <input 
-                        className="w-full bg-text-950/5 border border-text-950/10 rounded-xl pl-11 pr-4 py-3 text-sm text-text-950 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-text-secondary/50" 
+                        className="w-full bg-text-950/5 border border-text-950/10 rounded-xl pl-11 pr-4 py-3 text-sm text-text-950/50 focus:outline-none transition-all cursor-not-allowed" 
                         type="email" 
-                        defaultValue={user?.email || ""}
+                        value={user?.email || ""}
+                        disabled
                       />
                     </div>
                   </div>
@@ -103,12 +163,20 @@ export function Profile() {
                     <textarea 
                       className="w-full bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-3 text-sm text-text-950 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none placeholder:text-text-secondary/50" 
                       rows={3}
-                      defaultValue="Product Manager based in San Francisco. Love building things."
+                      value={bio}
+                      onChange={e => setBio(e.target.value)}
+                      placeholder="Tell us about yourself..."
                     ></textarea>
                   </div>
                 </div>
                 <div className="pt-4 flex justify-end">
-                  <button className="px-6 py-3 bg-text-950 text-background-50 font-bold rounded-xl hover:bg-text-950/80 transition-colors shadow-lg shadow-text-950/5 text-sm">{t("save_changes")}</button>
+                  <button 
+                    disabled={saving}
+                    onClick={handleSaveChanges}
+                    className="px-6 py-3 bg-text-950 text-background-50 font-bold rounded-xl hover:bg-text-950/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-text-950/5 text-sm"
+                  >
+                    {saving ? "Saving..." : t("save_changes")}
+                  </button>
                 </div>
               </div>
             </div>

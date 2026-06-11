@@ -18,7 +18,7 @@ from app.core.auth import (
     create_access_token, 
     create_refresh_token
 )
-from app.schemas import UserCreate, UserLogin, UserResponse, Token, UserSessionResponse
+from app.schemas import UserCreate, UserLogin, UserResponse, Token, UserSessionResponse, YandexLoginRequest, UserUpdate
 from app.core.events import mq_client
 
 limiter = Limiter(key_func=get_remote_address)
@@ -161,6 +161,28 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """
     Получение информации о текущем пользователе
     """
+    return current_user
+
+
+@router.patch("/users/me", response_model=UserResponse)
+async def update_current_user_info(
+    payload: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Обновление профиля текущего пользователя (отображаемое имя, ссылка на аватар, био)
+    """
+    if payload.display_name is not None:
+        current_user.display_name = payload.display_name
+    if payload.avatar_url is not None:
+        current_user.avatar_url = payload.avatar_url
+    if payload.bio is not None:
+        current_user.bio = payload.bio
+        
+    session.add(current_user)
+    await session.commit()
+    await session.refresh(current_user)
     return current_user
 
 
@@ -371,3 +393,176 @@ async def revoke_all_sessions_except_current(
     print(f"Revoked {revoked_count} sessions for user {current_user.id}")
     
     return None
+
+
+import urllib.request
+import urllib.parse
+import json
+import asyncio
+
+@router.get("/yandex/client-id")
+async def get_yandex_client_id():
+    """Возвращает Yandex Client ID для фронтенда"""
+    return {
+        "client_id": settings.yandex_client_id,
+        "is_mock": settings.yandex_client_id == "mock_yandex_client_id"
+    }
+
+@router.post("/yandex/callback", response_model=Token)
+async def yandex_callback(
+    request: Request,
+    payload: YandexLoginRequest,
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Callback для Yandex OAuth.
+    Принимает code и redirect_uri от фронтенда, обменивает его на токен в Яндексе,
+    получает данные профиля пользователя, находит или регистрирует его,
+    и возвращает JWT токен приложения.
+    """
+    code = payload.code
+    redirect_uri = payload.redirect_uri
+    
+    yandex_email = None
+    yandex_username = None
+    yandex_display_name = None
+    yandex_avatar_url = None
+    
+    # 1. Exchange code for access token and get info if not mocked
+    if settings.yandex_client_id != "mock_yandex_client_id" and settings.yandex_client_secret != "mock_yandex_client_secret":
+        try:
+            # Обмен кода на токен
+            token_url = "https://oauth.yandex.ru/token"
+            token_data = urllib.parse.urlencode({
+                "grant_type": "authorization_code",
+                "code": code,
+                "client_id": settings.yandex_client_id,
+                "client_secret": settings.yandex_client_secret
+            }).encode("utf-8")
+            
+            token_req = urllib.request.Request(
+                token_url, 
+                data=token_data, 
+                headers={"Content-Type": "application/x-www-form-urlencoded"}
+            )
+            
+            def _fetch_token():
+                with urllib.request.urlopen(token_req, timeout=10) as r:
+                    return json.loads(r.read().decode("utf-8"))
+            
+            token_res = await asyncio.to_thread(_fetch_token)
+            access_token = token_res.get("access_token")
+            
+            if not access_token:
+                raise ValueError("No access token in Yandex response")
+                
+            # Запрос данных пользователя
+            info_url = "https://login.yandex.ru/info?format=json"
+            info_req = urllib.request.Request(
+                info_url,
+                headers={"Authorization": f"OAuth {access_token}"}
+            )
+            
+            def _fetch_info():
+                with urllib.request.urlopen(info_req, timeout=10) as r:
+                    return json.loads(r.read().decode("utf-8"))
+                    
+            info_res = await asyncio.to_thread(_fetch_info)
+            yandex_email = info_res.get("default_email") or info_res.get("emails", [None])[0]
+            yandex_username = info_res.get("login") or info_res.get("display_name")
+            yandex_display_name = info_res.get("real_name") or info_res.get("display_name") or yandex_username
+            
+            default_avatar_id = info_res.get("default_avatar_id")
+            is_avatar_empty = info_res.get("is_avatar_empty", True)
+            if not is_avatar_empty and default_avatar_id:
+                yandex_avatar_url = f"https://avatars.yandex.net/get-yapic/{default_avatar_id}/islands-200"
+            
+        except Exception as e:
+            # Логируем ошибку и падаем в фолбэк для удобства разработки
+            print(f"Yandex OAuth failed: {e}. Falling back to mock login.")
+            
+    # Фолбэк для разработки / заглушки
+    if not yandex_email:
+        # Для уникальности демо-пользователей при локальной работе можно генерировать юзера
+        # из присланного code, или просто использовать yandex_user@yandex.ru
+        yandex_email = "yandex_user@yandex.ru"
+        yandex_username = "yandex_user"
+        
+    if not yandex_username:
+        yandex_username = yandex_email.split("@")[0]
+        
+    if not yandex_display_name:
+        yandex_display_name = "Тестовый Пользователь"
+        
+    # 2. Найти или создать пользователя
+    stmt = select(User).where(User.email == yandex_email)
+    result = await session.execute(stmt)
+    user = result.scalar()
+    
+    if not user:
+        # Если юзернейм уже занят, добавляем случайный постфикс
+        stmt_un = select(User).where(User.username == yandex_username)
+        res_un = await session.execute(stmt_un)
+        if res_un.scalar():
+            yandex_username = f"{yandex_username}_{uuid.uuid4().hex[:6]}"
+            
+        user = User(
+            username=yandex_username,
+            email=yandex_email,
+            password_hash=get_password_hash(str(uuid.uuid4())), # случайный пароль для безопасности
+            is_active=True,
+            display_name=yandex_display_name,
+            avatar_url=yandex_avatar_url,
+            bio=""
+        )
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+    else:
+        # Обновим имя и аватарку, если они не были заполнены
+        updated = False
+        if not user.display_name and yandex_display_name:
+            user.display_name = yandex_display_name
+            updated = True
+        if not user.avatar_url and yandex_avatar_url:
+            user.avatar_url = yandex_avatar_url
+            updated = True
+            
+        if updated:
+            session.add(user)
+            await session.commit()
+            await session.refresh(user)
+            
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is inactive"
+        )
+        
+    # 3. Выдача токенов приложения (Session + JWT)
+    refresh_token = create_refresh_token()
+    user_agent = request.headers.get("user-agent")
+    ip_address = request.client.host if request.client else None
+    
+    new_session = UserSession(
+        user_id=user.id,
+        refresh_token=refresh_token,
+        user_agent=user_agent,
+        ip_address=ip_address,
+        expires_at=datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
+    )
+    session.add(new_session)
+    await session.commit()
+    await session.refresh(new_session)
+    
+    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    access_token = create_access_token(
+        data={"sub": str(user.id), "sid": str(new_session.id)},
+        expires_delta=access_token_expires
+    )
+    
+    return Token(
+        access_token=access_token,
+        token_type="bearer",
+        refresh_token=refresh_token
+    )

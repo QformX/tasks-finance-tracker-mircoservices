@@ -122,13 +122,16 @@ export function Sidebar() {
               isCollapsed ? "w-[52px] justify-center px-0" : "w-full px-4"
             )}
           >
-            <div className="size-8 rounded-full bg-secondary-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
-              {user?.username ? user.username.substring(0, 2).toUpperCase() : "ME"}
+            <div 
+              className="size-8 rounded-full bg-secondary-500 flex items-center justify-center text-white font-bold text-sm shrink-0 bg-cover bg-center overflow-hidden"
+              style={user?.avatar_url ? { backgroundImage: `url(${user.avatar_url})` } : undefined}
+            >
+              {!user?.avatar_url && (user?.username ? user.username.substring(0, 2).toUpperCase() : "ME")}
             </div>
             {!isCollapsed && (
               <>
                 <div className="flex flex-col flex-1 min-w-0 animate-in fade-in duration-300">
-                  <p className="text-text-950 text-sm font-bold truncate">{user?.username || "Guest"}</p>
+                  <p className="text-text-950 text-sm font-bold truncate">{user?.display_name || user?.username || "Guest"}</p>
                   <p className="text-text-secondary text-xs truncate">{user?.email || "guest@example.com"}</p>
                 </div>
                 <button 

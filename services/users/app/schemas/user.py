@@ -22,6 +22,9 @@ class UserResponse(BaseModel):
     id: uuid.UUID
     username: str
     email: str
+    display_name: Optional[str] = None
+    avatar_url: Optional[str] = None
+    bio: Optional[str] = None
     created_at: datetime
     
     model_config = ConfigDict(from_attributes=True)
@@ -44,3 +47,16 @@ class UserSessionResponse(BaseModel):
     is_current: bool = False
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class YandexLoginRequest(BaseModel):
+    """Схема для входа через Яндекс"""
+    code: str
+    redirect_uri: str
+
+
+class UserUpdate(BaseModel):
+    """Схема для обновления профиля пользователя"""
+    display_name: Optional[str] = None
+    avatar_url: Optional[str] = None
+    bio: Optional[str] = None
