@@ -3,6 +3,7 @@ import { Modal } from "@/components/Modal";
 import { Dropdown } from "@/components/Dropdown";
 import { createTask, getCategories } from "@/lib/api";
 import type { Category, Task } from "@/types";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -12,9 +13,11 @@ interface CreateTaskModalProps {
 }
 
 export function CreateTaskModal({ isOpen, onClose, onTaskCreated, preselectedCategoryId }: CreateTaskModalProps) {
+  const { t } = useLanguage();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [startDate, setStartDate] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [categories, setCategories] = useState<Category[]>([]);
@@ -27,6 +30,7 @@ export function CreateTaskModal({ isOpen, onClose, onTaskCreated, preselectedCat
       setTitle("");
       setDescription("");
       setCategoryId(preselectedCategoryId || "");
+      setStartDate("");
       setDueDate("");
       setPriority("medium");
       setError("");
@@ -42,6 +46,20 @@ export function CreateTaskModal({ isOpen, onClose, onTaskCreated, preselectedCat
     }
   }
 
+  const handleStartDateChange = (val: string) => {
+    setStartDate(val);
+    if (val && dueDate && new Date(val) > new Date(dueDate)) {
+      setDueDate(val);
+    }
+  };
+
+  const handleDueDateChange = (val: string) => {
+    setDueDate(val);
+    if (val && startDate && new Date(startDate) > new Date(val)) {
+      setStartDate(val);
+    }
+  };
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
@@ -55,7 +73,8 @@ export function CreateTaskModal({ isOpen, onClose, onTaskCreated, preselectedCat
         categoryId || undefined, 
         dueDate ? new Date(dueDate).toISOString() : undefined,
         description || undefined,
-        priority
+        priority,
+        startDate ? new Date(startDate).toISOString() : undefined
       );
       onTaskCreated(task);
       onClose();
@@ -134,14 +153,26 @@ export function CreateTaskModal({ isOpen, onClose, onTaskCreated, preselectedCat
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Due Date</label>
-          <input 
-            type="datetime-local" 
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className="bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-2.5 text-text-950 focus:outline-none focus:border-primary-500/50 transition-colors [color-scheme:dark] dark:[color-scheme:dark] light:[color-scheme:light]"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">{t("start_date") || "Start Time"}</label>
+            <input 
+              type="datetime-local" 
+              value={startDate}
+              onChange={(e) => handleStartDateChange(e.target.value)}
+              className="bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-2.5 text-text-950 focus:outline-none focus:border-primary-500/50 transition-colors [color-scheme:dark] dark:[color-scheme:dark] light:[color-scheme:light]"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">{t("due_date") || "Due Date"}</label>
+            <input 
+              type="datetime-local" 
+              value={dueDate}
+              onChange={(e) => handleDueDateChange(e.target.value)}
+              className="bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-2.5 text-text-950 focus:outline-none focus:border-primary-500/50 transition-colors [color-scheme:dark] dark:[color-scheme:dark] light:[color-scheme:light]"
+            />
+          </div>
         </div>
 
         <div className="flex justify-end gap-3 mt-4">

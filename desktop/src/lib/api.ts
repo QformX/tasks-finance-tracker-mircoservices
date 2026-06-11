@@ -178,10 +178,10 @@ export async function toggleTaskCompletion(taskId: string): Promise<void> {
   }
 }
 
-export async function createTask(title: string, categoryId?: string, dueDate?: string, description?: string, priority: "low" | "medium" | "high" = "medium"): Promise<Task> {
+export async function createTask(title: string, categoryId?: string, dueDate?: string, description?: string, priority: "low" | "medium" | "high" = "medium", startDate?: string): Promise<Task> {
   const response = await fetchWithAuth(`${API_BASE_URL}/tasks/`, {
     method: "POST",
-    body: JSON.stringify({ title, category_id: categoryId, due_date: dueDate, description, priority }),
+    body: JSON.stringify({ title, category_id: categoryId, start_date: startDate, due_date: dueDate, description, priority }),
   });
   if (!response.ok) {
     throw new Error("Failed to create task");

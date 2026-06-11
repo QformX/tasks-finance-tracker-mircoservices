@@ -125,6 +125,7 @@ async def get_tasks(
                     "title": t.title,
                     "description": t.description,
                     "is_completed": t.is_completed,
+                    "start_date": t.start_date.isoformat() if t.start_date else None,
                     "due_date": t.due_date.isoformat() if t.due_date else None,
                     "priority": t.priority,
                     "created_at": t.created_at.isoformat()
@@ -227,9 +228,9 @@ async def update_task(
     
     background_tasks.add_task(_invalidate_tasks_cache, user_id)
     
-    # Send TaskUpdated event if due_date changed or other important fields
-    # We check if due_date is in update_data
-    if "due_date" in update_data or "priority" in update_data:
+    # Send TaskUpdated event if start_date/due_date changed or other important fields
+    # We check if start_date or due_date is in update_data
+    if "start_date" in update_data or "due_date" in update_data or "priority" in update_data:
         async def send_update_event():
             try:
                 event = {
@@ -237,6 +238,7 @@ async def update_task(
                     "task_id": str(task.id),
                     "user_id": str(user_id),
                     "title": task.title,
+                    "start_date": task.start_date.isoformat() if task.start_date else None,
                     "due_date": task.due_date.isoformat() if task.due_date else None,
                     "priority": task.priority,
                     "updated_at": datetime.utcnow().isoformat()

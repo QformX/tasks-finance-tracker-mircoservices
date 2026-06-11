@@ -28,6 +28,47 @@ export function TaskItem({ task, categoryName, categoryColor, onToggle, onDelete
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const formatTaskDate = () => {
+    if (!task.start_date && !task.due_date) {
+      return t("no_date") || "No Date";
+    }
+
+    const start = task.start_date ? new Date(task.start_date) : null;
+    const due = task.due_date ? new Date(task.due_date) : null;
+
+    if (start && due) {
+      const isSameDay = start.toLocaleDateString() === due.toLocaleDateString();
+      const hasTime = start.getHours() !== 0 || start.getMinutes() !== 0 || due.getHours() !== 0 || due.getMinutes() !== 0;
+
+      if (isSameDay) {
+        if (hasTime) {
+          const startTimeStr = start.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+          const endTimeStr = due.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+          return `${start.toLocaleDateString()}, ${startTimeStr} - ${endTimeStr}`;
+        }
+        return start.toLocaleDateString();
+      } else {
+        if (hasTime) {
+          const startTimeStr = start.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+          const endTimeStr = due.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+          return `${start.toLocaleDateString()}, ${startTimeStr} - ${due.toLocaleDateString()}, ${endTimeStr}`;
+        }
+        return `${start.toLocaleDateString()} - ${due.toLocaleDateString()}`;
+      }
+    }
+
+    const singleDate = start || due;
+    if (singleDate) {
+      const hasTime = singleDate.getHours() !== 0 || singleDate.getMinutes() !== 0;
+      if (hasTime) {
+        return `${singleDate.toLocaleDateString()}, ${singleDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
+      }
+      return singleDate.toLocaleDateString();
+    }
+
+    return t("no_date") || "No Date";
+  };
+
   return (
     <div 
       onClick={() => onEdit?.(task, false)}
@@ -51,7 +92,7 @@ export function TaskItem({ task, categoryName, categoryColor, onToggle, onDelete
         <p className={cn("text-text-950 text-base font-semibold leading-normal", task.is_completed && "line-through text-text-secondary")}>{task.title}</p>
         <div className="flex items-center gap-2">
           <span className={cn("text-sm font-medium", isOverdue ? "text-red-400" : "text-green-500")}>
-            {task.due_date ? new Date(task.due_date).toLocaleDateString() : t("no_date") || "No Date"}
+            {formatTaskDate()}
           </span>
           {task.priority && (
             <span className={cn(

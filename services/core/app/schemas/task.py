@@ -8,6 +8,7 @@ class TaskCreate(BaseModel):
     """Схема для создания задачи"""
     title: str
     category_id: Optional[uuid.UUID] = None
+    start_date: Optional[datetime] = None
     due_date: Optional[datetime] = None
     description: Optional[str] = None
     priority: str = "medium"
@@ -18,6 +19,7 @@ class TaskUpdate(BaseModel):
     title: Optional[str] = None
     category_id: Optional[uuid.UUID] = None
     is_completed: Optional[bool] = None
+    start_date: Optional[datetime] = None
     due_date: Optional[datetime] = None
     description: Optional[str] = None
     priority: Optional[str] = None
@@ -32,6 +34,7 @@ class TaskResponse(BaseModel):
     description: Optional[str] = None
     priority: str = "medium"
     is_completed: bool
+    start_date: Optional[datetime] = None
     due_date: Optional[datetime]
     created_at: datetime
     

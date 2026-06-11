@@ -20,6 +20,7 @@ class TaskService:
             title=task_in.title,
             description=task_in.description,
             category_id=task_in.category_id,
+            start_date=task_in.start_date,
             due_date=task_in.due_date,
             priority=task_in.priority,
             is_completed=False
@@ -57,6 +58,7 @@ class TaskService:
                     "user_id": str(user_id),
                     "title": new_task.title,
                     "category_id": str(new_task.category_id) if new_task.category_id else None,
+                    "start_date": new_task.start_date.isoformat() if new_task.start_date else None,
                     "due_date": new_task.due_date.isoformat() if new_task.due_date else None,
                     "priority": new_task.priority,
                     "created_at": new_task.created_at.isoformat()
@@ -98,13 +100,14 @@ class TaskService:
                 print(f"Failed to invalidate cache: {e}")
                 
             # Send TaskUpdated event
-            if "due_date" in update_data or "priority" in update_data:
+            if "start_date" in update_data or "due_date" in update_data or "priority" in update_data:
                 try:
                     event = {
                         "event_type": "TaskUpdated",
                         "task_id": str(task.id),
                         "user_id": str(user_id),
                         "title": task.title,
+                        "start_date": task.start_date.isoformat() if task.start_date else None,
                         "due_date": task.due_date.isoformat() if task.due_date else None,
                         "priority": task.priority,
                         "updated_at": datetime.utcnow().isoformat()

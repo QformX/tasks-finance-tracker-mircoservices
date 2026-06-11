@@ -23,6 +23,7 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [startDate, setStartDate] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   
@@ -45,6 +46,13 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
     setDescription(task.description || "");
     setCategoryId(task.category_id || "");
     setPriority(task.priority || "medium");
+    if (task.start_date) {
+      const date = new Date(task.start_date);
+      const isoString = date.toISOString().slice(0, 16);
+      setStartDate(isoString);
+    } else {
+      setStartDate("");
+    }
     if (task.due_date) {
       const date = new Date(task.due_date);
       const isoString = date.toISOString().slice(0, 16);
@@ -63,6 +71,20 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
     }
   }
 
+  const handleStartDateChange = (val: string) => {
+    setStartDate(val);
+    if (val && dueDate && new Date(val) > new Date(dueDate)) {
+      setDueDate(val);
+    }
+  };
+
+  const handleDueDateChange = (val: string) => {
+    setDueDate(val);
+    if (val && startDate && new Date(startDate) > new Date(val)) {
+      setStartDate(val);
+    }
+  };
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim() || !task) return;
@@ -75,6 +97,7 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
         title,
         description: description || undefined,
         category_id: categoryId || null,
+        start_date: startDate ? new Date(startDate).toISOString() : null,
         due_date: dueDate ? new Date(dueDate).toISOString() : null,
         priority
       };
@@ -176,11 +199,20 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
               </div>
             </div>
 
-            <div className="flex flex-col gap-1">
-              <span className="text-text-secondary text-xs font-bold uppercase tracking-wider">{t("due_date") || "Due Date"}</span>
-              <span className="text-text-950">
-                {dueDate ? new Date(dueDate).toLocaleString() : (t("no_date") || "No Date")}
-              </span>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1">
+                <span className="text-text-secondary text-xs font-bold uppercase tracking-wider">{t("start_date") || "Start Time"}</span>
+                <span className="text-text-950">
+                  {startDate ? new Date(startDate).toLocaleString() : (t("no_date") || "No Date")}
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-text-secondary text-xs font-bold uppercase tracking-wider">{t("due_date") || "Due Date"}</span>
+                <span className="text-text-950">
+                  {dueDate ? new Date(dueDate).toLocaleString() : (t("no_date") || "No Date")}
+                </span>
+              </div>
             </div>
 
             {/* Actions */}
@@ -259,14 +291,26 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
               </div>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">{t("due_date") || "Due Date"}</label>
-              <input 
-                type="datetime-local" 
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-2.5 text-text-950 focus:outline-none focus:border-primary-500/50 transition-colors [color-scheme:dark] dark:[color-scheme:dark] light:[color-scheme:light]"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">{t("start_date") || "Start Time"}</label>
+                <input 
+                  type="datetime-local" 
+                  value={startDate}
+                  onChange={(e) => handleStartDateChange(e.target.value)}
+                  className="bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-2.5 text-text-950 focus:outline-none focus:border-primary-500/50 transition-colors [color-scheme:dark] dark:[color-scheme:dark] light:[color-scheme:light]"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">{t("due_date") || "Due Date"}</label>
+                <input 
+                  type="datetime-local" 
+                  value={dueDate}
+                  onChange={(e) => handleDueDateChange(e.target.value)}
+                  className="bg-text-950/5 border border-text-950/10 rounded-xl px-4 py-2.5 text-text-950 focus:outline-none focus:border-primary-500/50 transition-colors [color-scheme:dark] dark:[color-scheme:dark] light:[color-scheme:light]"
+                />
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 mt-4">

@@ -52,6 +52,7 @@ async def handle_rpc_command(msg: dict):
                 task_in = TaskCreate(
                     title=cmd.title,
                     category_id=cmd.category_id,
+                    start_date=cmd.start_date,
                     due_date=cmd.due_date,
                     description=cmd.description
                 )
@@ -63,6 +64,7 @@ async def handle_rpc_command(msg: dict):
                 task_in = TaskUpdate(
                     title=cmd.title,
                     category_id=cmd.category_id,
+                    start_date=cmd.start_date,
                     due_date=cmd.due_date,
                     is_completed=cmd.is_completed,
                     description=cmd.description
