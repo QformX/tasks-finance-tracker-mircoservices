@@ -344,16 +344,8 @@ export function TasksCalendar({
     return weekDays;
   };
 
-  const getWeekDayHeaders = () => {
-    const weekDays = getWeekDays();
-    return weekDays.map((d) =>
-      d.date.toLocaleDateString(language, { weekday: "short" })
-    );
-  };
-
   const todayStr = getLocalDateStr(new Date());
   const weekDays = getWeekDays();
-  const weekDayHeaders = getWeekDayHeaders();
 
   // Day view items grouping
   const dayTasks = tasks.filter((task) => getTaskDateStr(task) === targetDateStr);
@@ -369,29 +361,14 @@ export function TasksCalendar({
           <div className="text-text-secondary text-center py-20 flex-1">{t("loading_tasks")}</div>
         ) : (
           <div className="bg-surface-dark border border-text-950/10 rounded-2xl shadow-xl overflow-hidden flex-1 flex flex-col min-h-0">
-            {/* Days of the week header (Only in Week view) */}
-            {viewType === "week" && (
-              <div 
-                className="grid border-b border-text-950/10 bg-text-950/2 divide-x divide-text-950/10 shrink-0 h-10 select-none"
-                style={{ gridTemplateColumns: "repeat(7, minmax(0, 1fr))" }}
-              >
-                {weekDayHeaders.map((header, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-center text-[10px] font-bold uppercase tracking-wider text-text-secondary py-2"
-                  >
-                    {header}
-                  </div>
-                ))}
-              </div>
-            )}
+
 
             {/* Grid Body */}
             {viewType === "week" ? (
               // WEEK VIEW
               <div 
-                className="flex-1 grid divide-x divide-text-950/10 bg-surface-dark min-h-0"
-                style={{ gridTemplateColumns: "repeat(7, minmax(0, 1fr))" }}
+                className="flex-1 grid divide-x divide-text-950/10 bg-surface-dark min-h-0 overflow-x-auto"
+                style={{ gridTemplateColumns: "repeat(7, minmax(130px, 1fr))" }}
               >
                 {weekDays.map((day, idx) => {
                   const dayTasks = tasks.filter((task) => getTaskDateStr(task) === day.dateStr);
@@ -450,8 +427,14 @@ export function TasksCalendar({
                               draggable
                               onDragStart={(e) => handleDragStart(e, task.id)}
                               onDragEnd={handleDragEnd}
+                              onDoubleClick={async (e) => {
+                                e.stopPropagation();
+                                const startObj = new Date(`${targetDateStr}T09:00:00`);
+                                const endObj = new Date(`${targetDateStr}T10:00:00`);
+                                await onUpdateTaskDates(task.id, startObj.toISOString(), endObj.toISOString());
+                              }}
                               className={cn(
-                                "group/task flex flex-col gap-2 p-3 rounded-xl border text-left cursor-grab active:cursor-grabbing transition-all select-none",
+                                "group/task flex flex-col gap-1.5 p-2 rounded-xl border text-left cursor-pointer hover:border-text-950/20 hover:shadow-md transition-all select-none",
                                 task.is_completed
                                   ? "bg-text-950/[0.02] border-text-950/5 opacity-55 hover:opacity-90"
                                   : "bg-surface border-text-950/10 hover:border-text-950/20 hover:shadow-md"
@@ -462,7 +445,7 @@ export function TasksCalendar({
                                   : undefined
                               }
                             >
-                              <div className="flex items-start gap-2">
+                              <div className="flex items-start gap-1.5">
                                 {/* Completion Checkbox */}
                                 <button
                                   type="button"
@@ -471,14 +454,14 @@ export function TasksCalendar({
                                     onToggle(task.id);
                                   }}
                                   className={cn(
-                                    "size-4 rounded-md border flex items-center justify-center shrink-0 transition-colors cursor-pointer mt-0.5",
+                                    "size-3.5 rounded-md border flex items-center justify-center shrink-0 transition-colors cursor-pointer mt-0.5",
                                     task.is_completed
                                       ? "bg-primary-500 border-primary-500 text-white"
                                       : "border-text-secondary/40 hover:border-text-950/60"
                                   )}
                                 >
                                   {task.is_completed && (
-                                    <span className="material-symbols-outlined text-[10px] font-bold">
+                                    <span className="material-symbols-outlined text-[9px] font-bold">
                                       check
                                     </span>
                                   )}
@@ -488,7 +471,7 @@ export function TasksCalendar({
                                 <div className="flex-1 min-w-0">
                                   <span
                                     className={cn(
-                                      "text-[11px] font-bold leading-normal truncate block",
+                                      "text-[10px] font-bold leading-normal truncate block",
                                       task.is_completed
                                         ? "text-text-secondary line-through font-medium"
                                         : "text-text-950"
@@ -498,7 +481,7 @@ export function TasksCalendar({
                                     {task.title}
                                   </span>
                                   {task.description && (
-                                    <p className="text-[10px] text-text-secondary line-clamp-2 mt-0.5 leading-normal font-normal">
+                                    <p className="text-[9px] text-text-secondary line-clamp-2 mt-0.5 leading-normal font-normal">
                                       {task.description}
                                     </p>
                                   )}
@@ -507,11 +490,11 @@ export function TasksCalendar({
 
                               {/* Task Metadata */}
                               {!task.is_completed && (
-                                <div className="flex items-center justify-between gap-2 mt-1 shrink-0">
+                                <div className="flex items-center justify-between gap-1 mt-1 shrink-0 flex-wrap">
                                   {task.priority && (
                                     <span
                                       className={cn(
-                                        "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
+                                        "text-[8px] font-bold px-1 py-0.5 rounded uppercase",
                                         task.priority === "high"
                                           ? "bg-red-500/10 text-red-400"
                                           : task.priority === "medium"
@@ -523,8 +506,8 @@ export function TasksCalendar({
                                     </span>
                                   )}
                                   {task.due_date && task.due_date.includes("T") && (
-                                    <span className="text-[9px] font-semibold text-text-secondary flex items-center gap-0.5">
-                                      <span className="material-symbols-outlined text-[10px]">schedule</span>
+                                    <span className="text-[8px] font-semibold text-text-secondary flex items-center gap-0.5 whitespace-nowrap">
+                                      <span className="material-symbols-outlined text-[9px]">schedule</span>
                                       {new Date(task.due_date).toLocaleTimeString(language, {
                                         hour: "2-digit",
                                         minute: "2-digit",

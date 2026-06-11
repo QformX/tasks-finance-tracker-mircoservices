@@ -124,10 +124,10 @@ export function TasksHeader({
               <CreateButton onClick={onOpenCreateModal} label={t("new_task")} />
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-6 items-center justify-between">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
             {view === "list" ? (
               <>
-                <div className="w-full sm:max-w-md min-w-[300px]">
+                <div className="w-full md:max-w-md">
                   <div className="flex w-full items-center rounded-2xl h-11 bg-text-950/5 group focus-within:ring-1 focus-within:ring-text-950/10 transition-all border border-transparent">
                     <div className="text-text-secondary flex items-center justify-center pl-4">
                       <span className="material-symbols-outlined text-[20px]">search</span>
@@ -149,7 +149,7 @@ export function TasksHeader({
                     )}
                   </div>
                 </div>
-                <div className="flex gap-4 items-center overflow-x-auto w-full sm:w-auto scrollbar-hide">
+                <div className="flex gap-4 items-center overflow-x-auto w-full md:w-auto scrollbar-hide py-1">
                   <FilterButton active={filter === "all"} onClick={() => setFilter("all")} label={t("all_tasks")} />
                   <FilterButton active={filter === "today"} onClick={() => setFilter("today")} label={t("today")} count={counts.today} />
                   <FilterButton active={filter === "overdue"} onClick={() => setFilter("overdue")} label={t("overdue")} count={counts.overdue} isError />
@@ -159,11 +159,11 @@ export function TasksHeader({
             ) : (
               <>
                 {/* Calendar View Type Switcher */}
-                <div className="flex bg-text-950/5 rounded-xl p-1 border border-text-950/10 h-10 items-center">
+                <div className="flex bg-text-950/5 rounded-xl p-1 border border-text-950/10 h-10 items-center justify-center w-full md:w-auto select-none">
                   <button
                     onClick={() => setCalendarViewType?.("week")}
                     className={cn(
-                      "px-4 h-full rounded-lg text-xs font-bold transition-all cursor-pointer",
+                      "px-4 h-full rounded-lg text-xs font-bold transition-all cursor-pointer flex-1 md:flex-initial",
                       calendarViewType === "week"
                         ? "bg-text-950/10 text-text-950 shadow-sm"
                         : "text-text-secondary hover:text-text-950"
@@ -174,7 +174,7 @@ export function TasksHeader({
                   <button
                     onClick={() => setCalendarViewType?.("day")}
                     className={cn(
-                      "px-4 h-full rounded-lg text-xs font-bold transition-all cursor-pointer",
+                      "px-4 h-full rounded-lg text-xs font-bold transition-all cursor-pointer flex-1 md:flex-initial",
                       calendarViewType === "day"
                         ? "bg-text-950/10 text-text-950 shadow-sm"
                         : "text-text-secondary hover:text-text-950"
@@ -185,7 +185,7 @@ export function TasksHeader({
                 </div>
 
                 {/* Calendar Navigation Buttons */}
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center justify-center gap-3 w-full md:w-auto">
                   <button
                     onClick={onPrevCalendar}
                     className="size-10 rounded-full bg-text-950/5 hover:bg-text-950/10 flex items-center justify-center text-text-950 transition-colors cursor-pointer shrink-0"
@@ -196,12 +196,12 @@ export function TasksHeader({
                   
                   <button
                     onClick={onTodayCalendar}
-                    className="px-4 h-10 rounded-xl bg-text-950/5 hover:bg-text-950/10 border border-text-950/10 text-text-950 font-bold text-xs flex items-center justify-center transition-colors cursor-pointer"
+                    className="px-4 h-10 rounded-xl bg-text-950/5 hover:bg-text-950/10 border border-text-950/10 text-text-950 font-bold text-xs flex items-center justify-center transition-colors cursor-pointer shrink-0"
                   >
                     {language === "ru" ? "Сегодня" : "Today"}
                   </button>
 
-                  <span className="text-sm font-bold text-text-950 px-2 select-none capitalize">
+                  <span className="text-xs sm:text-sm font-bold text-text-950 px-1 select-none capitalize whitespace-nowrap text-center">
                     {getHeaderLabel()}
                   </span>
 
