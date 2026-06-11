@@ -1,12 +1,10 @@
 import type { DashboardStats } from "@/types";
-import { useLanguage } from "@/context/LanguageContext";
 
 interface ProductivityInsightsProps {
   stats: DashboardStats | null;
 }
 
 export function ProductivityInsights({ stats }: ProductivityInsightsProps) {
-  const { t } = useLanguage();
 
   if (!stats) return null;
 

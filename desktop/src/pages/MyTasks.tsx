@@ -26,6 +26,7 @@ export function MyTasks() {
   } = useCategories();
 
   const [filter, setFilter] = useState<"all" | "today" | "overdue" | "completed">("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -42,14 +43,28 @@ export function MyTasks() {
     setIsEditModalOpen(true);
   }
 
+  // Filter tasks by search query
+  const filteredTasks = tasks.filter(task => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return true;
+    
+    const matchesTitle = task.title.toLowerCase().includes(query);
+    const matchesDescription = task.description?.toLowerCase().includes(query) || false;
+    
+    const catName = getCategoryName(task.category_id);
+    const matchesCategory = catName ? catName.toLowerCase().includes(query) : false;
+    
+    return matchesTitle || matchesDescription || matchesCategory;
+  });
+
   // Group tasks
-  const activeTasks = tasks.filter(t => !t.is_completed);
+  const activeTasks = filteredTasks.filter(t => !t.is_completed);
   
   // Calculate counts for header
   const now = new Date();
   const todayStr = now.toLocaleDateString('en-CA');
   
-  const overdueTasks = tasks.filter(t => {
+  const overdueTasks = filteredTasks.filter(t => {
     if (t.is_completed || !t.due_date) return false;
     const taskDate = new Date(t.due_date);
     const taskDateStr = taskDate.toLocaleDateString('en-CA');
@@ -74,19 +89,19 @@ export function MyTasks() {
       });
   }
 
-  const todayTasks = tasks.filter(t => {
+  const todayTasks = filteredTasks.filter(t => {
     if (t.is_completed || !t.due_date) return false;
     const taskDate = new Date(t.due_date);
     const taskDateStr = taskDate.toLocaleDateString('en-CA');
     return taskDateStr === todayStr;
   });
   
-  const completedTasks = tasks.filter(t => t.is_completed);
+  const completedTasks = filteredTasks.filter(t => t.is_completed);
 
   const displayedTasks = filter === "completed" ? completedTasks : 
                         filter === "overdue" ? overdueTasks :
                         filter === "today" ? todayTasks :
-                        tasks;
+                        filteredTasks;
 
   return (
     <>
@@ -98,6 +113,8 @@ export function MyTasks() {
           today: todayTasks.length,
           overdue: overdueTasks.length
         }}
+        search={searchQuery}
+        onSearchChange={setSearchQuery}
       />
 
       <TasksList 

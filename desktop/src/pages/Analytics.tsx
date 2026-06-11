@@ -117,7 +117,6 @@ export function Analytics() {
   }
 
   const criticalOverdueTasks = overdueTasks.filter(t => t.priority === "high");
-  const criticalCount = criticalOverdueTasks.length;
 
   function getDateRangeLabel() {
     const end = new Date();

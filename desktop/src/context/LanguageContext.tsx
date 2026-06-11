@@ -161,6 +161,7 @@ const translations: Translations = {
     "add_task": "Add Task",
     "add_purchase": "Add Purchase",
     "loading_items": "Loading items...",
+    "search_items_placeholder": "Search items in category...",
   },
   ru: {
     // Sidebar
@@ -314,6 +315,7 @@ const translations: Translations = {
     "add_task": "Добавить задачу",
     "add_purchase": "Добавить покупку",
     "loading_items": "Загрузка элементов...",
+    "search_items_placeholder": "Поиск элементов в категории...",
   }
 };
 

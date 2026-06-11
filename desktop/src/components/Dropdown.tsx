@@ -29,25 +29,7 @@ export function Dropdown<T>({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        // Check if the click was inside the portal dropdown
-        const portalDropdown = document.getElementById(`dropdown-portal-${keyExtractor(items[0])}`); // This ID strategy is weak if items change or empty
-        // Better: just check if target is inside the portal element. 
-        // But we don't have a ref to the portal element easily here without more state.
-        // Actually, if we use a ref for the portal content, we can check it.
-        // However, simpler approach:
-        // If we click outside the *trigger*, we close. 
-        // But if we click inside the portal, we handle it in the portal's onClick.
-        // So we only need to close if click is outside trigger AND outside portal.
-        // Let's rely on the fact that clicking an item closes it.
-        // Clicking outside: we need to detect.
-        // Let's add a ref to the portal content.
-      }
-    }
-    // We'll implement a better click outside handler below
-  }, []);
+
 
   // Update position when opening
   useLayoutEffect(() => {

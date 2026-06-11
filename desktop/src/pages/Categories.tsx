@@ -47,6 +47,7 @@ export function Categories() {
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
@@ -61,6 +62,10 @@ export function Categories() {
   useEffect(() => {
     loadCategories();
   }, [loadCategories]);
+
+  useEffect(() => {
+    setSearchQuery("");
+  }, [currentIndex]);
 
   const loadCategoryItems = useCallback(async (categoryId: string) => {
     setLoading(true);
@@ -146,6 +151,25 @@ export function Categories() {
     );
   }
 
+  const filteredTasks = tasks.filter(task => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return true;
+    
+    const matchesTitle = task.title.toLowerCase().includes(query);
+    const matchesDescription = task.description?.toLowerCase().includes(query) || false;
+    
+    return matchesTitle || matchesDescription;
+  });
+
+  const filteredPurchases = purchases.filter(purchase => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return true;
+    
+    const matchesTitle = purchase.title.toLowerCase().includes(query);
+    
+    return matchesTitle;
+  });
+
   return (
     <>
       <CategoryHeader 
@@ -161,12 +185,14 @@ export function Categories() {
         onDeleteClick={() => setIsDeleteCategoryModalOpen(true)}
         onAddTaskClick={() => setIsTaskModalOpen(true)}
         onAddPurchaseClick={() => setIsPurchaseModalOpen(true)}
+        search={searchQuery}
+        onSearchChange={setSearchQuery}
       />
 
       <CategoryContent 
         loading={loading}
-        tasks={tasks}
-        purchases={purchases}
+        tasks={filteredTasks}
+        purchases={filteredPurchases}
         categoryName={currentCategory.title}
         categoryColor={currentCategory.color}
         onTaskToggle={toggleTask}

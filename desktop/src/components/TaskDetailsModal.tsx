@@ -73,7 +73,7 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated, initial
     try {
       const updates: Partial<Task> = {
         title,
-        description: description || null,
+        description: description || undefined,
         category_id: categoryId || null,
         due_date: dueDate ? new Date(dueDate).toISOString() : null,
         priority

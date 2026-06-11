@@ -16,6 +16,8 @@ interface CategoryHeaderProps {
   onDeleteClick: () => void;
   onAddTaskClick: () => void;
   onAddPurchaseClick: () => void;
+  search: string;
+  onSearchChange: (search: string) => void;
 }
 
 export function CategoryHeader({
@@ -28,6 +30,8 @@ export function CategoryHeader({
   onDeleteClick,
   onAddTaskClick,
   onAddPurchaseClick,
+  search,
+  onSearchChange,
 }: CategoryHeaderProps) {
   const { t } = useLanguage();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -134,6 +138,30 @@ export function CategoryHeader({
                     (currentCategory.type === "purchases" || currentCategory.type === "mixed") && "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/20 text-white"
                 )}
               />
+            </div>
+          </div>
+          <div className="flex flex-col min-[1216px]:flex-row min-[1216px]:flex-wrap gap-6 items-center justify-between">
+            <div className="w-full min-[1216px]:max-w-md min-w-[300px]">
+              <div className="flex w-full items-center rounded-2xl h-11 bg-text-950/5 group focus-within:ring-1 focus-within:ring-text-950/10 transition-all border border-transparent">
+                <div className="text-text-secondary flex items-center justify-center pl-4">
+                  <span className="material-symbols-outlined text-[20px]">search</span>
+                </div>
+                <input 
+                  className="flex w-full min-w-0 flex-1 resize-none bg-transparent border-none text-text-950 focus:ring-0 h-full placeholder:text-text-secondary/70 px-3 text-sm font-medium outline-none" 
+                  placeholder={t("search_items_placeholder")} 
+                  value={search}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                />
+                {search && (
+                  <button
+                    onClick={() => onSearchChange("")}
+                    className="text-text-secondary hover:text-text-950 transition-colors pr-4 flex items-center justify-center cursor-pointer"
+                    title={t("clear") || "Clear"}
+                  >
+                    <span className="material-symbols-outlined text-[18px]">close</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

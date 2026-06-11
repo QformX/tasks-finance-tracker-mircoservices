@@ -10,9 +10,11 @@ interface PurchasesHeaderProps {
     active: number;
     bought: number;
   };
+  search: string;
+  onSearchChange: (search: string) => void;
 }
 
-export function PurchasesHeader({ filter, setFilter, onOpenCreateModal, counts }: PurchasesHeaderProps) {
+export function PurchasesHeader({ filter, setFilter, onOpenCreateModal, counts, search, onSearchChange }: PurchasesHeaderProps) {
   const { t } = useLanguage();
 
   return (
@@ -30,7 +32,21 @@ export function PurchasesHeader({ filter, setFilter, onOpenCreateModal, counts }
                 <div className="text-text-secondary flex items-center justify-center pl-4">
                   <span className="material-symbols-outlined text-[20px]">search</span>
                 </div>
-                <input className="flex w-full min-w-0 flex-1 resize-none bg-transparent border-none text-text-950 focus:ring-0 h-full placeholder:text-text-secondary/70 px-3 text-sm font-medium outline-none" placeholder={t("search_purchases_placeholder")} />
+                <input 
+                  className="flex w-full min-w-0 flex-1 resize-none bg-transparent border-none text-text-950 focus:ring-0 h-full placeholder:text-text-secondary/70 px-3 text-sm font-medium outline-none" 
+                  placeholder={t("search_purchases_placeholder")} 
+                  value={search}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                />
+                {search && (
+                  <button
+                    onClick={() => onSearchChange("")}
+                    className="text-text-secondary hover:text-text-950 transition-colors pr-4 flex items-center justify-center cursor-pointer"
+                    title={t("clear") || "Clear"}
+                  >
+                    <span className="material-symbols-outlined text-[18px]">close</span>
+                  </button>
+                )}
               </div>
             </div>
             <div className="flex gap-4 items-center overflow-x-auto w-full min-[1143px]:w-auto scrollbar-hide">

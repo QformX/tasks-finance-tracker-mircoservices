@@ -1,6 +1,5 @@
 import { useEffect, useState, useLayoutEffect } from "react";
 import { useTasks } from "@/hooks/useTasks";
-import { cn } from "@/lib/utils";
 
 interface TaskProgressProps {
   isCollapsed: boolean;

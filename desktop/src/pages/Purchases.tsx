@@ -25,6 +25,7 @@ export function Purchases() {
   } = useCategories();
 
   const [filter, setFilter] = useState<"all" | "active" | "bought">("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -39,10 +40,22 @@ export function Purchases() {
     setIsEditModalOpen(true);
   }
 
-  const activePurchases = purchases.filter(p => !p.is_bought);
-  const boughtPurchases = purchases.filter(p => p.is_bought);
+  const filteredPurchases = purchases.filter(purchase => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return true;
+    
+    const matchesTitle = purchase.title.toLowerCase().includes(query);
+    
+    const catName = getCategoryName(purchase.category_id);
+    const matchesCategory = catName ? catName.toLowerCase().includes(query) : false;
+    
+    return matchesTitle || matchesCategory;
+  });
 
-  const displayedPurchases = filter === "bought" ? boughtPurchases : filter === "active" ? activePurchases : purchases;
+  const activePurchases = filteredPurchases.filter(p => !p.is_bought);
+  const boughtPurchases = filteredPurchases.filter(p => p.is_bought);
+
+  const displayedPurchases = filter === "bought" ? boughtPurchases : filter === "active" ? activePurchases : filteredPurchases;
 
   return (
     <>
@@ -54,6 +67,8 @@ export function Purchases() {
           active: activePurchases.length,
           bought: boughtPurchases.length
         }}
+        search={searchQuery}
+        onSearchChange={setSearchQuery}
       />
 
       <PurchasesList 
