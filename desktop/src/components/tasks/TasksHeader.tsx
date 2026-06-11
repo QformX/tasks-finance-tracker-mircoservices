@@ -124,98 +124,96 @@ export function TasksHeader({
               <CreateButton onClick={onOpenCreateModal} label={t("new_task")} />
             </div>
           </div>
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            {view === "list" ? (
-              <>
-                <div className="w-full md:max-w-md">
-                  <div className="flex w-full items-center rounded-2xl h-11 bg-text-950/5 group focus-within:ring-1 focus-within:ring-text-950/10 transition-all border border-transparent">
-                    <div className="text-text-secondary flex items-center justify-center pl-4">
-                      <span className="material-symbols-outlined text-[20px]">search</span>
-                    </div>
-                    <input 
-                      className="flex w-full min-w-0 flex-1 resize-none bg-transparent border-none text-text-950 focus:ring-0 h-full placeholder:text-text-secondary/70 px-3 text-sm font-medium outline-none" 
-                      placeholder={t("search_tasks_placeholder")} 
-                      value={search}
-                      onChange={(e) => onSearchChange(e.target.value)}
-                    />
-                    {search && (
-                      <button
-                        onClick={() => onSearchChange("")}
-                        className="text-text-secondary hover:text-text-950 transition-colors pr-4 flex items-center justify-center cursor-pointer"
-                        title={t("clear") || "Clear"}
-                      >
-                        <span className="material-symbols-outlined text-[18px]">close</span>
-                      </button>
-                    )}
+          {view === "list" ? (
+            <div className="flex flex-col min-[1143px]:flex-row gap-4 items-center justify-between w-full">
+              <div className="w-full min-[1143px]:max-w-md min-w-[300px]">
+                <div className="flex w-full items-center rounded-2xl h-11 bg-text-950/5 group focus-within:ring-1 focus-within:ring-text-950/10 transition-all border border-transparent">
+                  <div className="text-text-secondary flex items-center justify-center pl-4">
+                    <span className="material-symbols-outlined text-[20px]">search</span>
                   </div>
+                  <input 
+                    className="flex w-full min-w-0 flex-1 resize-none bg-transparent border-none text-text-950 focus:ring-0 h-full placeholder:text-text-secondary/70 px-3 text-sm font-medium outline-none" 
+                    placeholder={t("search_tasks_placeholder")} 
+                    value={search}
+                    onChange={(e) => onSearchChange(e.target.value)}
+                  />
+                  {search && (
+                    <button
+                      onClick={() => onSearchChange("")}
+                      className="text-text-secondary hover:text-text-950 transition-colors pr-4 flex items-center justify-center cursor-pointer"
+                      title={t("clear")}
+                    >
+                      <span className="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                  )}
                 </div>
-                <div className="flex gap-4 items-center overflow-x-auto w-full md:w-auto scrollbar-hide py-1">
-                  <FilterButton active={filter === "all"} onClick={() => setFilter("all")} label={t("all_tasks")} />
-                  <FilterButton active={filter === "today"} onClick={() => setFilter("today")} label={t("today")} count={counts.today} />
-                  <FilterButton active={filter === "overdue"} onClick={() => setFilter("overdue")} label={t("overdue")} count={counts.overdue} isError />
-                  <FilterButton active={filter === "completed"} onClick={() => setFilter("completed")} label={t("completed")} />
-                </div>
-              </>
-            ) : (
-              <>
-                {/* Calendar View Type Switcher */}
-                <div className="flex bg-text-950/5 rounded-xl p-1 border border-text-950/10 h-10 items-center justify-center w-full md:w-auto select-none">
-                  <button
-                    onClick={() => setCalendarViewType?.("week")}
-                    className={cn(
-                      "px-4 h-full rounded-lg text-xs font-bold transition-all cursor-pointer flex-1 md:flex-initial",
-                      calendarViewType === "week"
-                        ? "bg-text-950/10 text-text-950 shadow-sm"
-                        : "text-text-secondary hover:text-text-950"
-                    )}
-                  >
-                    {t("week_view") || (language === "ru" ? "Неделя" : "Week")}
-                  </button>
-                  <button
-                    onClick={() => setCalendarViewType?.("day")}
-                    className={cn(
-                      "px-4 h-full rounded-lg text-xs font-bold transition-all cursor-pointer flex-1 md:flex-initial",
-                      calendarViewType === "day"
-                        ? "bg-text-950/10 text-text-950 shadow-sm"
-                        : "text-text-secondary hover:text-text-950"
-                    )}
-                  >
-                    {t("day_view") || (language === "ru" ? "День" : "Day")}
-                  </button>
-                </div>
+              </div>
+              <div className="flex gap-4 items-center overflow-x-auto w-full min-[1143px]:w-auto scrollbar-hide py-1">
+                <FilterButton active={filter === "all"} onClick={() => setFilter("all")} label={t("all_tasks")} />
+                <FilterButton active={filter === "today"} onClick={() => setFilter("today")} label={t("today")} count={counts.today} />
+                <FilterButton active={filter === "overdue"} onClick={() => setFilter("overdue")} label={t("overdue")} count={counts.overdue} isError />
+                <FilterButton active={filter === "completed"} onClick={() => setFilter("completed")} label={t("completed")} />
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-between w-full">
+              {/* Calendar View Type Switcher */}
+              <div className="flex bg-text-950/5 rounded-xl p-1 border border-text-950/10 h-10 items-center justify-center w-full md:w-auto select-none">
+                <button
+                  onClick={() => setCalendarViewType?.("week")}
+                  className={cn(
+                    "px-4 h-full rounded-lg text-xs font-bold transition-all cursor-pointer flex-1 md:flex-initial",
+                    calendarViewType === "week"
+                      ? "bg-text-950/10 text-text-950 shadow-sm"
+                      : "text-text-secondary hover:text-text-950"
+                  )}
+                >
+                  {t("week_view")}
+                </button>
+                <button
+                  onClick={() => setCalendarViewType?.("day")}
+                  className={cn(
+                    "px-4 h-full rounded-lg text-xs font-bold transition-all cursor-pointer flex-1 md:flex-initial",
+                    calendarViewType === "day"
+                      ? "bg-text-950/10 text-text-950 shadow-sm"
+                      : "text-text-secondary hover:text-text-950"
+                  )}
+                >
+                  {t("day_view")}
+                </button>
+              </div>
 
-                {/* Calendar Navigation Buttons */}
-                <div className="flex flex-wrap items-center justify-center gap-3 w-full md:w-auto">
-                  <button
-                    onClick={onPrevCalendar}
-                    className="size-10 rounded-full bg-text-950/5 hover:bg-text-950/10 flex items-center justify-center text-text-950 transition-colors cursor-pointer shrink-0"
-                    title="Previous"
-                  >
-                    <span className="material-symbols-outlined">keyboard_arrow_left</span>
-                  </button>
-                  
-                  <button
-                    onClick={onTodayCalendar}
-                    className="px-4 h-10 rounded-xl bg-text-950/5 hover:bg-text-950/10 border border-text-950/10 text-text-950 font-bold text-xs flex items-center justify-center transition-colors cursor-pointer shrink-0"
-                  >
-                    {language === "ru" ? "Сегодня" : "Today"}
-                  </button>
+              {/* Calendar Navigation Buttons */}
+              <div className="flex flex-wrap items-center justify-center gap-3 w-full md:w-auto">
+                <button
+                  onClick={onPrevCalendar}
+                  className="size-10 rounded-full bg-text-950/5 hover:bg-text-950/10 flex items-center justify-center text-text-950 transition-colors cursor-pointer shrink-0"
+                  title={t("previous")}
+                >
+                  <span className="material-symbols-outlined">keyboard_arrow_left</span>
+                </button>
+                
+                <button
+                  onClick={onTodayCalendar}
+                  className="px-4 h-10 rounded-xl bg-text-950/5 hover:bg-text-950/10 border border-text-950/10 text-text-950 font-bold text-xs flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                >
+                  {t("today")}
+                </button>
 
-                  <span className="text-xs sm:text-sm font-bold text-text-950 px-1 select-none capitalize whitespace-nowrap text-center">
-                    {getHeaderLabel()}
-                  </span>
+                <span className="text-xs sm:text-sm font-bold text-text-950 px-1 select-none capitalize whitespace-nowrap text-center">
+                  {getHeaderLabel()}
+                </span>
 
-                  <button
-                    onClick={onNextCalendar}
-                    className="size-10 rounded-full bg-text-950/5 hover:bg-text-950/10 flex items-center justify-center text-text-950 transition-colors cursor-pointer shrink-0"
-                    title="Next"
-                  >
-                    <span className="material-symbols-outlined">keyboard_arrow_right</span>
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+                <button
+                  onClick={onNextCalendar}
+                  className="size-10 rounded-full bg-text-950/5 hover:bg-text-950/10 flex items-center justify-center text-text-950 transition-colors cursor-pointer shrink-0"
+                  title={t("next")}
+                >
+                  <span className="material-symbols-outlined">keyboard_arrow_right</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
   );

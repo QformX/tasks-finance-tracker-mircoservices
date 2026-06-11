@@ -180,7 +180,7 @@ export function Analytics() {
 
               {isDatePopupOpen && (
                 <div className="absolute right-0 top-full mt-2 z-50 bg-surface-dark border border-text-950/10 rounded-xl shadow-xl p-3 min-w-[200px] animate-in fade-in zoom-in-95 duration-200">
-                    <div className="text-xs text-text-secondary mb-1 font-medium uppercase tracking-wider text-center">Selected Period</div>
+                    <div className="text-xs text-text-secondary mb-1 font-medium uppercase tracking-wider text-center">{t("selected_period")}</div>
                     <div className="text-sm font-bold text-text-950 text-center mb-3">{getDateRangeLabel()}</div>
                     
                     <div className="grid grid-cols-2 gap-2 sm:hidden">
@@ -286,7 +286,7 @@ export function Analytics() {
                                                 <span className="text-2xl font-bold text-text-950">
                                                     ${(stats?.total_created_cost || 0).toLocaleString()}
                                                 </span>
-                                                <span className="text-xs text-text-secondary uppercase tracking-wider font-bold">Created</span>
+                                                <span className="text-xs text-text-secondary uppercase tracking-wider font-bold">{t("created")}</span>
                                             </div>
                                         </div>
                                         <div className="w-16 h-px sm:w-px sm:h-16 md:w-16 md:h-px xl:w-px xl:h-16 bg-text-950/10"></div>
@@ -298,7 +298,7 @@ export function Analytics() {
                                                 <span className="text-2xl font-bold text-text-950">
                                                     ${(stats?.total_spending || 0).toLocaleString()}
                                                 </span>
-                                                <span className="text-xs text-text-secondary uppercase tracking-wider font-bold">Spent</span>
+                                                <span className="text-xs text-text-secondary uppercase tracking-wider font-bold">{t("spent")}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -363,15 +363,15 @@ export function Analytics() {
             {/* Created Purchases List (Shopping List) */}
             <div>
               <div className="flex items-center justify-between mb-5">
-                <h3 className="text-lg font-bold text-text-950">Shopping List (Created)</h3>
-                <Link to="/purchases" className="text-sm text-primary hover:text-primary-dark font-medium cursor-pointer">View All</Link>
+                <h3 className="text-lg font-bold text-text-950">{t("shopping_list_created")}</h3>
+                <Link to="/purchases" className="text-sm text-primary hover:text-primary-dark font-medium cursor-pointer">{t("view_all")}</Link>
               </div>
               <div className="space-y-3">
                 {createdPurchases.slice(0, 5).map(event => (
                   <PurchaseEventItem key={event.id} event={event} />
                 ))}
                 {createdPurchases.length === 0 && (
-                  <div className="text-text-secondary text-sm text-center py-4 bg-surface-dark rounded-xl border border-text-950/10">No items in shopping list</div>
+                  <div className="text-text-secondary text-sm text-center py-4 bg-surface-dark rounded-xl border border-text-950/10">{t("no_items_in_shopping_list")}</div>
                 )}
               </div>
             </div>

@@ -26,8 +26,8 @@ export function Settings() {
                 <p className="text-xs text-text-secondary mb-2">{t("language_desc")}</p>
                 <Dropdown
                   className="w-full md:w-1/2"
-                  items={[{ value: "en", label: "English" }, { value: "ru", label: "Русский" }]}
-                  selectedItem={{ value: language, label: language === "en" ? "English" : "Русский" }}
+                  items={[{ value: "en", label: t("language_en") }, { value: "ru", label: t("language_ru") }]}
+                  selectedItem={{ value: language, label: t(`language_${language}`) }}
                   onSelect={(item) => setLanguage(item.value as "en" | "ru")}
                   keyExtractor={(item) => item.value}
                   renderItem={(item) => item.label}
@@ -35,12 +35,12 @@ export function Settings() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-bold text-text-950">{language === 'en' ? 'Theme' : 'Тема'}</label>
-                <p className="text-xs text-text-secondary mb-2">{language === 'en' ? 'Choose your preferred appearance' : 'Выберите предпочтительное оформление'}</p>
+                <label className="text-sm font-bold text-text-950">{t("theme_label")}</label>
+                <p className="text-xs text-text-secondary mb-2">{t("theme_desc")}</p>
                 <Dropdown
                   className="w-full md:w-1/2"
-                  items={[{ value: "dark", label: language === 'en' ? "Dark" : "Темная" }, { value: "light", label: language === 'en' ? "Light" : "Светлая" }]}
-                  selectedItem={{ value: theme, label: theme === "dark" ? (language === 'en' ? "Dark" : "Темная") : (language === 'en' ? "Light" : "Светлая") }}
+                  items={[{ value: "dark", label: t("theme_dark") }, { value: "light", label: t("theme_light") }]}
+                  selectedItem={{ value: theme, label: theme === "dark" ? t("theme_dark") : t("theme_light") }}
                   onSelect={(item) => setTheme(item.value as "dark" | "light")}
                   keyExtractor={(item) => item.value}
                   renderItem={(item) => item.label}

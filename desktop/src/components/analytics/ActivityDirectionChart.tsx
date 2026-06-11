@@ -1,6 +1,8 @@
+import { useLanguage } from "@/context/LanguageContext";
 import type { DashboardStats } from "@/types";
 
 export function ActivityDirectionChart({ stats }: { stats: DashboardStats | null }) {
+    const { t } = useLanguage();
     if (!stats) return null;
 
     // Center and radius for the chart
@@ -41,7 +43,7 @@ export function ActivityDirectionChart({ stats }: { stats: DashboardStats | null
 
     return (
           <div className="flex-1 w-full min-w-[200px] flex flex-col items-center justify-center">
-             <h4 className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-4">Activity Direction</h4>
+             <h4 className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-4">{t("activity_direction")}</h4>
              <div className="relative w-48 h-48">
                 {/* Axis Lines */}
                 <div className="absolute top-0 bottom-0 left-1/2 w-px bg-text-950/10 -translate-x-1/2"></div>
@@ -49,16 +51,16 @@ export function ActivityDirectionChart({ stats }: { stats: DashboardStats | null
                 
                 {/* Labels */}
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 text-[10px] text-text-secondary font-medium">
-                    Tasks Created ({stats.tasks_created})
+                    {t("tasks_created")} ({stats.tasks_created})
                 </div>
                 <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-4 text-[10px] text-text-secondary font-medium">
-                    Tasks Completed ({stats.tasks_completed})
+                    {t("tasks_completed")} ({stats.tasks_completed})
                 </div>
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-2 text-[10px] text-text-secondary font-medium text-right w-20">
-                    Purchases Created ({stats.purchases_created})
+                    {t("purchases_created")} ({stats.purchases_created})
                 </div>
                 <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full pl-2 text-[10px] text-text-secondary font-medium w-20">
-                    Purchases Bought ({stats.purchases_completed})
+                    {t("purchases_completed")} ({stats.purchases_completed})
                 </div>
 
                 <div className="absolute inset-0">

@@ -528,7 +528,7 @@ export function TasksCalendar({
                             }}
                             className="text-[10px] font-bold text-text-secondary text-center py-1.5 bg-text-950/5 hover:bg-text-950/10 rounded-lg border border-text-950/10 cursor-pointer transition-colors select-none"
                           >
-                            {language === "ru" ? `+ еще ${remainingCount}` : `+ ${remainingCount} more`}
+                            {t("plus_more").replace("{count}", String(remainingCount))}
                           </div>
                         )}
                       </div>
@@ -596,7 +596,7 @@ export function TasksCalendar({
                     })}
                     {allDayTasks.length === 0 && (
                       <span className="text-xs text-text-secondary italic opacity-40 select-none py-1">
-                        {language === "ru" ? "Нет задач на весь день" : "No all-day tasks"}
+                        {t("no_all_day_tasks")}
                       </span>
                     )}
                   </div>

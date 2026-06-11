@@ -40,7 +40,7 @@ export function DashboardStatsGrid({ stats, overdueTasks, onOpenCriticalModal }:
           </div>
           <span className="text-xs font-medium text-purple-500 bg-purple-500/10 px-2 py-1 rounded-full flex items-center gap-1">
             <span className="material-symbols-outlined text-[14px]">calendar_today</span>
-            {stats.daily_stats[0]?.tasks || 0} today
+            {stats.daily_stats[0]?.tasks || 0} {t("today").toLowerCase()}
           </span>
         </div>
         <div className="flex flex-col">
@@ -62,11 +62,11 @@ export function DashboardStatsGrid({ stats, overdueTasks, onOpenCriticalModal }:
               <div className="flex flex-col gap-0.5 text-[10px] w-full items-center">
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-                  <span className="text-text-secondary whitespace-nowrap">{completedEvents} Done</span>
+                  <span className="text-text-secondary whitespace-nowrap">{completedEvents} {t("tasks_done")}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-text-950/20"></span>
-                  <span className="text-text-secondary whitespace-nowrap">{pendingEvents} Pending</span>
+                  <span className="text-text-secondary whitespace-nowrap">{pendingEvents} {t("pending")}</span>
                 </div>
               </div>
             </div>
@@ -83,7 +83,7 @@ export function DashboardStatsGrid({ stats, overdueTasks, onOpenCriticalModal }:
           </div>
           <span className="text-xs font-medium text-purple-500 bg-purple-500/10 px-2 py-1 rounded-full flex items-center gap-1">
             <span className="material-symbols-outlined text-[14px]">priority_high</span>
-            {stats.tasks_created_by_priority["High"] || 0} High
+            {stats.tasks_created_by_priority["High"] || 0} {t("high")}
           </span>
         </div>
         <div className="flex flex-col">
@@ -107,7 +107,7 @@ export function DashboardStatsGrid({ stats, overdueTasks, onOpenCriticalModal }:
                                 <div className={`w-full ${color} rounded-t-sm opacity-80 group-hover/bar:opacity-100 transition-opacity flex items-center justify-center mb-1`} style={{ height: `${height}%` }}>
                                     <span className="text-[10px] font-bold text-white/90">{count}</span>
                                 </div>
-                                <span className="text-[10px] text-text-secondary font-medium uppercase">{priority.slice(0, 3)}</span>
+                                <span className="text-[10px] text-text-secondary font-medium uppercase">{t(priority.toLowerCase()).slice(0, 3)}</span>
                             </div>
                         )
                     })}
@@ -126,7 +126,7 @@ export function DashboardStatsGrid({ stats, overdueTasks, onOpenCriticalModal }:
           </div>
           <span className="text-xs font-medium text-blue-500 bg-blue-500/10 px-2 py-1 rounded-full flex items-center gap-1">
              <span className="material-symbols-outlined text-[14px]">schedule</span>
-             {stats.tasks_completed_avg_time.toFixed(1)}d avg
+             {t("avg_days").replace("{days}", stats.tasks_completed_avg_time.toFixed(1))}
           </span>
         </div>
         <div className="flex flex-col">
@@ -148,7 +148,7 @@ export function DashboardStatsGrid({ stats, overdueTasks, onOpenCriticalModal }:
                <div className="flex flex-col gap-0.5 text-[10px] w-full items-center">
                     <div className="flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                      <span className="text-text-secondary whitespace-nowrap">Completion Rate</span>
+                      <span className="text-text-secondary whitespace-nowrap">{t("completion_rate")}</span>
                     </div>
                </div>
             </div>
@@ -163,7 +163,7 @@ export function DashboardStatsGrid({ stats, overdueTasks, onOpenCriticalModal }:
           <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500">
             <span className="material-symbols-outlined">warning</span>
           </div>
-          <span className="text-xs font-bold text-red-500 bg-red-500/10 px-2 py-1 rounded-full uppercase tracking-wide">Action Needed</span>
+          <span className="text-xs font-bold text-red-500 bg-red-500/10 px-2 py-1 rounded-full uppercase tracking-wide">{t("action_needed")}</span>
         </div>
         <div className="flex flex-col">
           <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1">{t("tasks_overdue")}</h3>
@@ -178,7 +178,7 @@ export function DashboardStatsGrid({ stats, overdueTasks, onOpenCriticalModal }:
                  <button 
                    onClick={onOpenCriticalModal}
                    className="w-24 h-24 bg-red-500 hover:bg-red-600 text-white rounded-2xl shadow-lg shadow-red-500/20 transition-all flex items-center justify-center group/btn"
-                   title={t("view_critical") || "View Critical"}
+                   title={t("view_critical")}
                  >
                    <span className="material-symbols-outlined text-5xl group-hover/btn:scale-110 transition-transform">warning</span>
                  </button>
@@ -246,7 +246,7 @@ export function DashboardStatsGrid({ stats, overdueTasks, onOpenCriticalModal }:
           </div>
           <span className="text-xs font-medium text-orange-500 bg-orange-500/10 px-2 py-1 rounded-full flex items-center gap-1">
              <span className="material-symbols-outlined text-[14px]">trending_flat</span>
-             Forecast
+             {t("forecast")}
           </span>
         </div>
         <div className="flex flex-col">

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -21,6 +22,7 @@ const MarkdownLink = (props: any) => (
 
 export function AiChat() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -72,7 +74,7 @@ export function AiChat() {
                 setMessages([
                     {
                         role: 'assistant',
-                        content: `Hello ${user?.email?.split('@')[0] || 'there'}! 👋 How can I help you manage your tasks or purchases today?`,
+                        content: t("ai_welcome_message").replace("{name}", user?.email?.split('@')[0] || 'there'),
                         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                     }
                 ]);
@@ -133,7 +135,7 @@ export function AiChat() {
       }
 
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${error}`, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: `${t("error")}: ${error}`, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
     } finally {
       setIsLoading(false);
     }
@@ -153,14 +155,14 @@ export function AiChat() {
         <div className="w-full max-w-7xl mx-auto flex flex-col pt-8 pb-4">
           <div className="flex items-center justify-between gap-4 mb-6">
             <div className="flex flex-col gap-1">
-              <h2 className="text-text-950 text-xl lg:text-2xl font-bold leading-tight tracking-tight whitespace-nowrap shrink-0">AI Agent Chat</h2>
+              <h2 className="text-text-950 text-xl lg:text-2xl font-bold leading-tight tracking-tight whitespace-nowrap shrink-0">{t("ai_agent_chat")}</h2>
             </div>
             <button 
               onClick={() => setMessages([])}
               className="flex items-center gap-2 cursor-pointer justify-center overflow-hidden rounded-full h-10 px-5 bg-primary hover:bg-primary-dark transition-colors text-white text-xs font-bold shadow-lg shadow-purple-900/20 group"
             >
               <span className="material-symbols-outlined text-[18px]">add</span>
-              <span>Start New Chat</span>
+              <span>{t("start_new_chat")}</span>
             </button>
           </div>
         </div>
@@ -186,7 +188,7 @@ export function AiChat() {
             {/* Content */}
             <div className={`flex flex-col gap-2 ${msg.role === 'user' ? 'items-end' : 'w-full max-w-2xl'}`}>
                 <div className={`flex items-baseline gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                    <span className="font-semibold text-sm">{msg.role === 'user' ? 'You' : 'TaskAI'}</span>
+                    <span className="font-semibold text-sm">{msg.role === 'user' ? t("you") : 'TaskAI'}</span>
                     <span className="text-xs text-text-950/60">{msg.timestamp}</span>
                 </div>
                 <div className={`p-4 rounded-2xl shadow-sm leading-relaxed whitespace-pre-wrap ${
@@ -213,7 +215,7 @@ export function AiChat() {
                     <div className="flex gap-2 mt-1">
                         <button className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary text-xs font-medium transition-colors cursor-pointer">
                             <span className="material-symbols-outlined text-sm">check_circle</span>
-                            New Task
+                            {t("new_task")}
                         </button>
                     </div>
                 )}
@@ -231,7 +233,7 @@ export function AiChat() {
                     <span className="font-semibold text-sm">TaskAI</span>
                 </div>
                 <div className="bg-surface-dark border border-border p-4 rounded-2xl rounded-tl-none shadow-sm">
-                   <span className="animate-pulse text-text-950/40">Thinking...</span>
+                   <span className="animate-pulse text-text-950/40">{t("thinking")}</span>
                 </div>
              </div>
            </div>
@@ -250,7 +252,7 @@ export function AiChat() {
                         className="flex items-center gap-2 px-5 py-2.5 bg-surface-dark/90 hover:bg-surface-dark border border-primary/40 hover:border-primary text-primary hover:text-primary-light rounded-full shadow-lg shadow-text-950/10 transition-all duration-300 backdrop-blur-md group hover:scale-105 active:scale-95 cursor-pointer"
                     >
                         <span className="material-symbols-outlined text-lg group-hover:rotate-90 transition-transform duration-500">add_circle</span>
-                        <span className="text-sm font-medium">Start New Chat</span>
+                        <span className="text-sm font-medium">{t("start_new_chat")}</span>
                     </button>
                 </div>
             )}
@@ -262,7 +264,7 @@ export function AiChat() {
                 <textarea 
                     ref={textareaRef}
                     className="flex-1 bg-transparent border-none focus:ring-0 text-text-950 placeholder-text-950/40 py-4 px-2 outline-none resize-none overflow-hidden min-h-[56px]" 
-                    placeholder="Type a message to your assistant..." 
+                    placeholder={t("type_message_placeholder")} 
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}

@@ -188,7 +188,7 @@ export function HeatmapGrid({ heatmap, period }: HeatmapGridProps) {
             </div>
             <div className="flex justify-between mt-4 text-xs text-text-secondary font-medium px-2">
                 {displayData.filter((_, i) => i % 6 === 0).map((day, i) => (
-                    <span key={i}>{new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                    <span key={i}>{new Date(day.date).toLocaleDateString(language, { month: 'short', day: 'numeric' })}</span>
                 ))}
             </div>
         </div>
@@ -233,8 +233,8 @@ export function HeatmapGrid({ heatmap, period }: HeatmapGridProps) {
               ][Math.min(intensity, 4) - 1] || "bg-purple-500";
 
         const date = new Date(day.date);
-        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const dayName = date.toLocaleDateString(language, { weekday: 'short' });
+        const dateStr = date.toLocaleDateString(language, { month: 'short', day: 'numeric' });
         
         return (
           <div key={day.date} className="w-full flex flex-col items-center gap-2 h-full justify-end group">

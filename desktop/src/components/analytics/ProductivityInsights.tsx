@@ -1,3 +1,4 @@
+import { useLanguage } from "@/context/LanguageContext";
 import type { DashboardStats } from "@/types";
 
 interface ProductivityInsightsProps {
@@ -5,6 +6,7 @@ interface ProductivityInsightsProps {
 }
 
 export function ProductivityInsights({ stats }: ProductivityInsightsProps) {
+  const { t } = useLanguage();
 
   if (!stats) return null;
 
@@ -33,16 +35,16 @@ export function ProductivityInsights({ stats }: ProductivityInsightsProps) {
             <div className="p-2 bg-orange-500/20 rounded-lg">
               <span className="material-symbols-outlined text-orange-500 text-xl">local_fire_department</span>
             </div>
-            <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider">Current Streak</h3>
+            <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider">{t("current_streak")}</h3>
           </div>
           <div className="mt-4">
             <span className="text-4xl font-bold text-text-950">{stats.current_streak}</span>
-            <span className="text-text-secondary ml-2 font-medium">days</span>
+            <span className="text-text-secondary ml-2 font-medium">{t("days")}</span>
           </div>
           <p className="text-xs text-text-secondary mt-2">
             {stats.current_streak > 0 
-              ? "Keep the fire burning! Complete a task daily." 
-              : "Complete a task today to start a streak!"}
+              ? t("streak_keep_burning") 
+              : t("streak_start")}
           </p>
         </div>
       </div>
@@ -57,7 +59,7 @@ export function ProductivityInsights({ stats }: ProductivityInsightsProps) {
             <div className="p-2 bg-blue-500/20 rounded-lg">
               <span className="material-symbols-outlined text-blue-500 text-xl">bolt</span>
             </div>
-            <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider">Peak Hour</h3>
+            <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider">{t("peak_hour")}</h3>
           </div>
           <div className="mt-4">
             {stats.peak_productivity_hour !== null ? (
@@ -65,11 +67,11 @@ export function ProductivityInsights({ stats }: ProductivityInsightsProps) {
                 <span className="text-4xl font-bold text-text-950">{formatHour(stats.peak_productivity_hour)}</span>
               </>
             ) : (
-              <span className="text-2xl font-bold text-text-secondary">No data</span>
+              <span className="text-2xl font-bold text-text-secondary">{t("no_data")}</span>
             )}
           </div>
           <p className="text-xs text-text-secondary mt-2">
-            Your most productive time of day based on completions.
+            {t("peak_hour_desc")}
           </p>
         </div>
       </div>
@@ -89,15 +91,15 @@ export function ProductivityInsights({ stats }: ProductivityInsightsProps) {
               </span>
             </div>
             <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider">
-              {stats.burnout_risk ? 'Burnout Risk' : 'Avg. Task Time'}
+              {stats.burnout_risk ? t("burnout_risk") : t("avg_task_time")}
             </h3>
           </div>
           
           {stats.burnout_risk ? (
             <div className="mt-4">
-              <span className="text-2xl font-bold text-red-500">High Load</span>
+              <span className="text-2xl font-bold text-red-500">{t("burnout_high_load")}</span>
               <p className="text-xs text-text-secondary mt-2">
-                You're creating significantly more tasks than you're completing. Take a break!
+                {t("burnout_desc")}
               </p>
             </div>
           ) : (
@@ -108,7 +110,7 @@ export function ProductivityInsights({ stats }: ProductivityInsightsProps) {
                 <span className="text-2xl font-bold text-text-secondary">--</span>
               )}
               <p className="text-xs text-text-secondary mt-2">
-                Average time from creation to completion in this period.
+                {t("avg_task_time_desc")}
               </p>
             </div>
           )}
